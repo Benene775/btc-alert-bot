@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#faf9f7">
+<meta name="description" content="Passe le contrôle avant le contrôle.">
+<title>Le contrôle avant le contrôle</title>
+<link rel="stylesheet" href="/styles.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>📝</text></svg>">
+</head>
+<body>
+
+<header id="bandeau" hidden>
+  <button type="button" id="bouton-accueil" class="lien-bandeau" aria-label="Revenir à ma session">
+    <span id="bandeau-matiere">Mon contrôle</span>
+  </button>
+  <span id="bandeau-compte" class="compte-a-rebours"></span>
+</header>
+
+<main id="scene">
+
+<!-- ÉTAPE 0 — accueil -->
+<section id="ecran-accueil" class="ecran">
+  <div class="marque">Contrôle blanc</div>
+  <h1>Passe le contrôle<br>avant le contrôle.</h1>
+  <p class="chapeau">
+    Tu photographies ton cours. Tu passes un contrôle dans le vrai format de la matière.
+    Tu vois exactement ce qui te manque, et où le relire dans ton cours à toi.
+  </p>
+  <button type="button" class="principal" id="bouton-commencer">Commencer</button>
+  <button type="button" class="discret" id="bouton-reprendre" hidden>Reprendre où j'en étais</button>
+  <p class="mention">Sans compte, sans mot de passe. Tout reste dans ton téléphone.</p>
+  <p class="mention" id="mention-demo" hidden>Mode démonstration : contenus d'exemple, rien n'est analysé.</p>
+</section>
+
+<!-- ÉTAPE 1a — le contexte -->
+<section id="ecran-contexte" class="ecran" hidden>
+  <p class="etape">Étape 1 sur 5</p>
+  <h2>C'est quoi, ce contrôle ?</h2>
+  <label for="champ-niveau">Ta classe</label>
+  <select id="champ-niveau"></select>
+  <label for="champ-matiere">La matière</label>
+  <select id="champ-matiere"></select>
+  <label for="champ-date">La date du contrôle</label>
+  <input type="date" id="champ-date">
+  <p class="aide" id="aide-date">C'est elle qui rythme tout le reste.</p>
+  <button type="button" class="principal" id="bouton-vers-photos">Continuer</button>
+</section>
+
+<!-- ÉTAPE 1b — les photos -->
+<section id="ecran-photos" class="ecran" hidden>
+  <p class="etape">Étape 2 sur 5</p>
+  <h2>Photographie ton cours</h2>
+  <p class="chapeau">Toutes les pages qui tombent au contrôle. Écriture à la main, pas de souci.</p>
+
+  <label for="champ-photos" class="zone-photos" id="zone-photos">
+    <span class="zone-photos-icone" aria-hidden="true">＋</span>
+    <span class="zone-photos-texte">Ajouter des photos</span>
+    <span class="zone-photos-aide">Plusieurs pages d'un coup</span>
+  </label>
+  <input type="file" id="champ-photos" accept="image/*" multiple hidden>
+
+  <ul id="liste-photos" class="vignettes"></ul>
+
+  <button type="button" class="principal" id="bouton-analyser" disabled>Analyser mon cours</button>
+  <p class="aide" id="aide-photos">Cadre bien la page entière, et évite l'ombre de ta main.</p>
+</section>
+
+<!-- ÉTAPE 2 — confirmer le périmètre -->
+<section id="ecran-perimetre" class="ecran" hidden>
+  <p class="etape">Étape 3 sur 5</p>
+  <h2 id="titre-perimetre">J'ai repéré 1 chapitre.</h2>
+  <p class="chapeau">C'est bien tout ce qui tombe au contrôle ?</p>
+
+  <div id="alerte-photos" class="alerte" hidden></div>
+
+  <ul id="liste-chapitres" class="chapitres"></ul>
+
+  <button type="button" class="principal" id="bouton-perimetre-ok">Oui, c'est tout</button>
+  <button type="button" class="discret" id="bouton-plus-de-photos">Il manque des pages, j'en ajoute</button>
+</section>
+
+<!-- ÉTAPE 3 — le carrefour -->
+<section id="ecran-carrefour" class="ecran" hidden>
+  <p class="etape">Étape 4 sur 5</p>
+  <h2>Par quoi tu commences ?</h2>
+  <p class="chapeau">Les deux marchent. Dans les deux cas tu finiras par passer le contrôle blanc.</p>
+  <div id="cases-carrefour" class="carrefour"></div>
+</section>
+
+<!-- Fiche (générale ou ciblée) -->
+<section id="ecran-fiche" class="ecran" hidden>
+  <p class="etape" id="etiquette-fiche">Fiche de révision</p>
+  <h2 id="titre-fiche">Fiche</h2>
+  <p class="chapeau" id="chapeau-fiche"></p>
+  <div id="corps-fiche"></div>
+  <button type="button" class="principal" id="bouton-apres-fiche">Passer au contrôle blanc</button>
+  <button type="button" class="discret" id="bouton-fiche-accueil">Plus tard, garder ma session</button>
+</section>
+
+<!-- ÉTAPE 4 — le contrôle blanc -->
+<section id="ecran-controle" class="ecran ecran-plein" hidden>
+  <div class="barre-controle">
+    <span id="progression-controle" class="progression">Question 1 sur 5</span>
+    <span id="chrono" class="chrono" role="timer" aria-live="off">--:--</span>
+  </div>
+  <div class="jauge"><div id="jauge-remplie"></div></div>
+
+  <p class="partie" id="partie-question"></p>
+  <blockquote id="document-question" class="document" hidden></blockquote>
+  <h2 id="enonce-question" class="enonce"></h2>
+
+  <label for="champ-reponse" class="masque">Ta réponse</label>
+  <textarea id="champ-reponse" rows="8" placeholder="Réponds comme au contrôle : rédige."></textarea>
+
+  <button type="button" class="principal" id="bouton-question-suivante">Valider et continuer</button>
+  <button type="button" class="signalement" id="bouton-signaler">Cette question me semble fausse</button>
+  <p class="aide">Pas de retour en arrière, comme le jour J.</p>
+</section>
+
+<!-- ÉTAPE 5 — la correction -->
+<section id="ecran-correction" class="ecran" hidden>
+  <p class="etape">Étape 5 sur 5</p>
+  <h2>Ta correction</h2>
+  <p class="chapeau" id="mot-de-fin"></p>
+
+  <div id="bloc-fragiles" class="fragiles" hidden>
+    <h3>Là où tu es fragile</h3>
+    <ol id="liste-fragiles"></ol>
+  </div>
+
+  <div id="corps-correction"></div>
+
+  <button type="button" class="principal" id="bouton-fiche-ciblee">Ma fiche sur ces notions</button>
+  <button type="button" class="secondaire" id="bouton-second-controle">Me retester sur ces notions</button>
+  <button type="button" class="discret" id="bouton-correction-accueil">Garder ma session pour demain</button>
+</section>
+
+<!-- Tableau de bord de session -->
+<section id="ecran-reprise" class="ecran" hidden>
+  <p class="etape" id="etiquette-reprise">Ma session</p>
+  <h2 id="titre-reprise">On en est là.</h2>
+  <div id="rappel-date" class="rappel"></div>
+
+  <ul id="liste-etapes" class="etapes"></ul>
+
+  <div class="lien-reprise">
+    <p class="lien-reprise-titre">Garde ce lien</p>
+    <p class="lien-reprise-aide">C'est lui qui retrouve ton cours et tes résultats. Envoie-le-toi.</p>
+    <code id="texte-lien"></code>
+    <button type="button" class="secondaire" id="bouton-copier">Copier le lien</button>
+  </div>
+
+  <button type="button" class="principal" id="bouton-continuer-session">Continuer</button>
+  <button type="button" class="discret" id="bouton-nouveau-cours">Commencer un autre cours</button>
+</section>
+
+</main>
+
+<!-- Surcouche d'attente -->
+<div id="attente" class="attente" hidden aria-live="polite">
+  <div class="attente-boite">
+    <div class="pastilles"><i></i><i></i><i></i></div>
+    <p id="attente-texte">Un instant…</p>
+    <p id="attente-sous-texte" class="mention"></p>
+  </div>
+</div>
+
+<!-- Messages -->
+<div id="message" class="message" hidden role="status"></div>
+
+<!-- Boîte de dialogue de signalement -->
+<dialog id="dialogue-signalement">
+  <form method="dialog">
+    <h3>Qu'est-ce qui ne va pas ?</h3>
+    <p class="aide">Facultatif, mais ça nous aide beaucoup.</p>
+    <textarea id="motif-signalement" rows="3" placeholder="Ce n'est pas dans mon cours, la question n'a pas de sens…"></textarea>
+    <menu>
+      <button value="annuler" class="discret">Annuler</button>
+      <button value="envoyer" class="secondaire">Signaler</button>
+    </menu>
+  </form>
+</dialog>
+
+<script src="/app.js"></script>
+</body>
+</html>
