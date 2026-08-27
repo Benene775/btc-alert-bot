@@ -101,6 +101,38 @@ python3 -m pytest tests -q
 
 ---
 
+## Essayer la chaîne sur de vraies photos
+
+C’est la commande qui sert à juger le produit avant de le donner à des élèves :
+lecture des photos, fiche, contrôle, correction, fiche ciblée, second contrôle.
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-…
+python3 outils/essai.py photos/*.jpg --niveau 3e --matiere histoire-geographie
+```
+
+Elle affiche chaque étape avec sa durée et son coût, puis écrit dans
+`essais/AAAA-MM-JJ-hhmm/` un rapport HTML relisible et le JSON brut du modèle.
+
+Les réponses de l’élève se saisissent au clavier, ou viennent d’un fichier
+(`--reponses copie.txt`, un bloc `1: …` par question), ou restent vides
+(`--vide`) pour voir la correction la plus sévère.
+
+Sans clé API la commande refuse de partir : un banc d’essai qui produirait les
+contenus d’exemple ne testerait rien.
+
+Ce qu’il faut regarder dans le rapport, dans cet ordre :
+
+1. **la transcription** — est-ce bien ce que dit le cours ? c’est elle qui
+   conditionne tout le reste ;
+2. **les photos signalées illisibles** — le signal est-il juste, et le conseil
+   utile ?
+3. **les questions** — un professeur de la matière les poserait-il ?
+4. **la correction** — le renvoi au cours tombe-t-il au bon endroit ?
+5. **le coût total**, affiché en bas : c’est le prix d’un élève qui va au bout.
+
+---
+
 ## Mettre en ligne pour le test
 
 L'application est un serveur Python unique qui sert aussi la page. N'importe quel
@@ -209,6 +241,7 @@ controle-blanc/
 ├── outils/
 │   ├── polices.py    refabrique polices.css (découpe et embarque les polices)
 │   ├── artefact.py   fabrique la démonstration autonome, en un seul fichier
+│   ├── essai.py      passe de vraies photos dans toute la chaîne
 │   └── demonstration/  le faux serveur et les contenus d’exemple
 └── tests/            le parcours complet, hors ligne
 ```
