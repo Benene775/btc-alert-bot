@@ -7,6 +7,14 @@ coûte, avant de le mettre entre les mains d’élèves.
 
     python3 outils/essai.py photos/*.jpg --niveau 3e --matiere histoire-geographie
 
+Sans photos sous la main, on part d’un chapitre du corpus, qui tient lieu de
+transcription — c’est ce qui permet de travailler la qualité des fiches et des
+questions en attendant de vraies photos d’élèves :
+
+    python3 outils/essai.py --corpus liste
+    python3 outils/essai.py --corpus revolution-neolithique --niveau 6e \
+        --matiere histoire-geographie
+
 Sans ANTHROPIC_API_KEY, la commande refuse de partir plutôt que de produire
 silencieusement les contenus d’exemple : un banc d’essai qui ne teste rien est
 pire que pas de banc d’essai.
@@ -291,11 +299,38 @@ def rapport_html(essai: dict, chemin: Path) -> None:
 
 # --- Programme --------------------------------------------------------------
 
+def corpus_disponible() -> list[dict]:
+    """Le programme d’histoire de 6e, qui tient lieu de photos tant qu’on n’en a pas."""
+    import importlib.util
+
+    chemin = RACINE / "outils" / "corpus" / "histoire-6e.py"
+    spec = importlib.util.spec_from_file_location("corpus_histoire_6e", chemin)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.CHAPITRES
+
+
+def chapitre_du_corpus(identifiant: str) -> dict:
+    for chapitre in corpus_disponible():
+        if chapitre["id"] == identifiant:
+            return {
+                "titre": chapitre["titre"],
+                "notions": chapitre["notions"],
+                "transcription": chapitre["transcription"],
+                "photos": [],
+            }
+    connus = ", ".join(c["id"] for c in corpus_disponible())
+    raise SystemExit(f"chapitre inconnu : {identifiant}\nDisponibles : {connus}")
+
+
 def main() -> int:
     analyseur = argparse.ArgumentParser(
         description="Passe de vraies photos de cours dans toute la chaîne."
     )
-    analyseur.add_argument("photos", nargs="+", help="les photos du cours")
+    analyseur.add_argument("photos", nargs="*", help="les photos du cours")
+    analyseur.add_argument("--corpus", metavar="CHAPITRE",
+                           help="partir d’un chapitre du corpus au lieu de photos "
+                                "(« liste » pour voir les chapitres disponibles)")
     analyseur.add_argument("--niveau", default="3e")
     analyseur.add_argument("--matiere", default="autre")
     analyseur.add_argument("--reponses", help="fichier de réponses (« 1: … » par bloc)")
@@ -306,6 +341,14 @@ def main() -> int:
     analyseur.add_argument("--sans-second-tour", action="store_true",
                            help="s’arrêter après la correction")
     arguments = analyseur.parse_args()
+
+    if arguments.corpus == "liste":
+        for chapitre in corpus_disponible():
+            print(f"  {chapitre['id']:28} thème {chapitre['theme']} — {chapitre['titre']}")
+        return 0
+
+    if bool(arguments.photos) == bool(arguments.corpus):
+        analyseur.error("donne soit des photos, soit --corpus, pas les deux ni aucun")
 
     if not os.environ.get("ANTHROPIC_API_KEY"):
         T.alerte("ANTHROPIC_API_KEY n’est pas définie.")
@@ -352,10 +395,18 @@ def main() -> int:
                f"{usage.get('tokens_sortie', 0)} sortie · {cout:.4f} $")
         return resultat
 
-    # 1. Les photos
-    T.titre("Photos")
-    images = charger_images(arguments.photos)
-    analyse = etape("Lecture du cours", lambda: llm.analyser_photos(images, niveau, fmt["nom"]))
+    # 1. Le cours : des photos à lire, ou un chapitre du corpus déjà transcrit.
+    if arguments.corpus:
+        T.titre("Corpus")
+        chapitre = chapitre_du_corpus(arguments.corpus)
+        T.info(f"  {chapitre['titre']} — {len(chapitre['transcription'])} caractères, "
+               f"pas d’appel au modèle pour cette étape")
+        analyse = {"photos": [], "matiere_detectee": "", "chapitres": [chapitre]}
+    else:
+        T.titre("Photos")
+        images = charger_images(arguments.photos)
+        analyse = etape("Lecture du cours",
+                        lambda: llm.analyser_photos(images, niveau, fmt["nom"]))
 
     for photo in analyse["photos"]:
         if photo["lisible"]:
@@ -418,6 +469,8 @@ def main() -> int:
         "niveau": formats.nom_niveau(arguments.niveau),
         "matiere": fmt["nom"],
         "analyse": analyse,
+        "source": f"corpus : {arguments.corpus}" if arguments.corpus else
+                  f"{len(arguments.photos)} photo(s)",
         "fiche_generale": fiche,
         "controle": controle,
         "reponses": reponses,

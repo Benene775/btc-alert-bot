@@ -207,8 +207,13 @@ la phrase ou le passage concerné).
 - « duree_minutes » : le temps qu'un élève de {niveau} met raisonnablement.
 - Le barème n'est pas une note : « poids » vaut 1 pour une question courte, 2 pour une \
 question qui demande du développement. Il ne sera jamais montré comme un score.
-- Pas de QCM sauf si la matière le pratique vraiment. On veut des réponses rédigées, \
-c'est ce qui révèle ce qui n'est pas compris.
+- Le format décrit ci-dessus donne la charpente ; c'est à toi de l'ajuster au niveau. \
+Un exercice de 6e et un exercice de 3e ne demandent ni la même longueur de réponse, ni \
+la même autonomie, ni le même vocabulaire. Écris le contrôle pour un élève de {niveau}, \
+pas pour la matière en général.
+- Le contrôle ne peut pas être un QCM. Quelques questions fermées sont admises en \
+partie 1 si la matière et le niveau les pratiquent vraiment, mais l'essentiel doit être \
+rédigé : c'est ce qui révèle ce qui n'est pas compris.
 {contrainte_notions}{contrainte_deja_posees}"""
 
 SCHEMA_CONTROLE = {

@@ -43,11 +43,14 @@ FORMATS: dict[str, Format] = {
         "nom": "Histoire-Géographie / EMC",
         "duree_minutes": 55,
         "structure": (
-            "Partie 1 : questions de connaissances (dates, acteurs, définitions du cours). "
+            "Partie 1 : questions de connaissances (définitions, dates à replacer sur une "
+            "frise, vrai ou faux à justifier, parfois un court QCM). "
             "Partie 2 : étude d'un document court (texte de 4 à 8 lignes, ou description "
-            "précise d'une carte ou d'une image) avec 2 ou 3 questions dont une de "
-            "confrontation avec le cours. Partie 3 : un développement construit / paragraphe "
-            "argumenté sur un sujet du chapitre."
+            "précise d'une carte ou d'une image) avec 2 ou 3 questions, dont une de "
+            "confrontation avec le cours. "
+            "Partie 3 : une production écrite dont la nature dépend du niveau — un paragraphe "
+            "rédigé d'une dizaine de lignes en 6e et 5e, un développement construit avec "
+            "introduction et conclusion en 4e et 3e, un paragraphe argumenté au lycée."
         ),
     },
     "svt": {

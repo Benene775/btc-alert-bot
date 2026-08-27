@@ -118,6 +118,20 @@ Les réponses de l’élève se saisissent au clavier, ou viennent d’un fichie
 (`--reponses copie.txt`, un bloc `1: …` par question), ou restent vides
 (`--vide`) pour voir la correction la plus sévère.
 
+Sans photos sous la main, on part d’un chapitre du corpus — le programme d’histoire
+de 6e, écrit comme une transcription de cahier. Ça permet de travailler la qualité des
+fiches et des questions en attendant de vraies photos d’élèves :
+
+```bash
+python3 outils/essai.py --corpus liste
+python3 outils/essai.py --corpus cites-grecques --niveau 6e --matiere histoire-geographie
+```
+
+Le corpus est un banc d’essai, pas du contenu à servir : le produit tient sur le fait
+que c’est le cours de *ce prof-là* qui tombe au contrôle. Il suit le programme en
+vigueur en 6e ; le nouveau programme de cycle 3, publié au Bulletin officiel du
+28 mai 2026, s’applique en 6e à la rentrée 2027 et imposera de le reprendre.
+
 Sans clé API la commande refuse de partir : un banc d’essai qui produirait les
 contenus d’exemple ne testerait rien.
 
@@ -241,7 +255,8 @@ controle-blanc/
 ├── outils/
 │   ├── polices.py    refabrique polices.css (découpe et embarque les polices)
 │   ├── artefact.py   fabrique la démonstration autonome, en un seul fichier
-│   ├── essai.py      passe de vraies photos dans toute la chaîne
+│   ├── essai.py      passe de vraies photos, ou un chapitre du corpus, dans la chaîne
+│   ├── corpus/       le programme d’histoire de 6e, qui tient lieu de photos
 │   └── demonstration/  le faux serveur et les contenus d’exemple
 └── tests/            le parcours complet, hors ligne
 ```

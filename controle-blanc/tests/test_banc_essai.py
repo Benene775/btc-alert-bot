@@ -139,3 +139,42 @@ def test_les_photos_sont_reduites_avant_envoi(banc, tmp_path):
     assert mime == "image/jpeg"
     relue = Image.open(__import__("io").BytesIO(octets))
     assert max(relue.size) == banc.COTE_MAX
+
+
+def test_le_corpus_couvre_tout_le_programme_de_6e(banc):
+    """Neuf chapitres, trois thèmes : c’est le programme d’histoire de 6e entier."""
+    chapitres = banc.corpus_disponible()
+    assert len(chapitres) == 9
+    assert sorted({c["theme"] for c in chapitres}) == [1, 2, 3]
+    assert len({c["id"] for c in chapitres}) == 9, "identifiants en double"
+    for chapitre in chapitres:
+        assert len(chapitre["transcription"]) > 1200, chapitre["id"]
+        assert len(chapitre["notions"]) >= 4, chapitre["id"]
+        # Un cours de 6e a des définitions et des repères datés : c’est ce qui
+        # rend les questions générées vérifiables.
+        assert "Déf" in chapitre["transcription"], chapitre["id"]
+        assert "Dates" in chapitre["transcription"], chapitre["id"]
+
+
+def test_un_chapitre_du_corpus_prend_la_forme_d_une_transcription(banc):
+    chapitre = banc.chapitre_du_corpus("revolution-neolithique")
+    assert set(chapitre) == {"titre", "notions", "transcription", "photos"}
+    assert chapitre["photos"] == [], "un chapitre de corpus ne vient d’aucune photo"
+    assert "Croissant fertile" in chapitre["transcription"]
+
+
+def test_chapitre_inconnu_refuse_avec_la_liste(banc):
+    with pytest.raises(SystemExit) as erreur:
+        banc.chapitre_du_corpus("napoleon")
+    assert "revolution-neolithique" in str(erreur.value), "le message doit lister les choix"
+
+
+def test_photos_et_corpus_sont_exclusifs():
+    environnement = {"PATH": "/usr/bin:/bin", "HOME": "/tmp"}
+    for arguments in (["p.jpg", "--corpus", "debuts-humanite"], []):
+        resultat = subprocess.run(
+            [sys.executable, str(RACINE / "outils" / "essai.py"), *arguments],
+            capture_output=True, text=True, env=environnement,
+        )
+        assert resultat.returncode == 2
+        assert "soit des photos, soit --corpus" in resultat.stderr
