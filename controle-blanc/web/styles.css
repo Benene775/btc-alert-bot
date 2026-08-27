@@ -600,6 +600,9 @@ details.detail-reponse p { font-size: .92rem; margin: 0 0 10px; }
   padding: 14px 16px;
   font-size: .9rem;
   box-shadow: 0 10px 30px rgba(0, 0, 0, .2);
+  /* Le message flotte au-dessus du bouton principal : sans ça, il intercepte
+     les touchers pendant les quelques secondes où il est affiché. */
+  pointer-events: none;
 }
 
 .message[data-ton="alerte"] { background: var(--a-revoir); color: #fff; }
