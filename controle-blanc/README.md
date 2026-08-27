@@ -47,6 +47,14 @@ Deux types de fiches, à ne pas confondre :
 | « Cette question me semble fausse » | Sur chaque question, pendant le contrôle **et** dans la correction. Remonte au tableau de bord ; la question ne pénalise pas l'élève |
 | Coût par usage | Quotas côté serveur, par jour et par session (`app/config.py`) |
 
+### Aucune requête vers un tiers
+
+Les polices sont découpées et embarquées dans `web/polices.css` plutôt que chargées
+depuis Google : une requête vers `fonts.gstatic.com` transmettrait l’adresse IP de
+chaque élève à un tiers, ce que tout le reste du produit s’applique à éviter.
+`outils/polices.py` les refabrique (626 Ko de polices complètes réduits à 64 Ko), et
+refuse de produire un fichier à qui il manquerait des caractères.
+
 ### Les photos ne sont pas conservées
 
 Elles transitent en mémoire jusqu'au modèle, puis disparaissent. Ce qui est gardé, c'est
@@ -67,9 +75,15 @@ pip install -r requirements.txt
 ./lancer.sh                      # http://localhost:8000
 ```
 
-Sans `ANTHROPIC_API_KEY`, l'application démarre en **mode démonstration** : tout le
-parcours est cliquable avec un chapitre d'histoire de 3e en dur, sans un seul appel
-facturé. C'est le mode à utiliser pour montrer l'outil avant de dépenser.
+Sans `ANTHROPIC_API_KEY`, l’application démarre en **mode démonstration** : tout le
+parcours est cliquable avec un chapitre d’histoire de 3e en dur, sans un seul appel
+facturé. C’est le mode à utiliser pour montrer l’outil avant de dépenser.
+
+Pour envoyer la démonstration à quelqu’un sans rien héberger :
+
+```bash
+python3 outils/artefact.py demo.html    # un seul fichier, aucune requête sortante
+```
 
 En mode réel :
 
@@ -191,6 +205,10 @@ controle-blanc/
 │   ├── store.py      SQLite : compteurs, événements, corrigés
 │   ├── demo.py       contenus d'exemple pour le mode démonstration
 │   └── config.py     tout ce qui se règle par variable d'environnement
-├── web/              la page unique : index.html, app.js, styles.css
+├── web/              la page unique : index.html, app.js, styles.css, polices.css
+├── outils/
+│   ├── polices.py    refabrique polices.css (découpe et embarque les polices)
+│   ├── artefact.py   fabrique la démonstration autonome, en un seul fichier
+│   └── demonstration/  le faux serveur et les contenus d’exemple
 └── tests/            le parcours complet, hors ligne
 ```

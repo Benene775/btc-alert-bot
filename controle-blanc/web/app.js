@@ -1,11 +1,11 @@
-/* Contrôle blanc — application d'une seule page.
+/* Contrôle blanc — application d’une seule page.
  *
- * L'état vit dans le navigateur (localStorage), pas sur le serveur : pas de compte,
+ * L’état vit dans le navigateur (localStorage), pas sur le serveur : pas de compte,
  * pas de mot de passe, aucune donnée personnelle. Le lien de reprise (?s=…) est la
  * seule chose à conserver.
  *
- * Ce qui n'est PAS conservé : les photos. Elles servent à l'analyse puis disparaissent.
- * Ce qu'on garde, c'est la transcription du cours, qui tient dans quelques kilo-octets.
+ * Ce qui n’est PAS conservé : les photos. Elles servent à l’analyse puis disparaissent.
+ * Ce qu’on garde, c’est la transcription du cours, qui tient dans quelques kilo-octets.
  */
 
 'use strict';
@@ -54,7 +54,7 @@ function sauver() {
     localStorage.setItem(CLE_DERNIERE, etat.sessionId);
   } catch (e) {
     // Quota du navigateur plein : on prévient sans casser la séance en cours.
-    message("Ton téléphone n'a plus de place pour sauvegarder. Garde bien ton lien.", 'alerte');
+    message("Ton téléphone n’a plus de place pour sauvegarder. Garde bien ton lien.", 'alerte');
   }
 }
 
@@ -79,15 +79,15 @@ async function api(chemin, options = {}) {
   try { corps = await reponse.json(); } catch (e) { /* réponse non JSON */ }
 
   if (reponse.status === 404 && corps.detail === 'session inconnue') {
-    throw new ErreurApi("Cette session n'existe plus sur le serveur. On en recommence une.", 'session');
+    throw new ErreurApi("Cette session n’existe plus sur le serveur. On en recommence une.", 'session');
   }
   if (reponse.status === 429) {
-    throw new ErreurApi(corps.message || 'Limite atteinte pour aujourd\'hui.', 'quota');
+    throw new ErreurApi(corps.message || 'Limite atteinte pour aujourd’hui.', 'quota');
   }
   if (reponse.status === 503) {
     throw new ErreurApi(corps.message || 'Le service est indisponible. Réessaie.', 'modele');
   }
-  throw new ErreurApi(corps.detail || corps.message || "Ça n'a pas marché. Réessaie.", 'autre');
+  throw new ErreurApi(corps.detail || corps.message || "Ça n’a pas marché. Réessaie.", 'autre');
 }
 
 class ErreurApi extends Error {
@@ -141,7 +141,7 @@ function texteCompteARebours() {
   const jours = joursAvantControle();
   if (jours === null) return '';
   if (jours < 0) return 'Contrôle passé';
-  if (jours === 0) return "C'est aujourd'hui";
+  if (jours === 0) return "C’est aujourd’hui";
   if (jours === 1) return 'Demain';
   return 'J−' + jours;
 }
@@ -195,7 +195,7 @@ async function initialiser() {
       tracer('ouverture', { origine: 'lien' });
       return reprendre();
     }
-    // Le lien vient d'un autre appareil : la session serveur existe, l'état local non.
+    // Le lien vient d’un autre appareil : la session serveur existe, l’état local non.
     try {
       const info = await api('/api/session/' + encodeURIComponent(depuisLien));
       etat = etatNeuf(depuisLien, info.lien_de_reprise);
@@ -203,7 +203,7 @@ async function initialiser() {
       tracer('ouverture', { origine: 'lien_autre_appareil' });
       message("Session retrouvée, mais ton cours était gardé sur ton autre téléphone. On repart des photos.");
       return montrer('ecran-contexte');
-    } catch (e) { /* session inconnue : on tombe sur l'accueil */ }
+    } catch (e) { /* session inconnue : on tombe sur l’accueil */ }
   }
 
   if (derniere && charger(derniere)) {
@@ -267,20 +267,20 @@ async function ajouterPhotos(fichiers) {
   }
   const aTraiter = Array.from(fichiers).slice(0, restant);
   if (fichiers.length > restant) {
-    message('On garde les ' + restant + ' premières, tu pourras en ajouter d\'autres ensuite.');
+    message('On garde les ' + restant + ' premières, tu pourras en ajouter d’autres ensuite.');
   }
   for (const fichier of aTraiter) {
     try {
       const reduite = await reduirePhoto(fichier);
       photosEnAttente.push(reduite);
     } catch (e) {
-      message("Une photo n'a pas pu être lue. Réessaie avec celle-là.", 'alerte');
+      message("Une photo n’a pas pu être lue. Réessaie avec celle-là.", 'alerte');
     }
   }
   dessinerPhotos();
 }
 
-// Réduire avant l'envoi : moins de données mobiles pour l'élève, moins de tokens
+// Réduire avant l’envoi : moins de données mobiles pour l’élève, moins de tokens
 // pour nous. Au-delà de 1568 px le modèle redimensionne de toute façon.
 function reduirePhoto(fichier) {
   return new Promise((resoudre, rejeter) => {
@@ -329,7 +329,7 @@ function dessinerPhotos() {
 
 async function analyser() {
   if (!photosEnAttente.length) return;
-  attendre('On lit ton cours…', 'Une trentaine de secondes, parfois plus si l\'écriture est serrée.');
+  attendre('On lit ton cours…', 'Une trentaine de secondes, parfois plus si l’écriture est serrée.');
   const formulaire = new FormData();
   formulaire.append('session_id', etat.sessionId);
   formulaire.append('niveau', etat.niveau);
@@ -345,7 +345,7 @@ async function analyser() {
 
     const nouveaux = resultat.chapitres || [];
     if (!nouveaux.length) {
-      message("Aucune page n'était lisible. Reprends-les en photo, plus près et bien à plat.", 'alerte', 8000);
+      message("Aucune page n’était lisible. Reprends-les en photo, plus près et bien à plat.", 'alerte', 8000);
       return;
     }
     // Fusion : on peut ajouter des pages plus tard sans perdre ce qui a été lu.
@@ -370,8 +370,8 @@ async function analyser() {
 function dessinerPerimetre() {
   const nombre = etat.chapitres.length;
   $('titre-perimetre').textContent = nombre > 1
-    ? "J'ai repéré " + nombre + ' chapitres.'
-    : "J'ai repéré 1 chapitre.";
+    ? "J’ai repéré " + nombre + ' chapitres.'
+    : "J’ai repéré 1 chapitre.";
 
   const alerte = $('alerte-photos');
   if (etat.remarquesPhotos && etat.remarquesPhotos.length) {
@@ -446,7 +446,7 @@ function confirmerPerimetre() {
 
 const CHOIX = {
   revise: {
-    titre: 'Je révise d\'abord',
+    titre: 'Je révise d’abord',
     detail: 'Une fiche sur tout le chapitre, à relire tranquillement. Ensuite tu te testes.',
   },
   teste: {
@@ -457,7 +457,7 @@ const CHOIX = {
 
 function dessinerCarrefour() {
   // Ordre tiré au sort et mémorisé : sans ça, on mesurerait surtout la position
-  // du bouton, pas la préférence de l'élève.
+  // du bouton, pas la préférence de l’élève.
   if (!etat.ordreCarrefour || etat.ordreCarrefour.length !== 2) {
     etat.ordreCarrefour = Math.random() < 0.5 ? ['revise', 'teste'] : ['teste', 'revise'];
     sauver();
@@ -504,7 +504,7 @@ async function demanderFicheGenerale() {
 
 async function demanderFicheCiblee() {
   if (!etat.notionsFragiles.length) {
-    message('Rien à cibler pour l\'instant : passe un contrôle blanc d\'abord.');
+    message('Rien à cibler pour l’instant : passe un contrôle blanc d’abord.');
     return;
   }
   attendre('On prépare ta fiche ciblée…', 'Uniquement ce que tu as raté.');
@@ -686,7 +686,7 @@ function demarrerChrono() {
 
 async function terminerControle() {
   clearInterval(minuteur);
-  // La question affichée compte, même si l'élève n'a pas eu le temps de valider.
+  // La question affichée compte, même si l’élève n’a pas eu le temps de valider.
   const courante = controleEnCours.questions[controleEnCours.index];
   if (courante && controleEnCours.reponses[courante.numero] === undefined) {
     controleEnCours.reponses[courante.numero] = $('champ-reponse').value;
@@ -779,7 +779,7 @@ function afficherCorrection(correction) {
     attendue.textContent = ligne.reponse_attendue || '';
     const tienne = document.createElement('p');
     tienne.className = 'ta-reponse';
-    tienne.textContent = ligne.ta_reponse ? '« ' + ligne.ta_reponse + ' »' : '(tu n\'as rien écrit)';
+    tienne.textContent = ligne.ta_reponse ? '« ' + ligne.ta_reponse + ' »' : '(tu n’as rien écrit)';
     details.append(resume, attendue, tienne);
     carte.appendChild(details);
 
@@ -866,7 +866,7 @@ async function envoyerSignalement(motif) {
     });
     message(reponse.message);
   } catch (e) {
-    message('Signalement noté sur ton téléphone, mais pas envoyé. Ce n\'est pas grave.');
+    message('Signalement noté sur ton téléphone, mais pas envoyé. Ce n’est pas grave.');
   }
   signalementEnCours = null;
 }
@@ -881,11 +881,11 @@ function dessinerReprise() {
     rappel.textContent = matiere + ' — pense à indiquer la date du contrôle.';
   } else if (jours > 1) {
     rappel.innerHTML = '<b>' + matiere + '</b> dans ' + jours + ' jours. '
-      + 'Le meilleur moment pour te retester, c\'est maintenant, pas la veille.';
+      + 'Le meilleur moment pour te retester, c’est maintenant, pas la veille.';
   } else if (jours === 1) {
-    rappel.innerHTML = '<b>' + matiere + '</b>, c\'est demain. Un dernier contrôle blanc sur tes notions fragiles ?';
+    rappel.innerHTML = '<b>' + matiere + '</b>, c’est demain. Un dernier contrôle blanc sur tes notions fragiles ?';
   } else if (jours === 0) {
-    rappel.innerHTML = '<b>' + matiere + '</b>, c\'est aujourd\'hui. Relis ta fiche ciblée, rien de plus.';
+    rappel.innerHTML = '<b>' + matiere + '</b>, c’est aujourd’hui. Relis ta fiche ciblée, rien de plus.';
   } else {
     rappel.innerHTML = '<b>' + matiere + '</b> est passé. Tu peux commencer un nouveau cours.';
   }

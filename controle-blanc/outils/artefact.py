@@ -1,0 +1,73 @@
+#!/usr/bin/env python3
+"""Fabrique une version autonome de l'application, en un seul fichier HTML.
+
+À quoi ça sert : montrer le parcours complet sans serveur, sans clé API et sans
+dépense — pour faire cliquer un professeur ou un élève avant d'héberger quoi que
+ce soit. Aucune requête sortante : polices, styles et scripts sont embarqués.
+
+Le seul écart avec le produit, c'est le transport. Les fonctions api() et
+envoyerJson() sont remplacées par des équivalents locaux de mêmes signatures,
+si bien que tout le reste — écrans, état, minuteur, localStorage — est le code
+réel, inchangé.
+
+Usage : python3 outils/artefact.py [chemin/de/sortie.html]
+"""
+
+from __future__ import annotations
+
+import re
+import sys
+from pathlib import Path
+
+RACINE = Path(__file__).resolve().parent.parent
+WEB = RACINE / "web"
+DEMO = RACINE / "outils" / "demonstration"
+
+MENTION = (
+    "Démonstration : les photos ne sont pas vraiment analysées. Le cours d'exemple "
+    "est un chapitre d'histoire de 3e, pour juger le format des questions."
+)
+
+
+def sans_couche_reseau(source: str) -> str:
+    """Retire api(), envoyerJson() et tracer() : le faux serveur les remplace."""
+    debut = source.index("/* ------------------------------------------------------------------ api --- */")
+    fin = source.index("/* --------------------------------------------------------------- écrans --- */")
+    allege = source[:debut] + source[fin:]
+    if "fetch(" in allege:
+        raise SystemExit("il reste un appel réseau dans app.js")
+    return allege
+
+
+def main() -> int:
+    sortie = Path(sys.argv[1]) if len(sys.argv) > 1 else RACINE / "controle-blanc-demo.html"
+
+    polices = (WEB / "polices.css").read_text(encoding="utf-8")
+    styles = (WEB / "styles.css").read_text(encoding="utf-8")
+    html = (WEB / "index.html").read_text(encoding="utf-8")
+    app = sans_couche_reseau((WEB / "app.js").read_text(encoding="utf-8"))
+    donnees = (DEMO / "donnees.js").read_text(encoding="utf-8")
+    faux = (DEMO / "faux-serveur.js").read_text(encoding="utf-8")
+
+    corps = html.split("<body>", 1)[1].split("</body>", 1)[0]
+    corps = corps.replace('<script src="/app.js"></script>', "").strip()
+    corps = corps.replace("Mode démonstration : contenus d'exemple, rien n'est analysé.", MENTION)
+
+    page = (
+        "<title>Contrôle blanc</title>\n"
+        '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n'
+        f"<style>\n{polices}\n{styles}\n</style>\n\n{corps}\n\n"
+        f"<script>\n{donnees}\n\n{faux}\n\n{app}\n</script>\n"
+    )
+
+    externes = re.findall(r'(?:src|href)=["\']https?://', page) + re.findall(r"url\(https?://", page)
+    if externes:
+        raise SystemExit(f"la page appelle {len(externes)} ressource(s) externe(s)")
+
+    sortie.write_text(page, encoding="utf-8")
+    print(f"{sortie} — {len(page.encode()) // 1024} Ko, aucune requête externe")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

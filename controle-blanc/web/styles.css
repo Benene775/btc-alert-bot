@@ -1,34 +1,85 @@
-/* Mobile d'abord : tout est pensé pour un téléphone tenu à une main.
-   Cibles tactiles >= 48 px, une seule colonne, rien qui déborde en largeur. */
+/* Contrôle blanc — habillage.
+ *
+ * L'idée : une copie corrigée. Deux stylos, comme sur une vraie copie française —
+ * le bleu, c'est ce que l'élève écrit ; le rouge, c'est ce que le prof note dans
+ * la marge. Ici le rouge ne sanctionne pas, il renvoie au cours.
+ *
+ * Le bleu est donc l'accent, et le rouge est réservé aux corrections : il ne sert
+ * jamais de décoration. Les filets de marge à gauche des questions et des cartes
+ * de correction reprennent la marge d'une copie double.
+ *
+ * Mobile d'abord : une colonne, cibles tactiles >= 48 px, rien qui déborde.
+ */
+
+/* --- Jetons ------------------------------------------------------------- */
 
 :root {
-  --papier: #faf9f7;
+  /* Papier froid, celui d'une salle de classe sous néon — pas un beige chaleureux. */
+  --papier: #f6f7fa;
   --carte: #ffffff;
-  --encre: #1c1a17;
-  --encre-douce: #6b6560;
-  --trait: #e6e1d9;
-  --accent: #b4530a;
-  --accent-doux: #fdf1e6;
-  --acquis: #2f6f4f;
-  --partiel: #a8730a;
-  --a-revoir: #b03a2e;
-  --rayon: 14px;
+  --encre: #16203a;
+  --encre-douce: #5b6480;
+  --trait: #dde2ec;
+  --trait-fort: #c4ccdd;
+
+  /* Le stylo de l'élève. */
+  --accent: #2f4fd8;
+  --accent-doux: #e9edff;
+
+  /* Le stylo du prof. Sémantique, jamais décoratif. */
+  --rouge: #cf3a2c;
+  --rouge-doux: #fdeceb;
+  --acquis: #1c7a58;
+  --acquis-doux: #e4f3ec;
+  --partiel: #9c6410;
+  --partiel-doux: #fbf0dc;
+
+  --titre: "Fraunces", Georgia, "Times New Roman", serif;
+  --texte: "Schibsted Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --manuscrit: "Caveat", "Segoe Script", cursive;
+
+  --rayon: 12px;
   --marge: 20px;
+  --colonne: 620px;
 }
 
+/* Trois états chez le lecteur : choix explicite clair, choix explicite sombre,
+   ou « système », qui ne marque rien et ne laisse que prefers-color-scheme. */
 @media (prefers-color-scheme: dark) {
-  :root {
-    --papier: #14120f;
-    --carte: #1e1b17;
-    --encre: #f2ede5;
-    --encre-douce: #a09a92;
-    --trait: #322d26;
-    --accent: #e8843a;
-    --accent-doux: #2a1d12;
-    --acquis: #67b58c;
-    --partiel: #d6a441;
-    --a-revoir: #e2796a;
+  :root:not([data-theme="light"]) {
+    --papier: #0e1220;
+    --carte: #171d2f;
+    --encre: #e9edf8;
+    --encre-douce: #949db8;
+    --trait: #262f48;
+    --trait-fort: #37425f;
+    --accent: #8aa0ff;
+    --accent-doux: #1a2244;
+    --rouge: #f0796a;
+    --rouge-doux: #2e1a19;
+    --acquis: #55bd90;
+    --acquis-doux: #13291f;
+    --partiel: #d7a548;
+    --partiel-doux: #2a2013;
   }
+}
+
+:root[data-theme="dark"] {
+  --papier: #0e1220;
+  --carte: #171d2f;
+  --encre: #e9edf8;
+  --encre-douce: #949db8;
+  --trait: #262f48;
+  --trait-fort: #37425f;
+  --accent: #8aa0ff;
+  --accent-doux: #1a2244;
+  --rouge: #f0796a;
+  --rouge-doux: #2e1a19;
+  --acquis: #55bd90;
+  --acquis-doux: #13291f;
+  --partiel: #d7a548;
+  --partiel-doux: #2a2013;
 }
 
 * { box-sizing: border-box; }
@@ -42,7 +93,9 @@ html { -webkit-text-size-adjust: 100%; }
 
 body {
   margin: 0;
-  font: 17px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  font-family: var(--texte);
+  font-size: 17px;
+  line-height: 1.55;
   background: var(--papier);
   color: var(--encre);
   overflow-x: hidden;
@@ -60,7 +113,7 @@ body {
   justify-content: space-between;
   gap: 12px;
   padding: max(10px, env(safe-area-inset-top)) var(--marge) 10px;
-  background: color-mix(in srgb, var(--papier) 88%, transparent);
+  background: color-mix(in srgb, var(--papier) 90%, transparent);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--trait);
 }
@@ -70,8 +123,8 @@ body {
   border: 0;
   padding: 6px 0;
   font: inherit;
-  font-size: .9rem;
-  font-weight: 600;
+  font-size: .88rem;
+  font-weight: 700;
   color: var(--encre);
   text-align: left;
   cursor: pointer;
@@ -79,81 +132,219 @@ body {
 }
 
 .compte-a-rebours {
-  font-size: .8rem;
-  font-weight: 600;
+  font-family: var(--mono);
+  font-size: .72rem;
+  letter-spacing: .04em;
   color: var(--accent);
   background: var(--accent-doux);
-  padding: 5px 10px;
-  border-radius: 999px;
+  padding: 6px 10px;
+  border-radius: 6px;
   white-space: nowrap;
 }
 
-/* --- Écrans ------------------------------------------------------------- */
+/* --- Trame -------------------------------------------------------------- */
 
-#scene { padding: 28px var(--marge) calc(48px + env(safe-area-inset-bottom)); max-width: 640px; margin: 0 auto; }
+#scene {
+  padding: 28px var(--marge) calc(56px + env(safe-area-inset-bottom));
+  max-width: var(--colonne);
+  margin: 0 auto;
+}
 
-.ecran { animation: entree .28s ease both; }
+.ecran { animation: entree .26s ease both; }
 
-@keyframes entree { from { opacity: 0; transform: translateY(10px); } }
+@keyframes entree { from { opacity: 0; transform: translateY(8px); } }
 
 @media (prefers-reduced-motion: reduce) {
   .ecran { animation: none; }
 }
 
-.marque {
-  font-size: .72rem;
-  letter-spacing: .16em;
-  text-transform: uppercase;
-  color: var(--accent);
-  font-weight: 700;
-  margin-bottom: 28px;
-}
+/* --- Typographie -------------------------------------------------------- */
 
 h1 {
-  font-size: 2.05rem;
-  line-height: 1.14;
-  letter-spacing: -.02em;
-  margin: 0 0 18px;
-  font-weight: 700;
+  font-family: var(--titre);
+  font-weight: 600;
+  font-size: clamp(2.3rem, 9vw, 3.2rem);
+  line-height: 1.04;
+  letter-spacing: -.025em;
+  text-wrap: balance;
+  margin: 0 0 20px;
+}
+
+h1 em {
+  font-style: italic;
+  color: var(--accent);
 }
 
 h2 {
-  font-size: 1.45rem;
-  line-height: 1.2;
-  letter-spacing: -.015em;
-  margin: 0 0 12px;
-  font-weight: 700;
-}
-
-h3 { font-size: 1rem; margin: 0 0 10px; font-weight: 700; }
-
-.etape {
-  font-size: .72rem;
-  letter-spacing: .12em;
-  text-transform: uppercase;
-  color: var(--encre-douce);
+  font-family: var(--titre);
   font-weight: 600;
-  margin: 0 0 10px;
+  font-size: clamp(1.5rem, 5.5vw, 1.85rem);
+  line-height: 1.14;
+  letter-spacing: -.018em;
+  text-wrap: balance;
+  margin: 0 0 12px;
 }
 
-.chapeau { color: var(--encre-douce); margin: 0 0 26px; }
+h3 {
+  font-family: var(--texte);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -.008em;
+  margin: 0 0 8px;
+}
+
+.marque,
+.etape,
+.titre-bloc,
+.progression,
+.bloc-titre,
+.partie {
+  font-family: var(--mono);
+  font-size: .7rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.marque { color: var(--accent); margin: 0 0 26px; }
+.etape { color: var(--encre-douce); margin: 0 0 10px; }
+
+.chapeau {
+  color: var(--encre-douce);
+  font-size: 1.02rem;
+  margin: 0 0 26px;
+  max-width: 46ch;
+}
 
 .aide { font-size: .85rem; color: var(--encre-douce); margin: 12px 0 0; }
 
-.mention { font-size: .78rem; color: var(--encre-douce); margin: 18px 0 0; text-align: center; }
+.mention {
+  font-size: .78rem;
+  color: var(--encre-douce);
+  margin: 16px 0 0;
+  text-align: center;
+}
+
+.alerte-demo {
+  background: var(--partiel-doux);
+  color: var(--partiel);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
 
 .masque {
   position: absolute; width: 1px; height: 1px; overflow: hidden;
-  clip: rect(0 0 0 0); white-space: nowrap;
+  clip-path: inset(50%); white-space: nowrap;
 }
+
+/* --- Accueil : la page publique ---------------------------------------- */
+
+.ecran-accueil { display: flex; flex-direction: column; gap: 56px; }
+
+.hero { display: flex; flex-direction: column; }
+
+.hero .principal { margin-top: 28px; }
+
+/* La copie corrigée : la thèse du produit en un seul objet.
+   Marge rouge à gauche, écriture bleue de l'élève, annotation du prof. */
+.copie {
+  display: flex;
+  margin: 6px 0 0;
+  background: var(--carte);
+  border: 1px solid var(--trait);
+  border-radius: var(--rayon);
+  overflow: hidden;
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--encre) 6%, transparent);
+}
+
+.copie-marge {
+  flex: 0 0 46px;
+  border-right: 1.5px solid color-mix(in srgb, var(--rouge) 45%, transparent);
+  background: color-mix(in srgb, var(--rouge-doux) 55%, var(--carte));
+  display: flex;
+  justify-content: center;
+  padding-top: 18px;
+}
+
+.copie-numero {
+  font-family: var(--mono);
+  font-size: .82rem;
+  color: var(--rouge);
+}
+
+.copie-corps { padding: 18px; flex: 1; min-width: 0; }
+
+.copie-question {
+  font-size: .84rem;
+  color: var(--encre-douce);
+  margin: 0 0 10px;
+}
+
+.copie-reponse {
+  font-family: var(--manuscrit);
+  font-size: 1.5rem;
+  line-height: 1.25;
+  color: var(--accent);
+  margin: 0 0 14px;
+}
+
+.copie-note {
+  font-size: .85rem;
+  color: var(--rouge);
+  margin: 0;
+  padding-left: 12px;
+  border-left: 2px solid color-mix(in srgb, var(--rouge) 40%, transparent);
+}
+
+.bloc { display: flex; flex-direction: column; }
+
+.titre-bloc {
+  color: var(--encre-douce);
+  margin: 0 0 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--trait);
+}
+
+/* Le déroulé est numéroté parce que c'est réellement une séquence. */
+.deroule { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 26px; }
+
+.deroule li { display: flex; gap: 16px; align-items: flex-start; }
+
+.deroule-numero {
+  flex: 0 0 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--accent-doux);
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: .84rem;
+  display: grid;
+  place-items: center;
+}
+
+.deroule p { margin: 0; color: var(--encre-douce); font-size: .94rem; }
+
+.arguments { display: flex; flex-direction: column; gap: 20px; }
+
+.argument {
+  padding-left: 16px;
+  border-left: 2px solid var(--trait-fort);
+}
+
+.argument p { margin: 0; color: var(--encre-douce); font-size: .94rem; }
+
+.pied {
+  border-top: 1px solid var(--trait);
+  padding-top: 20px;
+  color: var(--encre-douce);
+  font-size: .85rem;
+}
+
+.pied p { margin: 0; }
 
 /* --- Boutons ------------------------------------------------------------ */
 
-button {
-  font: inherit;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-}
+button { font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 
 .principal, .secondaire, .discret {
   display: block;
@@ -162,19 +353,22 @@ button {
   padding: 15px 20px;
   border-radius: var(--rayon);
   border: 1px solid transparent;
-  font-weight: 600;
+  font-family: var(--texte);
+  font-weight: 700;
+  font-size: 1rem;
   margin-top: 12px;
   transition: transform .1s ease, opacity .15s ease;
 }
 
-.principal { background: var(--encre); color: var(--papier); }
-.secondaire { background: var(--carte); color: var(--encre); border-color: var(--trait); }
-.discret { background: none; color: var(--encre-douce); min-height: 48px; font-weight: 500; }
+.principal { background: var(--accent); color: #fff; }
+.secondaire { background: var(--carte); color: var(--encre); border-color: var(--trait-fort); }
+.discret { background: none; color: var(--encre-douce); min-height: 48px; font-weight: 400; }
 
 .principal:active, .secondaire:active { transform: scale(.985); }
-.principal:disabled { opacity: .35; cursor: not-allowed; }
+.principal:disabled { opacity: .38; cursor: not-allowed; }
 
-button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible {
+button:focus-visible, select:focus-visible, input:focus-visible,
+textarea:focus-visible, summary:focus-visible, a:focus-visible {
   outline: 3px solid var(--accent);
   outline-offset: 2px;
 }
@@ -185,7 +379,7 @@ button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-
   background: none;
   border: 0;
   color: var(--encre-douce);
-  font-size: .85rem;
+  font-size: .84rem;
   text-decoration: underline;
   text-underline-offset: 3px;
   padding: 14px 0;
@@ -193,14 +387,18 @@ button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-
   margin-top: 4px;
 }
 
-.signalement[data-signalee="oui"] { color: var(--accent); text-decoration: none; font-weight: 600; }
+.signalement[data-signalee="oui"] {
+  color: var(--rouge);
+  text-decoration: none;
+  font-weight: 700;
+}
 
 /* --- Champs ------------------------------------------------------------- */
 
 label {
   display: block;
-  font-size: .85rem;
-  font-weight: 600;
+  font-size: .84rem;
+  font-weight: 700;
   margin: 20px 0 7px;
   color: var(--encre-douce);
 }
@@ -209,18 +407,19 @@ select, input[type="date"], textarea {
   width: 100%;
   min-height: 54px;
   padding: 14px;
-  font: inherit;
+  font-family: var(--texte);
+  font-size: 1rem;
   color: var(--encre);
   background: var(--carte);
-  border: 1px solid var(--trait);
+  border: 1px solid var(--trait-fort);
   border-radius: var(--rayon);
   appearance: none;
 }
 
-textarea { min-height: 150px; resize: vertical; line-height: 1.5; }
+textarea { min-height: 150px; resize: vertical; line-height: 1.55; }
 
 select {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b6560' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235b6480' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 16px center;
   padding-right: 42px;
@@ -234,10 +433,10 @@ select {
   align-items: center;
   justify-content: center;
   gap: 5px;
-  min-height: 148px;
+  min-height: 150px;
   padding: 24px;
   margin: 0;
-  border: 2px dashed var(--trait);
+  border: 1.5px dashed var(--trait-fort);
   border-radius: var(--rayon);
   background: var(--carte);
   cursor: pointer;
@@ -245,7 +444,7 @@ select {
 }
 
 .zone-photos-icone { font-size: 1.7rem; color: var(--accent); line-height: 1; }
-.zone-photos-texte { font-weight: 600; font-size: .98rem; }
+.zone-photos-texte { font-weight: 700; font-size: .98rem; }
 .zone-photos-aide { font-size: .8rem; color: var(--encre-douce); }
 
 .vignettes {
@@ -263,7 +462,7 @@ select {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: 10px;
+  border-radius: 8px;
   border: 1px solid var(--trait);
   display: block;
 }
@@ -276,7 +475,7 @@ select {
   height: 30px;
   border-radius: 50%;
   border: 0;
-  background: rgba(28, 26, 23, .82);
+  background: rgba(22, 32, 58, .85);
   color: #fff;
   font-size: 1rem;
   line-height: 1;
@@ -284,7 +483,7 @@ select {
   place-items: center;
 }
 
-.vignettes li[data-illisible="oui"] img { border: 2px solid var(--a-revoir); }
+.vignettes li[data-illisible="oui"] img { border: 2px solid var(--rouge); }
 
 /* --- Chapitres ---------------------------------------------------------- */
 
@@ -298,7 +497,7 @@ select {
   margin-bottom: 10px;
 }
 
-.chapitres li[data-actif="non"] { opacity: .5; }
+.chapitres li[data-actif="non"] { opacity: .48; }
 
 .chapitre-entete { display: flex; align-items: flex-start; gap: 12px; }
 
@@ -315,8 +514,8 @@ select {
 .chapitre-notions { font-size: .85rem; color: var(--encre-douce); margin: 8px 0 0; }
 
 .alerte {
-  background: var(--accent-doux);
-  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  background: var(--rouge-doux);
+  border: 1px solid color-mix(in srgb, var(--rouge) 30%, transparent);
   border-radius: var(--rayon);
   padding: 14px 16px;
   margin-bottom: 18px;
@@ -335,18 +534,27 @@ select {
   width: 100%;
   text-align: left;
   background: var(--carte);
-  border: 1px solid var(--trait);
+  border: 1px solid var(--trait-fort);
   border-radius: var(--rayon);
   padding: 22px;
-  min-height: 128px;
+  min-height: 132px;
   color: var(--encre);
 }
 
 .case-carrefour:active { transform: scale(.985); }
-.case-carrefour strong { display: block; font-size: 1.12rem; margin-bottom: 7px; }
+
+.case-carrefour strong {
+  display: block;
+  font-family: var(--titre);
+  font-weight: 600;
+  font-size: 1.24rem;
+  letter-spacing: -.015em;
+  margin-bottom: 8px;
+}
+
 .case-carrefour span { display: block; font-size: .88rem; color: var(--encre-douce); }
 
-/* --- Fiche -------------------------------------------------------------- */
+/* --- Fiches ------------------------------------------------------------- */
 
 .section-fiche {
   background: var(--carte);
@@ -364,16 +572,15 @@ select {
   margin: 14px 0 0;
   padding: 12px 14px;
   background: var(--accent-doux);
-  border-radius: 10px;
+  border-radius: 8px;
   font-size: .92rem;
-  font-weight: 600;
 }
 
 .definitions { list-style: none; padding: 0; margin: 0; }
 .definitions li { margin-bottom: 12px; font-size: .93rem; }
 .definitions b { display: block; }
 
-/* --- Contrôle ----------------------------------------------------------- */
+/* --- Le contrôle -------------------------------------------------------- */
 
 .ecran-plein { min-height: 70vh; display: flex; flex-direction: column; }
 
@@ -384,94 +591,100 @@ select {
   margin-bottom: 10px;
 }
 
-.progression { font-size: .78rem; letter-spacing: .1em; text-transform: uppercase; color: var(--encre-douce); font-weight: 600; }
+.progression { color: var(--encre-douce); }
 
 .chrono {
+  font-family: var(--mono);
   font-variant-numeric: tabular-nums;
-  font-weight: 700;
   font-size: 1.05rem;
-  padding: 4px 10px;
-  border-radius: 999px;
+  padding: 5px 11px;
+  border-radius: 6px;
   background: var(--carte);
-  border: 1px solid var(--trait);
+  border: 1px solid var(--trait-fort);
 }
 
-.chrono[data-urgent="oui"] { color: #fff; background: var(--a-revoir); border-color: var(--a-revoir); }
+.chrono[data-urgent="oui"] { color: #fff; background: var(--rouge); border-color: var(--rouge); }
 
-.jauge { height: 4px; background: var(--trait); border-radius: 999px; overflow: hidden; margin-bottom: 22px; }
+.jauge { height: 3px; background: var(--trait); border-radius: 999px; overflow: hidden; margin-bottom: 24px; }
 #jauge-remplie { height: 100%; width: 0; background: var(--accent); transition: width .3s ease; }
 
-.partie { font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); font-weight: 700; margin: 0 0 10px; }
+.partie { color: var(--accent); margin: 0 0 12px; }
 
+/* Le document tient dans la marge, comme une pièce jointe au sujet. */
 .document {
-  margin: 0 0 18px;
-  padding: 16px;
+  margin: 0 0 20px;
+  padding: 16px 18px;
   background: var(--carte);
-  border-left: 3px solid var(--accent);
-  border-radius: 0 10px 10px 0;
-  font-size: .93rem;
+  border: 1px solid var(--trait);
+  border-left: 3px solid var(--trait-fort);
+  border-radius: 0 var(--rayon) var(--rayon) 0;
+  font-size: .92rem;
   white-space: pre-wrap;
 }
 
-.enonce { font-size: 1.22rem; line-height: 1.35; margin-bottom: 18px; }
+.enonce {
+  font-family: var(--titre);
+  font-weight: 600;
+  font-size: 1.3rem;
+  line-height: 1.28;
+  letter-spacing: -.012em;
+  text-wrap: pretty;
+  margin-bottom: 18px;
+}
 
-/* --- Correction --------------------------------------------------------- */
+/* --- La correction ------------------------------------------------------ */
 
 .fragiles {
-  background: var(--accent-doux);
-  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  background: var(--carte);
+  border: 1px solid var(--trait-fort);
   border-radius: var(--rayon);
-  padding: 18px;
+  padding: 20px;
   margin-bottom: 24px;
 }
 
+.fragiles h3 { font-family: var(--titre); font-size: 1.15rem; font-weight: 600; margin-bottom: 14px; }
 .fragiles ol { margin: 0; padding-left: 20px; }
-.fragiles li { margin-bottom: 12px; }
+.fragiles li { margin-bottom: 14px; }
+.fragiles li::marker { font-family: var(--mono); font-size: .85rem; color: var(--accent); }
 .fragiles li:last-child { margin-bottom: 0; }
 .fragiles b { display: block; }
 .fragiles span { font-size: .88rem; color: var(--encre-douce); }
 
+/* Le filet de gauche, c'est le stylo du prof dans la marge. */
 .carte-correction {
   background: var(--carte);
   border: 1px solid var(--trait);
-  border-left: 4px solid var(--trait);
-  border-radius: var(--rayon);
+  border-left: 3px solid var(--trait-fort);
+  border-radius: 0 var(--rayon) var(--rayon) 0;
   padding: 18px;
   margin-bottom: 12px;
 }
 
 .carte-correction[data-statut="acquis"] { border-left-color: var(--acquis); }
 .carte-correction[data-statut="partiel"] { border-left-color: var(--partiel); }
-.carte-correction[data-statut="a_revoir"] { border-left-color: var(--a-revoir); }
+.carte-correction[data-statut="a_revoir"] { border-left-color: var(--rouge); }
 
 .etiquette-statut {
   display: inline-block;
-  font-size: .72rem;
-  letter-spacing: .08em;
+  font-family: var(--mono);
+  font-size: .66rem;
+  letter-spacing: .12em;
   text-transform: uppercase;
-  font-weight: 700;
-  padding: 4px 9px;
-  border-radius: 999px;
+  padding: 4px 8px;
+  border-radius: 5px;
   margin-bottom: 10px;
 }
 
-[data-statut="acquis"] .etiquette-statut { color: var(--acquis); background: color-mix(in srgb, var(--acquis) 14%, transparent); }
-[data-statut="partiel"] .etiquette-statut { color: var(--partiel); background: color-mix(in srgb, var(--partiel) 14%, transparent); }
-[data-statut="a_revoir"] .etiquette-statut { color: var(--a-revoir); background: color-mix(in srgb, var(--a-revoir) 14%, transparent); }
+[data-statut="acquis"] .etiquette-statut { color: var(--acquis); background: var(--acquis-doux); }
+[data-statut="partiel"] .etiquette-statut { color: var(--partiel); background: var(--partiel-doux); }
+[data-statut="a_revoir"] .etiquette-statut { color: var(--rouge); background: var(--rouge-doux); }
 
-.question-correction { font-weight: 600; margin: 0 0 14px; }
+.question-correction { font-weight: 700; margin: 0 0 14px; }
 
 .bloc-correction { margin-bottom: 14px; }
 .bloc-correction:last-child { margin-bottom: 0; }
 
-.bloc-titre {
-  font-size: .74rem;
-  letter-spacing: .09em;
-  text-transform: uppercase;
-  color: var(--encre-douce);
-  font-weight: 700;
-  margin: 0 0 5px;
-}
+.bloc-titre { color: var(--encre-douce); margin: 0 0 6px; }
 
 .bloc-correction p, .bloc-correction ul { margin: 0; font-size: .93rem; }
 .bloc-correction ul { padding-left: 20px; }
@@ -479,24 +692,28 @@ select {
 
 .ta-reponse { white-space: pre-wrap; color: var(--encre-douce); font-style: italic; }
 
+/* Le renvoi au cours, c'est le cœur de la correction : on le pose en bleu,
+   du côté de l'élève, pas en rouge. */
 .repere {
   background: var(--accent-doux);
-  border-radius: 10px;
+  border-radius: 8px;
   padding: 11px 13px;
   font-size: .9rem;
 }
 
 details.detail-reponse { margin-top: 12px; }
+
 details.detail-reponse summary {
-  font-size: .85rem;
+  font-size: .84rem;
   color: var(--accent);
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   padding: 8px 0;
   min-height: 40px;
   display: flex;
   align-items: center;
 }
+
 details.detail-reponse p { font-size: .92rem; margin: 0 0 10px; }
 
 /* --- Reprise de session ------------------------------------------------- */
@@ -522,13 +739,13 @@ details.detail-reponse p { font-size: .92rem; margin: 0 0 10px; }
 }
 
 .etapes li:last-child { border-bottom: 0; }
-.etapes .marqueur { flex: 0 0 22px; font-weight: 700; color: var(--accent); }
+.etapes .marqueur { flex: 0 0 22px; font-family: var(--mono); color: var(--acquis); }
 .etapes li[data-fait="non"] { color: var(--encre-douce); }
-.etapes li[data-fait="non"] .marqueur { color: var(--trait); }
+.etapes li[data-fait="non"] .marqueur { color: var(--trait-fort); }
 
 .lien-reprise {
   background: var(--carte);
-  border: 1px solid var(--trait);
+  border: 1px solid var(--trait-fort);
   border-radius: var(--rayon);
   padding: 18px;
   margin-bottom: 20px;
@@ -539,10 +756,11 @@ details.detail-reponse p { font-size: .92rem; margin: 0 0 10px; }
 
 .lien-reprise code {
   display: block;
-  font-size: .78rem;
+  font-family: var(--mono);
+  font-size: .74rem;
   word-break: break-all;
   background: var(--papier);
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 11px;
   margin-bottom: 10px;
   color: var(--encre-douce);
@@ -557,12 +775,12 @@ details.detail-reponse p { font-size: .92rem; margin: 0 0 10px; }
   display: grid;
   place-items: center;
   padding: var(--marge);
-  background: color-mix(in srgb, var(--papier) 92%, transparent);
+  background: color-mix(in srgb, var(--papier) 93%, transparent);
   backdrop-filter: blur(3px);
 }
 
 .attente-boite { text-align: center; max-width: 320px; }
-.attente-boite p { margin: 0; font-weight: 600; }
+.attente-boite p { margin: 0; font-weight: 700; }
 .attente-boite .mention { margin-top: 8px; font-weight: 400; }
 
 .pastilles { display: flex; gap: 7px; justify-content: center; margin-bottom: 18px; }
@@ -599,13 +817,13 @@ details.detail-reponse p { font-size: .92rem; margin: 0 0 10px; }
   border-radius: var(--rayon);
   padding: 14px 16px;
   font-size: .9rem;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, .2);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .22);
   /* Le message flotte au-dessus du bouton principal : sans ça, il intercepte
      les touchers pendant les quelques secondes où il est affiché. */
   pointer-events: none;
 }
 
-.message[data-ton="alerte"] { background: var(--a-revoir); color: #fff; }
+.message[data-ton="alerte"] { background: var(--rouge); color: #fff; }
 
 /* --- Dialogue ----------------------------------------------------------- */
 
@@ -618,16 +836,18 @@ dialog {
   color: var(--encre);
 }
 
-dialog::backdrop { background: rgba(0, 0, 0, .45); }
-dialog h3 { margin-top: 0; }
+dialog::backdrop { background: rgba(14, 18, 32, .5); }
+dialog h3 { margin-top: 0; font-family: var(--titre); font-size: 1.2rem; }
 dialog textarea { min-height: 90px; margin-top: 12px; }
 dialog menu { display: flex; gap: 10px; padding: 0; margin: 16px 0 0; }
 dialog menu button { margin-top: 0; }
 
-/* --- Écrans larges : on reste centré, on ne s'étale pas ------------------ */
+/* --- Écrans larges : on reste sur une colonne, on ne s'étale pas --------- */
 
 @media (min-width: 700px) {
-  #scene { padding-top: 44px; }
-  h1 { font-size: 2.5rem; }
+  #scene { padding-top: 48px; }
   .carrefour { grid-template-columns: 1fr 1fr; }
+  .arguments { flex-direction: row; gap: 24px; }
+  .argument { flex: 1; }
+  .copie-reponse { font-size: 1.7rem; }
 }

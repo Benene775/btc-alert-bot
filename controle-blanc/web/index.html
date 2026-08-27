@@ -3,9 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#faf9f7">
+<meta name="theme-color" content="#f6f7fa">
 <meta name="description" content="Passe le contrôle avant le contrôle.">
 <title>Le contrôle avant le contrôle</title>
+<link rel="stylesheet" href="/polices.css">
 <link rel="stylesheet" href="/styles.css">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>📝</text></svg>">
 </head>
@@ -21,30 +22,93 @@
 <main id="scene">
 
 <!-- ÉTAPE 0 — accueil -->
-<section id="ecran-accueil" class="ecran">
-  <div class="marque">Contrôle blanc</div>
-  <h1>Passe le contrôle<br>avant le contrôle.</h1>
-  <p class="chapeau">
-    Tu photographies ton cours. Tu passes un contrôle dans le vrai format de la matière.
-    Tu vois exactement ce qui te manque, et où le relire dans ton cours à toi.
-  </p>
-  <button type="button" class="principal" id="bouton-commencer">Commencer</button>
-  <button type="button" class="discret" id="bouton-reprendre" hidden>Reprendre où j'en étais</button>
-  <p class="mention">Sans compte, sans mot de passe. Tout reste dans ton téléphone.</p>
-  <p class="mention" id="mention-demo" hidden>Mode démonstration : contenus d'exemple, rien n'est analysé.</p>
+<section id="ecran-accueil" class="ecran ecran-accueil" hidden>
+
+  <div class="hero">
+    <p class="marque">Contrôle blanc</p>
+    <h1>Passe le contrôle<br><em>avant</em> le contrôle.</h1>
+    <p class="chapeau">
+      Photographie ton cours. Passe un vrai contrôle dessus. Découvre ce qui te manque
+      pendant qu’il est encore temps de le réviser.
+    </p>
+
+    <figure class="copie" aria-label="Extrait d’une copie corrigée">
+      <div class="copie-marge"><span class="copie-numero">3</span></div>
+      <div class="copie-corps">
+        <p class="copie-question">Qu’appelle-t-on une « guerre totale » ?</p>
+        <p class="copie-reponse">C’est quand tout le pays travaille pour la guerre, pas seulement les soldats.</p>
+        <p class="copie-note">Juste. Il manque un exemple — ton cours en donne deux, partie III.</p>
+      </div>
+    </figure>
+
+    <button type="button" class="principal" id="bouton-commencer">Commencer</button>
+    <button type="button" class="discret" id="bouton-reprendre" hidden>Reprendre où j’en étais</button>
+    <p class="mention">Sans compte, sans mot de passe. Tout reste dans ton téléphone.</p>
+    <p class="mention alerte-demo" id="mention-demo" hidden>Mode démonstration : contenus d’exemple, rien n’est analysé.</p>
+  </div>
+
+  <section class="bloc">
+    <p class="titre-bloc">Comment ça marche</p>
+    <ol class="deroule">
+      <li>
+        <span class="deroule-numero">1</span>
+        <div>
+          <h3>Tu photographies ton cours</h3>
+          <p>Plusieurs pages d’un coup, écriture à la main comprise. Si une photo est illisible, on te le dit tout de suite.</p>
+        </div>
+      </li>
+      <li>
+        <span class="deroule-numero">2</span>
+        <div>
+          <h3>Tu passes le contrôle blanc</h3>
+          <p>Au format réel de la matière, chronométré, sans retour en arrière. Comme le jour J, mais sans conséquence.</p>
+        </div>
+      </li>
+      <li>
+        <span class="deroule-numero">3</span>
+        <div>
+          <h3>Tu vois ce qui te manque</h3>
+          <p>Pour chaque réponse : ce qui manquait, et à quel endroit de <em>ton</em> cours le relire. Puis une fiche courte sur ces notions-là.</p>
+        </div>
+      </li>
+    </ol>
+  </section>
+
+  <section class="bloc">
+    <p class="titre-bloc">Pourquoi ça marche mieux qu’une fiche</p>
+    <div class="arguments">
+      <div class="argument">
+        <h3>C’est ton cours, pas un cours</h3>
+        <p>Ce qui tombe au contrôle, c’est ce que ton prof a écrit au tableau. Les questions viennent de tes pages à toi.</p>
+      </div>
+      <div class="argument">
+        <h3>Ce que tu rates revient</h3>
+        <p>Les notions que tu manques aujourd’hui te sont reposées demain, autrement. C’est comme ça qu’elles rentrent.</p>
+      </div>
+      <div class="argument">
+        <h3>Aucune note</h3>
+        <p>Jamais de « tu aurais 12 ». Juste les trois notions sur lesquelles tu es fragile, et où les retravailler.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="pied">
+    <p>Rien à installer, rien à créer. Tu gardes un lien, tu reviens quand tu veux.</p>
+  </footer>
+
 </section>
 
 <!-- ÉTAPE 1a — le contexte -->
 <section id="ecran-contexte" class="ecran" hidden>
   <p class="etape">Étape 1 sur 5</p>
-  <h2>C'est quoi, ce contrôle ?</h2>
+  <h2>C’est quoi, ce contrôle ?</h2>
   <label for="champ-niveau">Ta classe</label>
   <select id="champ-niveau"></select>
   <label for="champ-matiere">La matière</label>
   <select id="champ-matiere"></select>
   <label for="champ-date">La date du contrôle</label>
   <input type="date" id="champ-date">
-  <p class="aide" id="aide-date">C'est elle qui rythme tout le reste.</p>
+  <p class="aide" id="aide-date">C’est elle qui rythme tout le reste.</p>
   <button type="button" class="principal" id="bouton-vers-photos">Continuer</button>
 </section>
 
@@ -57,28 +121,28 @@
   <label for="champ-photos" class="zone-photos" id="zone-photos">
     <span class="zone-photos-icone" aria-hidden="true">＋</span>
     <span class="zone-photos-texte">Ajouter des photos</span>
-    <span class="zone-photos-aide">Plusieurs pages d'un coup</span>
+    <span class="zone-photos-aide">Plusieurs pages d’un coup</span>
   </label>
   <input type="file" id="champ-photos" accept="image/*" multiple hidden>
 
   <ul id="liste-photos" class="vignettes"></ul>
 
   <button type="button" class="principal" id="bouton-analyser" disabled>Analyser mon cours</button>
-  <p class="aide" id="aide-photos">Cadre bien la page entière, et évite l'ombre de ta main.</p>
+  <p class="aide" id="aide-photos">Cadre bien la page entière, et évite l’ombre de ta main.</p>
 </section>
 
 <!-- ÉTAPE 2 — confirmer le périmètre -->
 <section id="ecran-perimetre" class="ecran" hidden>
   <p class="etape">Étape 3 sur 5</p>
-  <h2 id="titre-perimetre">J'ai repéré 1 chapitre.</h2>
-  <p class="chapeau">C'est bien tout ce qui tombe au contrôle ?</p>
+  <h2 id="titre-perimetre">J’ai repéré 1 chapitre.</h2>
+  <p class="chapeau">C’est bien tout ce qui tombe au contrôle ?</p>
 
   <div id="alerte-photos" class="alerte" hidden></div>
 
   <ul id="liste-chapitres" class="chapitres"></ul>
 
-  <button type="button" class="principal" id="bouton-perimetre-ok">Oui, c'est tout</button>
-  <button type="button" class="discret" id="bouton-plus-de-photos">Il manque des pages, j'en ajoute</button>
+  <button type="button" class="principal" id="bouton-perimetre-ok">Oui, c’est tout</button>
+  <button type="button" class="discret" id="bouton-plus-de-photos">Il manque des pages, j’en ajoute</button>
 </section>
 
 <!-- ÉTAPE 3 — le carrefour -->
@@ -147,7 +211,7 @@
 
   <div class="lien-reprise">
     <p class="lien-reprise-titre">Garde ce lien</p>
-    <p class="lien-reprise-aide">C'est lui qui retrouve ton cours et tes résultats. Envoie-le-toi.</p>
+    <p class="lien-reprise-aide">C’est lui qui retrouve ton cours et tes résultats. Envoie-le-toi.</p>
     <code id="texte-lien"></code>
     <button type="button" class="secondaire" id="bouton-copier">Copier le lien</button>
   </div>
@@ -158,7 +222,7 @@
 
 </main>
 
-<!-- Surcouche d'attente -->
+<!-- Surcouche d’attente -->
 <div id="attente" class="attente" hidden aria-live="polite">
   <div class="attente-boite">
     <div class="pastilles"><i></i><i></i><i></i></div>
@@ -173,9 +237,9 @@
 <!-- Boîte de dialogue de signalement -->
 <dialog id="dialogue-signalement">
   <form method="dialog">
-    <h3>Qu'est-ce qui ne va pas ?</h3>
+    <h3>Qu’est-ce qui ne va pas ?</h3>
     <p class="aide">Facultatif, mais ça nous aide beaucoup.</p>
-    <textarea id="motif-signalement" rows="3" placeholder="Ce n'est pas dans mon cours, la question n'a pas de sens…"></textarea>
+    <textarea id="motif-signalement" rows="3" placeholder="Ce n’est pas dans mon cours, la question n’a pas de sens…"></textarea>
     <menu>
       <button value="annuler" class="discret">Annuler</button>
       <button value="envoyer" class="secondaire">Signaler</button>

@@ -1,27 +1,27 @@
 """Contenus de démonstration : le parcours entier sans un appel API.
 
-À quoi ça sert : le professeur qui teste l'outil doit pouvoir cliquer dans les sept
-étapes, sur son téléphone, avant qu'on dépense un centime. Et pendant le test réel,
-si la clé API manque, l'application démarre quand même au lieu d'afficher une erreur.
+À quoi ça sert : le professeur qui teste l’outil doit pouvoir cliquer dans les sept
+étapes, sur son téléphone, avant qu’on dépense un centime. Et pendant le test réel,
+si la clé API manque, l’application démarre quand même au lieu d’afficher une erreur.
 
-Le contenu est celui d'un chapitre d'histoire de 3e — assez concret pour juger le
-format des questions, ce qui est justement ce qu'on cherche à valider.
+Le contenu est celui d’un chapitre d’histoire de 3e — assez concret pour juger le
+format des questions, ce qui est justement ce qu’on cherche à valider.
 """
 
 from __future__ import annotations
 
 from typing import Any
 
-TRANSCRIPTION = """I. Une guerre d'un type nouveau
+TRANSCRIPTION = """I. Une guerre d’un type nouveau
 
-La Première Guerre mondiale commence en août 1914 et s'achève le 11 novembre 1918.
+La Première Guerre mondiale commence en août 1914 et s’achève le 11 novembre 1918.
 Elle oppose la Triple-Entente (France, Royaume-Uni, Russie) aux Empires centraux
 (Allemagne, Autriche-Hongrie).
 
 Trois phases : la guerre de mouvement (août-novembre 1914), la guerre de position
 ou guerre de tranchées (1915-1917), puis le retour de la guerre de mouvement en 1918.
 
-Guerre totale : toutes les ressources d'un pays — économiques, humaines, scientifiques —
+Guerre totale : toutes les ressources d’un pays — économiques, humaines, scientifiques —
 sont mobilisées pour la guerre.
 
 II. La violence de masse
@@ -31,16 +31,16 @@ Environ 700 000 morts, blessés et disparus des deux côtés.
 Les soldats vivent dans les tranchées : boue, rats, obus, gaz de combat.
 On appelle « poilus » les soldats français du front.
 
-Génocide des Arméniens, 1915-1916, dans l'Empire ottoman : environ 1,2 million de morts.
-Génocide = extermination programmée d'un peuple entier.
+Génocide des Arméniens, 1915-1916, dans l’Empire ottoman : environ 1,2 million de morts.
+Génocide = extermination programmée d’un peuple entier.
 
-III. L'arrière et les civils
+III. L’arrière et les civils
 
 Les femmes remplacent les hommes dans les usines (les « munitionnettes ») et aux champs.
-L'État emprunte auprès des populations et impose la censure et la propagande
+L’État emprunte auprès des populations et impose la censure et la propagande
 (le « bourrage de crâne »).
 
-1917 : année de crise. Mutineries dans l'armée française après l'échec du Chemin des Dames,
+1917 : année de crise. Mutineries dans l’armée française après l’échec du Chemin des Dames,
 révolutions en Russie, entrée en guerre des États-Unis en avril.
 
 À retenir : 1914 début, 1916 Verdun, 1917 année de crise, 11 novembre 1918 armistice."""
@@ -52,7 +52,7 @@ CHAPITRE = {
         "La notion de guerre totale",
         "Verdun et la guerre de tranchées",
         "Le génocide des Arméniens",
-        "La mobilisation de l'arrière et le rôle des femmes",
+        "La mobilisation de l’arrière et le rôle des femmes",
         "1917, année de crise",
     ],
     "transcription": TRANSCRIPTION,
@@ -82,12 +82,12 @@ def fiche_generale(chapitres: list[dict]) -> dict[str, Any]:
         "duree_lecture_minutes": 8,
         "sections": [
             {
-                "titre": "Une guerre d'un type nouveau",
+                "titre": "Une guerre d’un type nouveau",
                 "points": [
-                    "La guerre commence en août 1914 et s'achève le 11 novembre 1918.",
+                    "La guerre commence en août 1914 et s’achève le 11 novembre 1918.",
                     "Triple-Entente (France, Royaume-Uni, Russie) contre Empires centraux.",
                     "Trois phases : mouvement, position, retour au mouvement en 1918.",
-                    "Guerre totale : le pays entier est mobilisé, pas seulement l'armée.",
+                    "Guerre totale : le pays entier est mobilisé, pas seulement l’armée.",
                 ],
                 "a_retenir": "Guerre totale : toutes les ressources du pays sont tournées vers la guerre.",
             },
@@ -97,29 +97,29 @@ def fiche_generale(chapitres: list[dict]) -> dict[str, Any]:
                     "Verdun, février à décembre 1916, environ 700 000 victimes.",
                     "Les poilus vivent dans les tranchées, sous les obus et les gaz.",
                     "Génocide des Arméniens en 1915-1916, environ 1,2 million de morts.",
-                    "Génocide : extermination programmée d'un peuple entier.",
+                    "Génocide : extermination programmée d’un peuple entier.",
                 ],
                 "a_retenir": "Verdun illustre la guerre de position, le génocide arménien la violence contre les civils.",
             },
             {
-                "titre": "L'arrière et l'année 1917",
+                "titre": "L’arrière et l’année 1917",
                 "points": [
-                    "Les femmes remplacent les hommes à l'usine et aux champs.",
-                    "L'État emprunte, censure et fait de la propagande.",
+                    "Les femmes remplacent les hommes à l’usine et aux champs.",
+                    "L’État emprunte, censure et fait de la propagande.",
                     "1917 : mutineries françaises, révolutions russes, entrée des États-Unis.",
                 ],
-                "a_retenir": "1917 est l'année où la guerre vacille, à l'avant comme à l'arrière.",
+                "a_retenir": "1917 est l’année où la guerre vacille, à l’avant comme à l’arrière.",
             },
         ],
         "definitions": [
-            {"terme": "Guerre totale", "definition": "Mobilisation de toutes les ressources d'un pays pour la guerre."},
+            {"terme": "Guerre totale", "definition": "Mobilisation de toutes les ressources d’un pays pour la guerre."},
             {"terme": "Poilu", "definition": "Surnom donné aux soldats français du front."},
-            {"terme": "Génocide", "definition": "Extermination programmée d'un peuple entier."},
+            {"terme": "Génocide", "definition": "Extermination programmée d’un peuple entier."},
         ],
         "pieges": [
             "Ne pas confondre les trois phases : Verdun appartient à la guerre de position, pas au mouvement.",
-            "Le génocide arménien a lieu dans l'Empire ottoman, pas en Allemagne.",
-            "1917 n'est pas la fin de la guerre : l'armistice est en novembre 1918.",
+            "Le génocide arménien a lieu dans l’Empire ottoman, pas en Allemagne.",
+            "1917 n’est pas la fin de la guerre : l’armistice est en novembre 1918.",
         ],
     }
 
@@ -134,7 +134,7 @@ def fiche_ciblee(notions: list[dict]) -> dict[str, Any]:
                 "titre": n.get("notion", "Notion"),
                 "points": [
                     "Reprends la définition exacte du cours, mot pour mot.",
-                    "Trouve dans ton cours un exemple précis qui l'illustre.",
+                    "Trouve dans ton cours un exemple précis qui l’illustre.",
                     "Explique-la à voix haute en une phrase, sans regarder.",
                 ],
                 "a_retenir": n.get("pourquoi") or "Relis ce passage de ton cours avant de te retester.",
@@ -142,9 +142,9 @@ def fiche_ciblee(notions: list[dict]) -> dict[str, Any]:
             for n in cibles[:3]
         ],
         "definitions": [
-            {"terme": "Guerre totale", "definition": "Mobilisation de toutes les ressources d'un pays pour la guerre."},
+            {"terme": "Guerre totale", "definition": "Mobilisation de toutes les ressources d’un pays pour la guerre."},
         ],
-        "pieges": ["Citer une date sans dire ce qui s'y passe ne rapporte rien."],
+        "pieges": ["Citer une date sans dire ce qui s’y passe ne rapporte rien."],
     }
 
 
@@ -158,26 +158,26 @@ _QUESTIONS = [
         "chapitre": CHAPITRE["titre"],
         "points_attendus": [
             "Août 1914 pour le début",
-            "11 novembre 1918 pour l'armistice",
+            "11 novembre 1918 pour l’armistice",
             "Guerre de mouvement, guerre de position, retour au mouvement en 1918",
         ],
-        "ou_dans_le_cours": "Partie I de ton cours, « Une guerre d'un type nouveau », premier paragraphe.",
+        "ou_dans_le_cours": "Partie I de ton cours, « Une guerre d’un type nouveau », premier paragraphe.",
         "duree_minutes": 5,
         "poids": 1,
     },
     {
         "numero": 2,
         "partie": "Partie 1 — Connaissances",
-        "enonce": "Qu'appelle-t-on une « guerre totale » ? Donne deux exemples tirés de ton cours.",
+        "enonce": "Qu’appelle-t-on une « guerre totale » ? Donne deux exemples tirés de ton cours.",
         "document": "",
         "notion": "La notion de guerre totale",
         "chapitre": CHAPITRE["titre"],
         "points_attendus": [
             "Définition : mobilisation de toutes les ressources du pays",
-            "Un exemple économique (emprunts, usines d'armement)",
+            "Un exemple économique (emprunts, usines d’armement)",
             "Un exemple humain (les femmes dans les usines)",
         ],
-        "ou_dans_le_cours": "Fin de la partie I, et partie III sur l'arrière.",
+        "ou_dans_le_cours": "Fin de la partie I, et partie III sur l’arrière.",
         "duree_minutes": 7,
         "poids": 2,
     },
@@ -187,9 +187,9 @@ _QUESTIONS = [
         "enonce": "Ce témoignage illustre quelle phase de la guerre ? Relève deux éléments du texte qui le montrent, puis explique ce que ton cours ajoute sur les conditions de vie des soldats.",
         "document": (
             "« Nous tenons le même bout de tranchée depuis onze semaines. La boue monte "
-            "jusqu'aux genoux, les rats passent sur nos visages la nuit. Ce matin encore, "
+            "jusqu’aux genoux, les rats passent sur nos visages la nuit. Ce matin encore, "
             "les obus sont tombés pendant quatre heures sans que nous puissions bouger. »\n"
-            "Lettre d'un soldat français, secteur de Verdun, mars 1916."
+            "Lettre d’un soldat français, secteur de Verdun, mars 1916."
         ),
         "notion": "Verdun et la guerre de tranchées",
         "chapitre": CHAPITRE["titre"],
@@ -205,14 +205,14 @@ _QUESTIONS = [
     {
         "numero": 4,
         "partie": "Partie 2 — Étude de document",
-        "enonce": "Explique ce qu'est le génocide des Arméniens : où, quand, et pourquoi on emploie le mot « génocide ».",
+        "enonce": "Explique ce qu’est le génocide des Arméniens : où, quand, et pourquoi on emploie le mot « génocide ».",
         "document": "",
         "notion": "Le génocide des Arméniens",
         "chapitre": CHAPITRE["titre"],
         "points_attendus": [
-            "Dans l'Empire ottoman, 1915-1916",
+            "Dans l’Empire ottoman, 1915-1916",
             "Environ 1,2 million de victimes",
-            "Le mot génocide : extermination programmée d'un peuple entier",
+            "Le mot génocide : extermination programmée d’un peuple entier",
         ],
         "ou_dans_le_cours": "Partie II, dernier paragraphe.",
         "duree_minutes": 8,
@@ -221,14 +221,14 @@ _QUESTIONS = [
     {
         "numero": 5,
         "partie": "Partie 3 — Développement construit",
-        "enonce": "En un paragraphe d'une quinzaine de lignes, montre que la Première Guerre mondiale a été une guerre totale qui a touché aussi bien les soldats que les civils.",
+        "enonce": "En un paragraphe d’une quinzaine de lignes, montre que la Première Guerre mondiale a été une guerre totale qui a touché aussi bien les soldats que les civils.",
         "document": "",
-        "notion": "La mobilisation de l'arrière et le rôle des femmes",
+        "notion": "La mobilisation de l’arrière et le rôle des femmes",
         "chapitre": CHAPITRE["titre"],
         "points_attendus": [
             "Une introduction qui reprend la question",
             "Un exemple pour les soldats (tranchées, Verdun)",
-            "Un exemple pour les civils (femmes à l'usine, censure, génocide arménien)",
+            "Un exemple pour les civils (femmes à l’usine, censure, génocide arménien)",
             "Une conclusion qui répond à la question posée",
         ],
         "ou_dans_le_cours": "Tout le chapitre, en particulier les parties II et III.",
@@ -248,7 +248,7 @@ _QUESTIONS_BIS = [
         "points_attendus": [
             "Les mutineries après le Chemin des Dames",
             "Les révolutions russes",
-            "L'entrée en guerre des États-Unis en avril 1917",
+            "L’entrée en guerre des États-Unis en avril 1917",
         ],
         "ou_dans_le_cours": "Partie III, dernier paragraphe.",
         "duree_minutes": 6,
@@ -257,13 +257,13 @@ _QUESTIONS_BIS = [
     {
         "numero": 2,
         "partie": "Partie 1 — Connaissances",
-        "enonce": "Un camarade écrit : « La guerre totale, c'est quand toute l'Europe se bat. » Corrige-le et donne la bonne définition.",
+        "enonce": "Un camarade écrit : « La guerre totale, c’est quand toute l’Europe se bat. » Corrige-le et donne la bonne définition.",
         "document": "",
         "notion": "La notion de guerre totale",
         "chapitre": CHAPITRE["titre"],
         "points_attendus": [
-            "Repérer l'erreur : ce n'est pas l'étendue géographique",
-            "Définition exacte : mobilisation de toutes les ressources d'un pays",
+            "Repérer l’erreur : ce n’est pas l’étendue géographique",
+            "Définition exacte : mobilisation de toutes les ressources d’un pays",
             "Un exemple concret du cours",
         ],
         "ou_dans_le_cours": "Fin de la partie I.",
@@ -273,20 +273,20 @@ _QUESTIONS_BIS = [
     {
         "numero": 3,
         "partie": "Partie 2 — Étude de document",
-        "enonce": "Que nous apprend cette affiche sur la manière dont l'État mobilise l'arrière ? Relie-la à deux éléments de ton cours.",
+        "enonce": "Que nous apprend cette affiche sur la manière dont l’État mobilise l’arrière ? Relie-la à deux éléments de ton cours.",
         "document": (
-            "Affiche officielle française, 1916. Une femme en blouse d'usine tend un obus "
+            "Affiche officielle française, 1916. Une femme en blouse d’usine tend un obus "
             "vers un soldat au front. En haut : « Pour eux, ne comptez pas vos heures. » "
-            "En bas : « Souscrivez à l'emprunt de la Défense nationale. »"
+            "En bas : « Souscrivez à l’emprunt de la Défense nationale. »"
         ),
-        "notion": "La mobilisation de l'arrière et le rôle des femmes",
+        "notion": "La mobilisation de l’arrière et le rôle des femmes",
         "chapitre": CHAPITRE["titre"],
         "points_attendus": [
-            "La propagande de l'État",
-            "Le travail des femmes dans les usines d'armement",
-            "L'emprunt auprès des populations",
+            "La propagande de l’État",
+            "Le travail des femmes dans les usines d’armement",
+            "L’emprunt auprès des populations",
         ],
-        "ou_dans_le_cours": "Partie III, « L'arrière et les civils ».",
+        "ou_dans_le_cours": "Partie III, « L’arrière et les civils ».",
         "duree_minutes": 12,
         "poids": 2,
     },
@@ -299,7 +299,7 @@ _QUESTIONS_BIS = [
         "chapitre": CHAPITRE["titre"],
         "points_attendus": [
             "Les dates : février à décembre 1916",
-            "L'ampleur des pertes, environ 700 000 victimes",
+            "L’ampleur des pertes, environ 700 000 victimes",
             "Les conditions de vie dans les tranchées",
             "Une conclusion qui répond à la question",
         ],
@@ -318,7 +318,7 @@ def controle(
         "titre": ("Contrôle blanc n°2 — " if deuxieme or notions_ciblees else "Contrôle blanc — ")
         + (chapitres[0].get("titre", CHAPITRE["titre"]) if chapitres else CHAPITRE["titre"]),
         "consigne_generale": (
-            "Réponds dans l'ordre, en rédigeant. Tu ne peux pas revenir en arrière, "
+            "Réponds dans l’ordre, en rédigeant. Tu ne peux pas revenir en arrière, "
             "comme le jour du contrôle."
         ),
         "questions": [dict(q) for q in questions],
@@ -366,6 +366,6 @@ def correction(
         "notions_fragiles": fragiles,
         "mot_de_fin": (
             "Relis la fiche ciblée, puis retente un contrôle sur ces notions-là. "
-            "C'est en les reposant qu'elles rentrent."
+            "C’est en les reposant qu’elles rentrent."
         ),
     }
