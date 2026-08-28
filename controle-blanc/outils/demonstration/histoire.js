@@ -21,6 +21,7 @@ const FICHE_GENERALE = {
   sections: [
     {
       titre: "Une guerre d’un type nouveau",
+      pages: [0],
       points: [
         "La guerre commence en août 1914 et s’achève le 11 novembre 1918.",
         "Triple-Entente (France, Royaume-Uni, Russie) contre Empires centraux.",
@@ -31,6 +32,7 @@ const FICHE_GENERALE = {
     },
     {
       titre: "La violence de masse",
+      pages: [0, 1],
       points: [
         "Verdun, février à décembre 1916, environ 700 000 victimes.",
         "Les poilus vivent dans les tranchées, sous les obus et les gaz.",
@@ -41,6 +43,7 @@ const FICHE_GENERALE = {
     },
     {
       titre: "L’arrière et l’année 1917",
+      pages: [1, 2],
       points: [
         "Les femmes remplacent les hommes à l’usine et aux champs.",
         "L’État emprunte, censure et fait de la propagande.",

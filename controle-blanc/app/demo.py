@@ -12,7 +12,8 @@ from __future__ import annotations
 
 from typing import Any
 
-TRANSCRIPTION = """I. Une guerre d’un type nouveau
+TRANSCRIPTION = """[[page 0]]
+I. Une guerre d’un type nouveau
 
 La Première Guerre mondiale commence en août 1914 et s’achève le 11 novembre 1918.
 Elle oppose la Triple-Entente (France, Royaume-Uni, Russie) aux Empires centraux
@@ -31,6 +32,7 @@ Environ 700 000 morts, blessés et disparus des deux côtés.
 Les soldats vivent dans les tranchées : boue, rats, obus, gaz de combat.
 On appelle « poilus » les soldats français du front.
 
+[[page 1]]
 Génocide des Arméniens, 1915-1916, dans l’Empire ottoman : environ 1,2 million de morts.
 Génocide = extermination programmée d’un peuple entier.
 
@@ -40,6 +42,7 @@ Les femmes remplacent les hommes dans les usines (les « munitionnettes ») et a
 L’État emprunte auprès des populations et impose la censure et la propagande
 (le « bourrage de crâne »).
 
+[[page 2]]
 1917 : année de crise. Mutineries dans l’armée française après l’échec du Chemin des Dames,
 révolutions en Russie, entrée en guerre des États-Unis en avril.
 
@@ -90,6 +93,7 @@ def fiche_generale(chapitres: list[dict]) -> dict[str, Any]:
                     "Guerre totale : le pays entier est mobilisé, pas seulement l’armée.",
                 ],
                 "a_retenir": "Guerre totale : toutes les ressources du pays sont tournées vers la guerre.",
+                "pages": [0],
             },
             {
                 "titre": "La violence de masse",
@@ -100,6 +104,7 @@ def fiche_generale(chapitres: list[dict]) -> dict[str, Any]:
                     "Génocide : extermination programmée d’un peuple entier.",
                 ],
                 "a_retenir": "Verdun illustre la guerre de position, le génocide arménien la violence contre les civils.",
+                "pages": [0, 1],
             },
             {
                 "titre": "L’arrière et l’année 1917",
@@ -109,6 +114,7 @@ def fiche_generale(chapitres: list[dict]) -> dict[str, Any]:
                     "1917 : mutineries françaises, révolutions russes, entrée des États-Unis.",
                 ],
                 "a_retenir": "1917 est l’année où la guerre vacille, à l’avant comme à l’arrière.",
+                "pages": [1, 2],
             },
         ],
         "definitions": [
@@ -138,6 +144,7 @@ def fiche_ciblee(notions: list[dict]) -> dict[str, Any]:
                     "Explique-la à voix haute en une phrase, sans regarder.",
                 ],
                 "a_retenir": n.get("pourquoi") or "Relis ce passage de ton cours avant de te retester.",
+                "pages": [0],
             }
             for n in cibles[:3]
         ],

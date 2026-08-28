@@ -137,6 +137,7 @@ const FICHE_GENERALE = {
   sections: [
     {
       titre: 'El turismo en España: cifras y debate',
+      pages: [0],
       points: [
         'España es la segunda potencia mundial en número de viajeros internacionales, detrás de Francia y antes de EE. UU.',
         'El turismo representa el 13 por ciento del PIB: es un beneficio económico mayor.',
@@ -147,6 +148,7 @@ const FICHE_GENERALE = {
     },
     {
       titre: 'El turismo comunitario',
+      pages: [0],
       points: [
         'Los habitantes locales organizan las actividades, reciben a los visitantes y comparten su modo de vida.',
         'Los turistas viven experiencias auténticas: la danza, la música, la comida típica, los rituales a la Pachamama.',
@@ -157,6 +159,7 @@ const FICHE_GENERALE = {
     },
     {
       titre: 'La campaña turística de Madrid',
+      pages: [1],
       points: [
         'La campaña menciona muchas actividades y lugares: museos, platos típicos, vida nocturna.',
         'Madrid es cultura porque hay muchos museos que visitar.',
@@ -167,6 +170,7 @@ const FICHE_GENERALE = {
     },
     {
       titre: 'La frase exclamativa',
+      pages: [2],
       points: [
         'Le mot exclamatif porte toujours un accent écrit, comme l’interrogatif.',
         '¡Qué bonito día! → Quelle belle journée. ¡Quién sabe! → Qui sait !',
@@ -177,6 +181,7 @@ const FICHE_GENERALE = {
     },
     {
       titre: 'El futuro hipotético',
+      pages: [2],
       points: [
         'Le futur espagnol sert aussi à exprimer une hypothèse sur le présent.',
         'Estará fascinado = il doit être fasciné, peut-être qu’il est fasciné.',
@@ -187,6 +192,7 @@ const FICHE_GENERALE = {
     },
     {
       titre: 'Madrid histórica: el 2 de mayo y los pintores',
+      pages: [3],
       points: [
         'El 2 de mayo de 1808: alzamiento ciudadano contra las tropas francesas, en la Puerta del Sol.',
         'Desató la guerra de independencia española.',

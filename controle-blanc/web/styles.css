@@ -880,6 +880,20 @@ select {
   .carte-mots dt { margin-top: 12px; font-size: .95rem; }
   .carte-mots dd { font-size: .9rem; line-height: 1.48; }
   .liste-pieges li { font-size: .93rem; line-height: 1.48; margin-bottom: 11px; }
+  /* Écran court : la vignette passe en pastille flottante dans le coin, sur le
+     rembourrage de la carte. Elle ne coûte plus une seule ligne de texte —
+     et sur ces écrans-là, une ligne cachée, c’est une ligne non lue. */
+  .provenance {
+    position: absolute;
+    right: 18px;
+    bottom: 14px;
+    margin: 0;
+    padding: 0;
+    min-height: 0;
+    background: none;
+  }
+  .provenance-vignette { width: 30px; height: 30px; }
+  .provenance-texte { display: none; }
 }
 
 .carte-suite {
@@ -1116,6 +1130,107 @@ select {
 /* Sur cet écran, la scène rend sa marge basse au paquet. */
 :root[data-ecran="fiche"] #scene {
   padding-bottom: calc(8px + env(safe-area-inset-bottom));
+}
+
+/* La vignette du cahier, au pied de la carte : un bout de l’écriture de
+   l’élève, sous le texte propre. C’est la preuve que la fiche vient de lui. */
+.provenance {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  /* La marge basse négative fait mordre la vignette dans le rembourrage de la
+     carte : elle coûte 26px de texte au lieu de 56, ce qui compte sur un petit
+     écran où chaque ligne cachée est une ligne non lue. */
+  margin: 8px -6px -16px;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--encre) 5%, transparent);
+  text-align: left;
+  min-height: 34px;
+}
+
+.provenance-vignette {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  object-fit: cover;
+  object-position: top center;
+  flex: 0 0 auto;
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--encre) 22%, transparent);
+}
+
+.provenance-texte {
+  font-family: var(--mono);
+  font-size: .66rem;
+  letter-spacing: .09em;
+  color: color-mix(in srgb, var(--encre) 55%, transparent);
+}
+
+/* Le cahier en grand : fond neutre, la page occupe tout ce qu’elle peut. */
+.visionneuse {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  background: #14110d;
+  padding: max(12px, env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom));
+  gap: 10px;
+}
+
+.visionneuse-barre {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 0 0 auto;
+}
+
+.legende-page {
+  font-family: var(--mono);
+  font-size: .7rem;
+  letter-spacing: .1em;
+  color: rgba(255, 255, 255, .72);
+}
+
+.fermer-visionneuse {
+  width: 40px;
+  height: 40px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .12);
+  color: #fff;
+  font-size: 1rem;
+}
+
+.page-cahier {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  object-fit: contain;
+  border-radius: 10px;
+}
+
+.visionneuse-pied { display: flex; justify-content: space-between; flex: 0 0 auto; }
+
+/* Sur la première page, « précédent » disparaît : « suivant » doit rester
+ * sous le pouce droit plutôt que de sauter à gauche. */
+.page-suivante { margin-left: auto; }
+
+.page-precedente, .page-suivante {
+  width: 44px;
+  height: 44px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .12);
+  color: #fff;
+  font-size: 1.4rem;
+  line-height: 1;
 }
 
 .fiche-pied { display: flex; justify-content: center; flex: 0 0 auto; }

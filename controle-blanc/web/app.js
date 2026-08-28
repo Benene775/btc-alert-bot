@@ -17,7 +17,8 @@ const COTE_MAX_PHOTO = 1568;   // au-delà, le modèle redimensionne de toute fa
 const QUALITE_PHOTO = 0.82;
 
 let etat = null;
-let photosEnAttente = [];      // en mémoire seulement, jamais persistées
+let photosEnAttente = [];      // le lot en cours de sélection
+let photosDuCours = [];        // les pages déjà analysées, gardées pour la fiche
 let config = { matieres: [], niveaux: [], mode_demonstration: false, max_photos: 12 };
 let controleEnCours = null;
 let minuteur = null;
@@ -66,6 +67,60 @@ function charger(sessionId) {
     return donnees && donnees.v === VERSION_ETAT ? donnees : null;
   } catch (e) {
     return null;
+  }
+}
+
+/* ------------------------------------------------------- pages du cahier --- */
+
+/* La photo du cahier est ce que le produit a de plus précieux : c’est elle qui
+ * prouve à l’élève que la fiche vient de SON cours et pas d’un manuel. On la
+ * garde donc, au lieu de la jeter après l’analyse.
+ *
+ * Elle ne quitte jamais l’appareil : IndexedDB est un stockage du navigateur,
+ * au même titre que localStorage, et rien n’est réenvoyé au serveur.
+ */
+const BASE_PAGES = 'cb-pages';
+
+function ouvrirBase() {
+  return new Promise((resoudre, rejeter) => {
+    const demande = indexedDB.open(BASE_PAGES, 1);
+    demande.onupgradeneeded = () => {
+      if (!demande.result.objectStoreNames.contains('pages')) {
+        demande.result.createObjectStore('pages');
+      }
+    };
+    demande.onsuccess = () => resoudre(demande.result);
+    demande.onerror = () => rejeter(demande.error);
+  });
+}
+
+async function garderPages(sessionId, pages) {
+  try {
+    const base = await ouvrirBase();
+    await new Promise((resoudre, rejeter) => {
+      const transaction = base.transaction('pages', 'readwrite');
+      transaction.objectStore('pages').put(pages, sessionId);
+      transaction.oncomplete = resoudre;
+      transaction.onerror = () => rejeter(transaction.error);
+    });
+  } catch (e) {
+    // Navigation privée, quota, stockage refusé : la fiche se passera des
+    // vignettes plutôt que d’échouer.
+    console.warn('pages non conservées :', e);
+  }
+}
+
+async function lirePages(sessionId) {
+  try {
+    const base = await ouvrirBase();
+    return await new Promise((resoudre, rejeter) => {
+      const transaction = base.transaction('pages', 'readonly');
+      const demande = transaction.objectStore('pages').get(sessionId);
+      demande.onsuccess = () => resoudre(demande.result || []);
+      demande.onerror = () => rejeter(demande.error);
+    });
+  } catch (e) {
+    return [];
   }
 }
 
@@ -195,6 +250,7 @@ async function initialiser() {
     const trouve = charger(depuisLien);
     if (trouve) {
       etat = trouve;
+      photosDuCours = await lirePages(etat.sessionId);
       tracer('ouverture', { origine: 'lien' });
       return reprendre();
     }
@@ -300,7 +356,12 @@ function reduirePhoto(fichier) {
       toile.toBlob((blob) => {
         URL.revokeObjectURL(url);
         if (!blob) return rejeter(new Error('conversion impossible'));
-        resoudre({ blob, apercu: toile.toDataURL('image/jpeg', 0.5), nom: fichier.name });
+        resoudre({
+          blob,
+          apercu: toile.toDataURL('image/jpeg', 0.45),
+          pleine: toile.toDataURL('image/jpeg', 0.78),
+          nom: fichier.name,
+        });
       }, 'image/jpeg', QUALITE_PHOTO);
     };
     image.onerror = () => { URL.revokeObjectURL(url); rejeter(new Error('image illisible')); };
@@ -359,6 +420,16 @@ async function analyser() {
       const trouvee = config.matieres.find((m) => m.nom === resultat.matiere_detectee);
       if (trouvee) etat.matiere = trouvee.cle;
     }
+    // Les pages viennent grossir le cahier gardé sur l’appareil : c’est ce qui
+    // permettra à chaque carte de montrer d’où elle vient.
+    photosDuCours = photosDuCours.concat(
+      photosEnAttente.map((photo, rang) => ({
+        page: photosDuCours.length + rang,
+        apercu: photo.apercu,
+        image: photo.pleine || photo.apercu,
+      }))
+    );
+    garderPages(etat.sessionId, photosDuCours);
     photosEnAttente = [];
     dessinerPhotos();
     etat.etape = 'perimetre';
@@ -598,6 +669,56 @@ function decouper(points) {
   return morceaux;
 }
 
+/* Chaque carte porte un bout du cahier dont elle vient. C’est le seul élément
+ * que personne d’autre ne peut fabriquer : la preuve, sous les yeux de l’élève,
+ * que la fiche sort de SES pages et pas d’un manuel. */
+function provenance(pages) {
+  const disponibles = (pages || []).filter((n) => photosDuCours[n]);
+  if (!disponibles.length) return null;
+
+  const bloc = document.createElement('button');
+  bloc.type = 'button';
+  bloc.className = 'provenance';
+
+  const vignette = document.createElement('img');
+  vignette.className = 'provenance-vignette';
+  vignette.src = photosDuCours[disponibles[0]].apercu;
+  vignette.alt = '';
+
+  const texte = document.createElement('span');
+  texte.className = 'provenance-texte';
+  texte.textContent = disponibles.length > 1
+    ? 'ton cahier · pages ' + disponibles.map((n) => n + 1).join(' et ')
+    : 'ton cahier · page ' + (disponibles[0] + 1);
+
+  bloc.append(vignette, texte);
+  bloc.onclick = (evenement) => { evenement.stopPropagation(); ouvrirCahier(disponibles, 0); };
+  return bloc;
+}
+
+let cahierOuvert = { pages: [], rang: 0 };
+
+function ouvrirCahier(pages, rang) {
+  cahierOuvert = { pages, rang };
+  dessinerCahier();
+  $('visionneuse').hidden = false;
+  document.body.style.overflow = 'hidden';
+}
+
+function dessinerCahier() {
+  const { pages, rang } = cahierOuvert;
+  const numero = pages[rang];
+  $('page-cahier').src = photosDuCours[numero].image;
+  $('legende-page').textContent = 'Ton cahier · page ' + (numero + 1);
+  $('page-precedente').hidden = rang === 0;
+  $('page-suivante').hidden = rang >= pages.length - 1;
+}
+
+function fermerCahier() {
+  $('visionneuse').hidden = true;
+  document.body.style.overflow = '';
+}
+
 /* La carte « à retenir » est la seule de la fiche qui demande quelque chose.
  *
  * Cacher la réponse et essayer de se souvenir avant de vérifier est le geste
@@ -653,6 +774,8 @@ function carteRetenir(section, rang, masqueForce = false) {
     retenir.dataset.masque = 'non';
     invite.hidden = true;
     marques.hidden = false;
+    // Un tic très bref : la révélation se sent autant qu’elle se voit.
+    if (navigator.vibrate) navigator.vibrate(12);
   };
   invite.onclick = (evenement) => { evenement.stopPropagation(); reveler(); };
   carte.onclick = reveler;
@@ -661,6 +784,9 @@ function carteRetenir(section, rang, masqueForce = false) {
   groupe.className = 'bloc-retenir';
   groupe.append(etiquette, retenir, invite, marques);
   corps(carte).appendChild(groupe);
+
+  const trace = provenance(section.pages);
+  if (trace) carte.appendChild(trace);
 
   // Une notion déjà jugée reste jugée quand on revient sur la fiche — sauf au
   // second tour, dont tout l’intérêt est de la remasquer.
@@ -795,6 +921,8 @@ function afficherFiche(fiche, type, options = {}) {
         tete(carte).appendChild(suite);
       }
       corps(carte).appendChild(liste);
+      const trace = provenance(section.pages);
+      if (trace) carte.appendChild(trace);
       ajouter(carte);
     });
 
@@ -1436,6 +1564,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const trouve = derniere && charger(derniere);
     if (!trouve) return demarrerSession();
     etat = trouve;
+    lirePages(etat.sessionId).then((pages) => { photosDuCours = pages; });
     tracer('ouverture', { origine: 'reprise' });
     reprendre();
   };
@@ -1463,6 +1592,16 @@ document.addEventListener('DOMContentLoaded', () => {
   $('bouton-second-controle').onclick = () => lancerControle(notionsFragiles());
 
   $('bouton-vue').onclick = () => basculerVue();
+
+  $('fermer-visionneuse').onclick = fermerCahier;
+  $('visionneuse').onclick = (evenement) => {
+    if (evenement.target === $('visionneuse') || evenement.target === $('page-cahier')) fermerCahier();
+  };
+  $('page-precedente').onclick = (e) => { e.stopPropagation(); cahierOuvert.rang -= 1; dessinerCahier(); };
+  $('page-suivante').onclick = (e) => { e.stopPropagation(); cahierOuvert.rang += 1; dessinerCahier(); };
+  document.addEventListener('keydown', (evenement) => {
+    if (evenement.key === 'Escape' && !$('visionneuse').hidden) fermerCahier();
+  });
 
   $('bouton-tout-afficher').onclick = () => {
     const paquet = $('paquet');

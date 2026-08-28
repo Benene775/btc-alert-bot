@@ -248,6 +248,21 @@
 <!-- Messages -->
 <div id="message" class="message" hidden role="status"></div>
 
+<!-- Le cahier de l’élève, en grand.
+     Les pages ne sortent jamais du téléphone : elles sont relues depuis le
+     stockage du navigateur, jamais redemandées au serveur. -->
+<div id="visionneuse" class="visionneuse" hidden>
+  <div class="visionneuse-barre">
+    <span id="legende-page" class="legende-page"></span>
+    <button id="fermer-visionneuse" type="button" class="fermer-visionneuse" aria-label="Fermer">✕</button>
+  </div>
+  <img id="page-cahier" class="page-cahier" alt="Une page de ton cours">
+  <div class="visionneuse-pied">
+    <button id="page-precedente" type="button" class="page-precedente" aria-label="Page précédente">‹</button>
+    <button id="page-suivante" type="button" class="page-suivante" aria-label="Page suivante">›</button>
+  </div>
+</div>
+
 <!-- Boîte de dialogue de signalement -->
 <dialog id="dialogue-signalement">
   <form method="dialog">

@@ -31,7 +31,11 @@ def preambule(niveau: str) -> str:
 
 def bloc_cours(chapitres: list[dict]) -> str:
     """Le cours de l'élève, mis en forme pour le modèle. Bloc stable = bloc caché."""
-    morceaux = ["COURS DE L'ÉLÈVE (transcription de ses photos)", ""]
+    morceaux = [
+        "COURS DE L'ÉLÈVE (transcription de ses photos)",
+        "Les lignes « [[page N]] » indiquent de quelle photo vient ce qui suit.",
+        "",
+    ]
     for i, chap in enumerate(chapitres, start=1):
         morceaux.append(f"--- CHAPITRE {i} : {chap.get('titre', 'Sans titre')} ---")
         notions = chap.get("notions") or []
@@ -57,6 +61,10 @@ coquille de copie, c'est une erreur que l'élève a écrite ou recopiée. Tu ré
 correcte dans la transcription — sinon tu lui ferais réviser une faute — mais tu la \
 signales dans la remarque de la photo, en donnant les deux formes. C'est souvent l'aide \
 la plus utile de tout le chapitre.
+- Tu marques les frontières de page : juste avant le contenu de chaque photo, tu écris \
+une ligne « [[page N]] », où N est l'index de la photo (le même que dans « photos », à \
+partir de 0). C'est ce qui permettra plus tard de renvoyer l'élève à la bonne page de son \
+cahier ; sans ces marques, il ne retrouvera pas le passage.
 - Tu regroupes les pages par chapitre. Un chapitre = une leçon, celle qu'un professeur \
 annoncerait comme « tombant au contrôle ». Si toutes les pages appartiennent à la même \
 leçon, tu ne renvoies qu'un seul chapitre.
@@ -134,7 +142,7 @@ SCHEMA_ANALYSE = {
                     "notions": {"type": "array", "items": {"type": "string"}},
                     "transcription": {
                         "type": "string",
-                        "description": "Transcription fidèle et structurée du chapitre, en texte brut.",
+                        "description": "Transcription fidèle et structurée du chapitre, en texte brut, précédée pour chaque photo d'une ligne « [[page N]] ».",
                     },
                     "photos": {
                         "type": "array",
@@ -160,6 +168,10 @@ chapitre, faite pour être relue une fois avant de se tester.
 - Suis l'ordre du cours de l'élève, pas un plan idéal.
 - Entre 3 et 6 sections. Chaque section : 3 à 6 points courts, une phrase chacun.
 - « a_retenir » = la seule phrase à retenir si l'élève ne relit que ça.
+- « pages » = les index des photos d'où vient cette partie, lus sur les lignes \
+« [[page N]] » du cours ci-dessus. L'élève verra un bout de sa propre page sous chaque \
+partie de la fiche : c'est ce qui lui prouve qu'elle sort de son cahier et pas d'un \
+manuel. Liste vide seulement si le cours ne porte aucune marque de page.
 - Les définitions sont celles du cours, reformulées en plus clair si besoin.
 - « pieges » : 2 à 4 confusions classiques sur CE chapitre, formulées comme un \
 professeur qui connaît les erreurs de ses élèves.
@@ -178,8 +190,13 @@ SCHEMA_FICHE = {
                     "titre": {"type": "string"},
                     "points": {"type": "array", "items": {"type": "string"}},
                     "a_retenir": {"type": "string"},
+                    "pages": {
+                        "type": "array",
+                        "items": {"type": "integer"},
+                        "description": "Index des photos d'où vient cette partie.",
+                    },
                 },
-                "required": ["titre", "points", "a_retenir"],
+                "required": ["titre", "points", "a_retenir", "pages"],
                 "additionalProperties": False,
             },
         },
