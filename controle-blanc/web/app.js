@@ -182,7 +182,8 @@ async function initialiser() {
   $('mention-demo').hidden = !config.mode_demonstration;
 
   remplirSelecteur($('champ-niveau'), config.niveaux, '3e');
-  remplirSelecteur($('champ-matiere'), config.matieres, 'histoire-geographie');
+  remplirSelecteur($('champ-matiere'), config.matieres,
+                   config.matiere_par_defaut || 'histoire-geographie');
 
   const params = new URLSearchParams(location.search);
   const depuisLien = params.get('s');

@@ -33,7 +33,8 @@ async function api(chemin, options = {}) {
   const corps = typeof options.body === 'string' ? JSON.parse(options.body) : null;
 
   if (chemin === '/api/config') {
-    return { matieres: MATIERES, niveaux: NIVEAUX, mode_demonstration: true, max_photos: 12 };
+    return { matieres: MATIERES, niveaux: NIVEAUX, mode_demonstration: true,
+             max_photos: 12, matiere_par_defaut: MATIERE_PAR_DEFAUT };
   }
 
   if (chemin === '/api/session' && options.method === 'POST') {
@@ -59,7 +60,7 @@ async function api(chemin, options = {}) {
         remarque: 'Le bas de cette page est coupé, reprends-la en cadrant plus large.',
       };
     }
-    return { photos, matiere_detectee: 'Histoire-Géographie / EMC', chapitres: [CHAPITRE] };
+    return { photos, matiere_detectee: MATIERE_DETECTEE, chapitres: CHAPITRES };
   }
 
   if (chemin === '/api/fiche/generale') return { ...FICHE_GENERALE, type: 'generale' };
@@ -67,7 +68,7 @@ async function api(chemin, options = {}) {
   if (chemin === '/api/fiche/ciblee') {
     const cibles = (corps && corps.notions && corps.notions.length)
       ? corps.notions
-      : [{ notion: 'La notion de guerre totale', chapitre: CHAPITRE.titre, pourquoi: '' }];
+      : [{ notion: CIBLEE_PAR_DEFAUT, chapitre: CHAPITRES[0].titre, pourquoi: '' }];
     return {
       type: 'ciblee',
       titre: 'Fiche ciblée — ce qui a coincé',
@@ -81,10 +82,8 @@ async function api(chemin, options = {}) {
         ],
         a_retenir: n.pourquoi || 'Relis ce passage de ton cours avant de te retester.',
       })),
-      definitions: [
-        { terme: 'Guerre totale', definition: "Mobilisation de toutes les ressources d’un pays pour la guerre." },
-      ],
-      pieges: ['Citer une date sans dire ce qui s’y passe ne rapporte rien.'],
+      definitions: CIBLEE_DEFINITIONS,
+      pieges: CIBLEE_PIEGES,
     };
   }
 
@@ -96,9 +95,9 @@ async function api(chemin, options = {}) {
     corrigesEnMemoire[identifiant] = questions;
     return {
       controle_id: identifiant,
-      titre: (cible || dejaPose ? 'Contrôle blanc n°2 — ' : 'Contrôle blanc — ') + CHAPITRE.titre,
+      titre: (cible || dejaPose ? 'Contrôle blanc n°2 — ' : 'Contrôle blanc — ') + CHAPITRES[0].titre,
       consigne_generale: "Réponds dans l’ordre, en rédigeant. Tu ne peux pas revenir en arrière, comme le jour du contrôle.",
-      matiere: 'Histoire-Géographie / EMC',
+      matiere: MATIERE_DETECTEE,
       duree_minutes: questions.reduce((total, q) => total + q.duree_minutes, 0),
       // Comme sur le serveur, les réponses attendues ne partent pas avec les énoncés.
       questions: questions.map(({ points_attendus, ou_dans_le_cours, ...reste }) => reste),
@@ -150,7 +149,7 @@ async function api(chemin, options = {}) {
     return {
       reponses: lignes,
       notions_fragiles: fragiles,
-      mot_de_fin: "Relis la fiche ciblée, puis retente un contrôle sur ces notions-là. C’est en les reposant qu’elles rentrent.",
+      mot_de_fin: MOT_DE_FIN,
     };
   }
 

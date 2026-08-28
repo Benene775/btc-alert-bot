@@ -82,8 +82,14 @@ facturé. C’est le mode à utiliser pour montrer l’outil avant de dépenser.
 Pour envoyer la démonstration à quelqu’un sans rien héberger :
 
 ```bash
-python3 outils/artefact.py demo.html    # un seul fichier, aucune requête sortante
+python3 outils/artefact.py demo.html                      # histoire, 3e
+python3 outils/artefact.py demo-es.html --contenu espagnol  # espagnol, lycée
 ```
+
+Un seul fichier, aucune requête sortante. Le jeu de contenus se choisit avec
+`--contenu` : chaque fichier de `outils/demonstration/` fournit le cours, la fiche et
+les questions, sans qu’aucune ligne de logique change. En ajouter un permet de montrer
+l’outil dans une autre matière.
 
 En mode réel :
 
@@ -261,6 +267,6 @@ controle-blanc/
 │   ├── artefact.py   fabrique la démonstration autonome, en un seul fichier
 │   ├── essai.py      passe de vraies photos, ou un chapitre du corpus, dans la chaîne
 │   ├── corpus/       les programmes de 6e, qui tiennent lieu de photos
-│   └── demonstration/  le faux serveur et les contenus d’exemple
+│   └── demonstration/  le faux serveur et les jeux de contenus (histoire, espagnol)
 └── tests/            le parcours complet, hors ligne
 ```

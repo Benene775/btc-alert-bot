@@ -206,23 +206,14 @@ const QUESTIONS_BIS = [
   },
 ];
 
-const MATIERES = [
-  { cle: "francais", nom: "Français" },
-  { cle: "mathematiques", nom: "Mathématiques" },
-  { cle: "histoire-geographie", nom: "Histoire-Géographie / EMC" },
-  { cle: "svt", nom: "SVT" },
-  { cle: "physique-chimie", nom: "Physique-Chimie" },
-  { cle: "technologie", nom: "Technologie" },
-  { cle: "anglais", nom: "Anglais" },
-  { cle: "espagnol", nom: "Espagnol" },
-  { cle: "allemand", nom: "Allemand" },
-  { cle: "ses", nom: "SES" },
-  { cle: "philosophie", nom: "Philosophie" },
-  { cle: "autre", nom: "Autre matière" },
+// Ce que le faux serveur attend de tout jeu de contenus.
+const CHAPITRES = [CHAPITRE];
+const MATIERE_DETECTEE = 'Histoire-Géographie / EMC';
+const MATIERE_PAR_DEFAUT = 'histoire-geographie';
+const CIBLEE_PAR_DEFAUT = 'La notion de guerre totale';
+const CIBLEE_DEFINITIONS = [
+  { terme: 'Guerre totale', definition: 'Mobilisation de toutes les ressources d’un pays pour la guerre.' },
 ];
-
-const NIVEAUX = [
-  { cle: "6e", nom: "6e" }, { cle: "5e", nom: "5e" }, { cle: "4e", nom: "4e" },
-  { cle: "3e", nom: "3e" }, { cle: "2de", nom: "Seconde" }, { cle: "1re", nom: "Première" },
-  { cle: "terminale", nom: "Terminale" },
-];
+const CIBLEE_PIEGES = ['Citer une date sans dire ce qui s’y passe ne rapporte rien.'];
+const MOT_DE_FIN = 'Relis la fiche ciblée, puis retente un contrôle sur ces notions-là. ' +
+  'C’est en les reposant qu’elles rentrent.';

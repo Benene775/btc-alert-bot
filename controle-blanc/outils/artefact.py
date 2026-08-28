@@ -10,13 +10,16 @@ envoyerJson() sont remplacées par des équivalents locaux de mêmes signatures,
 si bien que tout le reste — écrans, état, minuteur, localStorage — est le code
 réel, inchangé.
 
-Usage : python3 outils/artefact.py [chemin/de/sortie.html]
+Usage : python3 outils/artefact.py [sortie.html] [--contenu histoire|espagnol]
+
+Le jeu de contenus se choisit avec --contenu : un fichier de outils/demonstration/,
+qui fournit le cours, la fiche et les questions. La logique, elle, ne change pas.
 """
 
 from __future__ import annotations
 
+import argparse
 import re
-import sys
 from pathlib import Path
 
 RACINE = Path(__file__).resolve().parent.parent
@@ -39,14 +42,25 @@ def sans_couche_reseau(source: str) -> str:
     return allege
 
 
+def contenus_disponibles() -> list[str]:
+    exclus = {"faux-serveur", "commun"}
+    return sorted(f.stem for f in DEMO.glob("*.js") if f.stem not in exclus)
+
+
 def main() -> int:
-    sortie = Path(sys.argv[1]) if len(sys.argv) > 1 else RACINE / "controle-blanc-demo.html"
+    analyseur = argparse.ArgumentParser(description="Fabrique la démonstration autonome.")
+    analyseur.add_argument("sortie", nargs="?", default=str(RACINE / "controle-blanc-demo.html"))
+    analyseur.add_argument("--contenu", default="histoire", choices=contenus_disponibles(),
+                           help="le jeu de contenus à embarquer")
+    arguments = analyseur.parse_args()
+    sortie = Path(arguments.sortie)
 
     polices = (WEB / "polices.css").read_text(encoding="utf-8")
     styles = (WEB / "styles.css").read_text(encoding="utf-8")
     html = (WEB / "index.html").read_text(encoding="utf-8")
     app = sans_couche_reseau((WEB / "app.js").read_text(encoding="utf-8"))
-    donnees = (DEMO / "donnees.js").read_text(encoding="utf-8")
+    commun = (DEMO / "commun.js").read_text(encoding="utf-8")
+    donnees = (DEMO / f"{arguments.contenu}.js").read_text(encoding="utf-8")
     faux = (DEMO / "faux-serveur.js").read_text(encoding="utf-8")
 
     corps = html.split("<body>", 1)[1].split("</body>", 1)[0]
@@ -57,7 +71,7 @@ def main() -> int:
         "<title>Contrôle blanc</title>\n"
         '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n'
         f"<style>\n{polices}\n{styles}\n</style>\n\n{corps}\n\n"
-        f"<script>\n{donnees}\n\n{faux}\n\n{app}\n</script>\n"
+        f"<script>\n{donnees}\n\n{commun}\n\n{faux}\n\n{app}\n</script>\n"
     )
 
     externes = re.findall(r'(?:src|href)=["\']https?://', page) + re.findall(r"url\(https?://", page)
@@ -65,7 +79,8 @@ def main() -> int:
         raise SystemExit(f"la page appelle {len(externes)} ressource(s) externe(s)")
 
     sortie.write_text(page, encoding="utf-8")
-    print(f"{sortie} — {len(page.encode()) // 1024} Ko, aucune requête externe")
+    print(f"{sortie} — {arguments.contenu} — {len(page.encode()) // 1024} Ko, "
+          f"aucune requête externe")
     return 0
 
 
