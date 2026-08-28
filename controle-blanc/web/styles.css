@@ -661,16 +661,121 @@ select {
 @media (max-height: 720px) {
   .ecran-fiche .etape { margin-bottom: 6px; }
   .ecran-fiche h2 { font-size: 1.22rem; }
-  .fiche-souffle { margin: 6px 0 12px; }
-  .rubans { margin-bottom: 12px; }
+  .fiche-souffle { margin: 6px 0 10px; }
+  .barre-fiche { margin-bottom: 10px; }
+  .bouton-vue { width: 26px; height: 26px; }
 }
 
 /* Les rubans : où on en est, et un raccourci pour y aller. */
-.rubans {
+.barre-fiche {
   display: flex;
-  gap: 5px;
-  margin-bottom: 18px;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
 }
+
+.rubans { display: flex; flex: 1; gap: 5px; }
+
+.bouton-vue {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  min-height: 0;
+  padding: 0;
+  border: 1px solid var(--trait-fort);
+  border-radius: 10px;
+  background: var(--carte);
+  display: grid;
+  place-items: center;
+}
+
+.bouton-vue[data-ouvert="oui"] { background: var(--encre); border-color: var(--encre); }
+
+.grille-icone {
+  display: grid;
+  grid-template-columns: repeat(2, 5px);
+  gap: 3px;
+}
+
+.grille-icone i {
+  width: 5px;
+  height: 5px;
+  border-radius: 1.5px;
+  background: var(--encre-douce);
+}
+
+.bouton-vue[data-ouvert="oui"] .grille-icone i { background: var(--papier); }
+
+/* La fiche vue de dessus : on reconnaît les couleurs qu’on vient de parcourir. */
+.vue-ensemble {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  align-content: start;
+  padding-bottom: 8px;
+  scrollbar-width: none;
+}
+
+.vue-ensemble::-webkit-scrollbar { display: none; }
+
+/* Un bouton rogne son contenu : sans hauteur suffisante et sans titre borné,
+   l’état de la notion se faisait couper en bas de tuile. */
+.tuile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  min-height: 136px;
+  padding: 14px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--t0);
+  text-align: left;
+  color: var(--encre);
+  overflow: hidden;
+}
+
+.tuile[data-teinte="1"] { background: var(--t1); }
+.tuile[data-teinte="2"] { background: var(--t2); }
+.tuile[data-teinte="3"] { background: var(--t3); }
+.tuile[data-teinte="4"] { background: var(--t4); }
+.tuile[data-teinte="5"] { background: var(--t5); }
+
+.tuile-numero {
+  font-family: var(--titre);
+  font-weight: 600;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: color-mix(in srgb, var(--encre) 34%, transparent);
+}
+
+.tuile-titre {
+  font-size: .88rem;
+  font-weight: 600;
+  line-height: 1.32;
+  margin-top: auto;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.tuile-etat {
+  flex: 0 0 auto;
+  font-family: var(--mono);
+  font-size: .62rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--encre) 52%, transparent);
+}
+
+/* Une notion mise de côté se repère au premier coup d’œil. */
+.tuile[data-marque="revoir"] { box-shadow: inset 0 0 0 2px var(--alerte-fiche); }
+.tuile[data-marque="revoir"] .tuile-etat { color: var(--alerte-fiche); }
+.tuile[data-marque="acquis"] .tuile-etat { color: color-mix(in srgb, var(--encre) 44%, transparent); }
 
 .ruban {
   flex: 1;
@@ -763,8 +868,18 @@ select {
   user-select: none;
 }
 
+/* Sur un écran vraiment court, la carte se resserre plutôt que de cacher la
+   moitié de son contenu derrière un défilement que rien ne signale. */
 @media (max-height: 700px) {
-  .carte-chiffre { font-size: 6.5rem; }
+  .carte-chiffre { font-size: 6rem; }
+  .carte-fiche { padding: 20px 20px 18px; }
+  .carte-fiche h3 { font-size: 1.24rem; margin-bottom: 12px; }
+  .points li { font-size: .95rem; line-height: 1.48; margin-bottom: 10px; padding-left: 18px; }
+  .points li::before { top: .62em; }
+  .carte-suite { margin: -8px 0 12px; }
+  .carte-mots dt { margin-top: 12px; font-size: .95rem; }
+  .carte-mots dd { font-size: .9rem; line-height: 1.48; }
+  .liste-pieges li { font-size: .93rem; line-height: 1.48; margin-bottom: 11px; }
 }
 
 .carte-suite {
@@ -989,6 +1104,13 @@ select {
   line-height: 1.6;
 }
 .carte-fin .principal { background: var(--encre); color: var(--papier); }
+
+.carte-fin .secondaire {
+  background: none;
+  border-color: color-mix(in srgb, var(--encre) 22%, transparent);
+  color: var(--encre);
+}
+
 .carte-fin .discret { color: color-mix(in srgb, var(--encre) 60%, transparent); }
 
 /* Sur cet écran, la scène rend sa marge basse au paquet. */

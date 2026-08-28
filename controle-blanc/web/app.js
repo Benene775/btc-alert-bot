@@ -608,7 +608,7 @@ function decouper(points) {
  * Ce n’est pas une note. L’élève juge lui-même, en deux boutons, et ce qu’il
  * met de côté alimente le contrôle blanc — la fiche cesse d’être un cul-de-sac.
  */
-function carteRetenir(section, rang) {
+function carteRetenir(section, rang, masqueForce = false) {
   const carte = carteFiche(rang);
   carte.classList.add('carte-retenir');
 
@@ -662,8 +662,9 @@ function carteRetenir(section, rang) {
   groupe.append(etiquette, retenir, invite, marques);
   corps(carte).appendChild(groupe);
 
-  // Une notion déjà jugée reste jugée quand on revient sur la fiche.
-  const deja = (etat.marques || {})[section.titre];
+  // Une notion déjà jugée reste jugée quand on revient sur la fiche — sauf au
+  // second tour, dont tout l’intérêt est de la remasquer.
+  const deja = masqueForce ? null : (etat.marques || {})[section.titre];
   if (deja) {
     reveler();
     Array.from(marques.children).forEach((b) => {
@@ -681,6 +682,7 @@ function marquerNotion(titre, valeur) {
   sauver();
   majRubansMarques();
   majCarteFin();
+  if (!$('vue-ensemble').hidden) dessinerVueEnsemble(groupesCourants);
 }
 
 function notionsARevoir() {
@@ -704,16 +706,24 @@ function majCarteFin() {
   const mot = carte.querySelector('.mot-fin');
   const bouton = carte.querySelector('#bouton-apres-fiche');
 
+  const second = carte.querySelector('.bouton-second-tour');
   if (aRevoir.length) {
     titre.textContent = aRevoir.length > 1
       ? aRevoir.length + ' notions à revoir.'
       : '1 notion à revoir.';
-    mot.textContent = 'Tu les as mises de côté en lisant. Le contrôle blanc va porter dessus.';
+    mot.textContent = 'Refais-en un tour maintenant : c’est en les reposant qu’elles rentrent.';
+    second.hidden = false;
+    second.textContent = aRevoir.length > 1
+      ? 'Refaire un tour sur ces ' + aRevoir.length + ' notions'
+      : 'Refaire un tour sur cette notion';
+    second.onclick = () => afficherFiche(ficheCourante.fiche, ficheCourante.type,
+                                         { notions: notionsARevoir() });
     bouton.textContent = aRevoir.length > 1
       ? 'Me tester sur ces ' + aRevoir.length + ' notions'
       : 'Me tester sur cette notion';
     bouton.onclick = () => lancerControle(aRevoir);
   } else {
+    second.hidden = true;
     titre.textContent = carte.dataset.titreParDefaut;
     mot.textContent = carte.dataset.motParDefaut;
     bouton.textContent = carte.dataset.boutonParDefaut;
@@ -721,19 +731,32 @@ function majCarteFin() {
   }
 }
 
-function afficherFiche(fiche, type) {
-  $('etiquette-fiche').textContent = type === 'ciblee' ? 'Fiche ciblée' : 'Fiche générale';
-  $('titre-fiche').textContent = fiche.titre || 'Ta fiche';
+function afficherFiche(fiche, type, options = {}) {
+  // Le second tour ne rejoue que les notions mises de côté, et rien d’autre :
+  // ni les mots, ni les pièges, ni les notions déjà tenues.
+  const secondTour = Boolean(options.notions && options.notions.length);
+  ficheCourante = { fiche, type };
 
-  const sections = fiche.sections || [];
-  const definitions = fiche.definitions || [];
-  const pieges = fiche.pieges || [];
+  $('etiquette-fiche').textContent = secondTour ? 'Second tour'
+    : (type === 'ciblee' ? 'Fiche ciblée' : 'Fiche générale');
+  $('titre-fiche').textContent = secondTour
+    ? 'Ce qui ne tenait pas encore'
+    : (fiche.titre || 'Ta fiche');
+
+  const toutes = fiche.sections || [];
+  const sections = secondTour
+    ? toutes.filter((s) => options.notions.includes(s.titre))
+    : toutes;
+  const definitions = secondTour ? [] : (fiche.definitions || []);
+  const pieges = secondTour ? [] : (fiche.pieges || []);
+  const masqueForce = secondTour;
 
   const souffle = [];
-  if (fiche.duree_lecture_minutes) souffle.push(fiche.duree_lecture_minutes + ' min');
+  if (!secondTour && fiche.duree_lecture_minutes) souffle.push(fiche.duree_lecture_minutes + ' min');
   souffle.push(sections.length + (sections.length > 1 ? ' notions' : ' notion'));
   if (pieges.length) souffle.push(pieges.length + (pieges.length > 1 ? ' pièges' : ' piège'));
-  $('fiche-souffle').textContent = souffle.join(' · ') + ' · fais glisser';
+  $('fiche-souffle').textContent = souffle.join(' · ')
+    + (secondTour ? ' · à revoir' : ' · fais glisser');
 
   const paquet = $('paquet');
   paquet.innerHTML = '';
@@ -776,7 +799,7 @@ function afficherFiche(fiche, type) {
     });
 
     if (section.a_retenir) {
-      ajouter(carteRetenir(section, rang));
+      ajouter(carteRetenir(section, rang, masqueForce));
     }
   });
 
@@ -862,21 +885,90 @@ function afficherFiche(fiche, type) {
   plusTard.textContent = 'Plus tard, garder ma session';
   plusTard.onclick = reprendre;
 
+  // Le second tour passe avant le contrôle : rejouer ce qui n’a pas tenu coûte
+  // quelques secondes, là où un contrôle blanc coûte de l’argent et du temps.
+  const secondTourBouton = document.createElement('button');
+  secondTourBouton.type = 'button';
+  secondTourBouton.className = 'principal bouton-second-tour';
+  secondTourBouton.hidden = true;
+
+  suivant.classList.remove('principal');
+  suivant.classList.add('secondaire');
+
   tete(finale).appendChild(chiffreGeant('✓'));
-  corps(finale).append(titreFin, motFin, suivant, plusTard);
+  corps(finale).append(titreFin, motFin, secondTourBouton, suivant, plusTard);
   ajouter(finale);
 
+  groupesCourants = groupes;
   dessinerRubans(groupes);
+  basculerVue(false);
   soignerTypographie(paquet);
   const titreFiche = fiche.titre || 'fiche';
-  proposerReprise(titreFiche);
+  // Le second tour est un paquet court et neuf : y proposer une reprise n’a
+  // pas de sens, et la position qu’on y prend ne doit pas écraser l’autre.
+  if (secondTour) $('reprise-lecture').hidden = true;
+  else proposerReprise(titreFiche);
   paquet.dataset.fiche = titreFiche;
+  paquet.dataset.tour = secondTour ? 'second' : 'premier';
   paquet.scrollLeft = 0;
   suivreCartes();
   majRubansMarques();
   majCarteFin();
   montrer('ecran-fiche');
 }
+
+/* La fiche vue de dessus : les cartes en petit, avec leur couleur, leur numéro
+ * et leur état. Avec vingt-trois cartes, retrouver « la frase exclamativa » à
+ * la main demande douze glissements ; ici, un regard et une touche.
+ */
+function dessinerVueEnsemble(groupes) {
+  const vue = $('vue-ensemble');
+  vue.innerHTML = '';
+  const marques = etat.marques || {};
+
+  groupes.forEach((titre, index) => {
+    const tuile = document.createElement('button');
+    tuile.type = 'button';
+    tuile.className = 'tuile';
+    tuile.dataset.teinte = String(index % TEINTES);
+    tuile.dataset.marque = marques[titre] || 'aucune';
+
+    const numero = document.createElement('span');
+    numero.className = 'tuile-numero';
+    numero.textContent = index < groupes.length - 1 ? String(index + 1) : '✓';
+
+    const nom = document.createElement('span');
+    nom.className = 'tuile-titre';
+    nom.textContent = titre;
+
+    const etatNotion = document.createElement('span');
+    etatNotion.className = 'tuile-etat';
+    etatNotion.textContent = marques[titre] === 'revoir' ? 'à revoir'
+      : (marques[titre] === 'acquis' ? 'ça tient' : '');
+
+    tuile.append(numero, nom, etatNotion);
+    tuile.onclick = () => {
+      const premiere = Array.from($('paquet').children)
+        .findIndex((c) => Number(c.dataset.ruban) === index);
+      basculerVue(false);
+      // Le paquet vient d’être ré-affiché : viser avant que la mise en page
+      // soit faite envoie sur la mauvaise carte.
+      if (premiere >= 0) requestAnimationFrame(() => allerACarte(premiere));
+    };
+    vue.appendChild(tuile);
+  });
+}
+
+function basculerVue(ouvrir) {
+  const ouverte = ouvrir === undefined ? $('vue-ensemble').hidden : ouvrir;
+  $('vue-ensemble').hidden = !ouverte;
+  $('paquet').hidden = ouverte;
+  $('bouton-vue').dataset.ouvert = ouverte ? 'oui' : 'non';
+  if (ouverte) dessinerVueEnsemble(groupesCourants);
+}
+
+let groupesCourants = [];
+let ficheCourante = { fiche: null, type: 'generale' };
 
 /* Les rubans disent où on en est et permettent de sauter d’une carte à l’autre. */
 function dessinerRubans(titres) {
@@ -921,6 +1013,7 @@ function proposerReprise(titreFiche) {
 function retenirPosition(titreFiche, carte) {
   // Reprendre à la carte de fin n’aurait aucun intérêt : on ne la retient pas.
   if (carte.classList.contains('carte-fin')) return;
+  if ($('paquet').dataset.tour === 'second') return;
   const ruban = $('rubans').children[Number(carte.dataset.ruban)];
   etat.lectureFiche = {
     titre: titreFiche,
@@ -1368,6 +1461,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   $('bouton-fiche-ciblee').onclick = demanderFicheCiblee;
   $('bouton-second-controle').onclick = () => lancerControle(notionsFragiles());
+
+  $('bouton-vue').onclick = () => basculerVue();
 
   $('bouton-tout-afficher').onclick = () => {
     const paquet = $('paquet');
