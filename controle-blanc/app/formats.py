@@ -92,28 +92,51 @@ FORMATS: dict[str, Format] = {
         "nom": "Anglais",
         "duree_minutes": 45,
         "structure": (
-            "Compréhension : un court texte en anglais dans le vocabulaire du chapitre, avec "
-            "3 questions. Langue : 3 questions ciblées sur le point de grammaire et le lexique "
-            "du cours. Expression : une production écrite courte (5 à 8 phrases) sur le thème "
-            "du chapitre. Les consignes sont en français, les réponses attendues en anglais."
+            "Compréhension : un court texte en anglais, ou la description précise "
+            "d'un document iconographique, dans le thème et le vocabulaire de la "
+            "séquence, avec 3 questions. "
+            "Langue : 3 questions ciblées sur le ou les points de grammaire de la "
+            "séquence et sur son lexique. "
+            "Civilisation : 1 ou 2 questions sur le contenu culturel étudié — un lieu, "
+            "une œuvre, un événement — car une séquence de langue en porte toujours. "
+            "Expression écrite : une production dont la longueur suit le niveau, "
+            "quelques phrases au collège, un texte construit au lycée. "
+            "Les consignes sont en français, les réponses attendues en anglais, sauf "
+            "les questions de traduction."
         ),
     },
     "espagnol": {
         "nom": "Espagnol",
         "duree_minutes": 45,
         "structure": (
-            "Compréhension d'un court texte en espagnol, 3 questions de langue sur le point "
-            "de grammaire et le lexique du cours, une expression écrite courte. "
-            "Consignes en français, réponses attendues en espagnol."
+            "Compréhension : un court texte en espagnol, ou la description précise "
+            "d'un document iconographique, dans le thème et le vocabulaire de la "
+            "séquence, avec 3 questions. "
+            "Langue : 3 questions ciblées sur le ou les points de grammaire de la "
+            "séquence et sur son lexique. "
+            "Civilisation : 1 ou 2 questions sur le contenu culturel étudié — un lieu, "
+            "une œuvre, un événement — car une séquence de langue en porte toujours. "
+            "Expression écrite : une production dont la longueur suit le niveau, "
+            "quelques phrases au collège, un texte construit au lycée. "
+            "Les consignes sont en français, les réponses attendues en espagnol, sauf "
+            "les questions de traduction."
         ),
     },
     "allemand": {
         "nom": "Allemand",
         "duree_minutes": 45,
         "structure": (
-            "Compréhension d'un court texte en allemand, 3 questions de langue sur le point "
-            "de grammaire et le lexique du cours, une expression écrite courte. "
-            "Consignes en français, réponses attendues en allemand."
+            "Compréhension : un court texte en allemand, ou la description précise "
+            "d'un document iconographique, dans le thème et le vocabulaire de la "
+            "séquence, avec 3 questions. "
+            "Langue : 3 questions ciblées sur le ou les points de grammaire de la "
+            "séquence et sur son lexique. "
+            "Civilisation : 1 ou 2 questions sur le contenu culturel étudié — un lieu, "
+            "une œuvre, un événement — car une séquence de langue en porte toujours. "
+            "Expression écrite : une production dont la longueur suit le niveau, "
+            "quelques phrases au collège, un texte construit au lycée. "
+            "Les consignes sont en français, les réponses attendues en allemand, sauf "
+            "les questions de traduction."
         ),
     },
     "ses": {
