@@ -108,47 +108,59 @@
 <!-- MON ANNÉE — tout ce que l’élève a déjà fait, relu depuis son téléphone -->
 <section id="ecran-espace" class="ecran ecran-espace" hidden>
 
-  <!-- La carte d’élève : une carte de cantine, pas un profil public. -->
-  <div class="carte-eleve seyes">
-    <div class="carte-eleve-haut">
-      <button type="button" id="embleme" class="embleme" aria-label="Changer d’emblème">✏️</button>
-      <div class="carte-eleve-identite">
-        <label for="champ-prenom" class="masque">Ton prénom</label>
-        <input type="text" id="champ-prenom" class="champ-prenom" maxlength="24"
-               placeholder="Ton prénom" autocomplete="off" spellcheck="false">
-        <p class="carte-eleve-classe" id="carte-classe"></p>
+  <!-- La carte d’élève a deux faces, comme celle de la cantine : devant, qui
+       on est et ce qui arrive ; derrière, ce qu’on a fait. -->
+  <div class="pivot" id="pivot-carte" data-face="recto">
+    <div class="face carte-eleve seyes" id="face-recto">
+      <button type="button" id="bouton-retourner" class="retourner" aria-label="Voir le dos de la carte">↻</button>
+      <div class="carte-eleve-haut">
+        <button type="button" id="embleme" class="embleme" aria-label="Changer d’emblème">✏️</button>
+        <div class="carte-eleve-identite">
+          <label for="champ-prenom" class="masque">Ton prénom</label>
+          <input type="text" id="champ-prenom" class="champ-prenom" maxlength="24"
+                 placeholder="Ton prénom" autocomplete="off" spellcheck="false">
+          <p class="carte-eleve-classe" id="carte-classe"></p>
+        </div>
       </div>
+      <div class="prochain" id="prochain"></div>
+      <dl class="carte-eleve-chiffres" id="carte-chiffres"></dl>
     </div>
-    <dl class="carte-eleve-chiffres" id="carte-chiffres"></dl>
-    <p class="carte-eleve-mention">Cette carte reste dans ce téléphone. Aucun compte, rien d’envoyé.</p>
+
+    <div class="face carte-eleve carte-eleve-dos" id="face-verso" aria-hidden="true">
+      <button type="button" id="bouton-retourner-dos" class="retourner" aria-label="Revenir devant">↺</button>
+      <div class="bloc-frise">
+        <p class="aide-espace" id="texte-regularite"></p>
+        <div class="frise" id="frise-regularite" aria-hidden="true"></div>
+        <p class="frise-legende" id="frise-legende"></p>
+      </div>
+      <p class="carte-eleve-mention">Tout ça reste dans ce téléphone. Aucun compte, rien d’envoyé.</p>
+    </div>
   </div>
 
-  <section class="bloc-espace" id="bloc-agenda">
-    <h2 class="titre-espace">Ton agenda</h2>
-    <ul class="agenda" id="liste-agenda"></ul>
-  </section>
+  <!-- Les intercalaires du classeur : une seule pile ouverte à la fois. -->
+  <div class="intercalaires" id="intercalaires" role="tablist" aria-label="Mon année"></div>
 
-  <section class="bloc-espace" id="bloc-reviennent" hidden>
-    <h2 class="titre-espace">Ce qui ne tient pas encore</h2>
-    <p class="aide-espace">Une notion qui revient deux fois, c’est elle qu’il faut travailler — pas tout le chapitre.</p>
-    <ul class="reviennent" id="liste-reviennent"></ul>
-  </section>
+  <div class="classeur">
+    <div class="panneau" id="panneau-revoir" role="tabpanel" aria-labelledby="onglet-revoir" tabindex="0">
+      <p class="aide-espace">Une notion qui revient deux fois, c’est elle qu’il faut travailler — pas tout le chapitre.</p>
+      <ul class="reviennent" id="liste-reviennent"></ul>
+      <p class="panneau-vide" id="vide-revoir" hidden>Rien à revoir pour l’instant. Passe un contrôle blanc et ça se remplira.</p>
+    </div>
 
-  <section class="bloc-espace" id="bloc-mes-fiches" hidden>
-    <h2 class="titre-espace">Tes fiches</h2>
-    <ul class="rangee-cartes" id="liste-mes-fiches"></ul>
-  </section>
+    <div class="panneau" id="panneau-agenda" role="tabpanel" aria-labelledby="onglet-agenda" tabindex="0" hidden>
+      <ul class="agenda" id="liste-agenda"></ul>
+    </div>
 
-  <section class="bloc-espace" id="bloc-mes-controles" hidden>
-    <h2 class="titre-espace">Tes contrôles blancs</h2>
-    <ul class="rangee-cartes" id="liste-mes-controles"></ul>
-  </section>
+    <div class="panneau" id="panneau-fiches" role="tabpanel" aria-labelledby="onglet-fiches" tabindex="0" hidden>
+      <ul class="rangee-cartes" id="liste-mes-fiches"></ul>
+      <p class="panneau-vide" id="vide-fiches" hidden>Aucune fiche encore.</p>
+    </div>
 
-  <section class="bloc-espace" id="bloc-regularite" hidden>
-    <h2 class="titre-espace">Ta régularité</h2>
-    <p class="aide-espace" id="texte-regularite"></p>
-    <div class="frise" id="frise-regularite" aria-hidden="true"></div>
-  </section>
+    <div class="panneau" id="panneau-controles" role="tabpanel" aria-labelledby="onglet-controles" tabindex="0" hidden>
+      <ul class="rangee-cartes" id="liste-mes-controles"></ul>
+      <p class="panneau-vide" id="vide-controles" hidden>Aucun contrôle blanc encore.</p>
+    </div>
+  </div>
 
   <button type="button" class="principal" id="bouton-nouveau-cours">Photographier un nouveau cours</button>
   <button type="button" class="discret" id="bouton-quitter-espace">Revenir</button>

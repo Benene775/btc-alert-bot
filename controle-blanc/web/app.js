@@ -204,7 +204,22 @@ function garderCarte(valeurs) {
   try { localStorage.setItem(CLE_CARTE, JSON.stringify(valeurs)); } catch (e) { /* quota plein */ }
 }
 
-/* --- Le rendu de « Mon année » ------------------------------------------ */
+/* --- Le rendu de « Mon année » ------------------------------------------
+ *
+ * Tout empilé, la page faisait plus de trois écrans de haut sur un téléphone —
+ * et elle grandissait à chaque contrôle passé. Elle tient maintenant en une
+ * carte et un classeur : une seule pile ouverte à la fois, comme des
+ * intercalaires. La hauteur ne dépend plus du nombre de séances.
+ */
+
+const CLE_ONGLET = 'cb.onglet';
+
+const ONGLETS = [
+  { cle: 'revoir', nom: 'À revoir' },
+  { cle: 'agenda', nom: 'Agenda' },
+  { cle: 'fiches', nom: 'Fiches' },
+  { cle: 'controles', nom: 'Contrôles' },
+];
 
 function dateCourte(iso) {
   if (!iso) return '';
@@ -219,16 +234,24 @@ function ligneJours(jours) {
   return 'dans ' + jours + ' jours';
 }
 
+function urgence(jours) {
+  return jours <= 1 ? 'haute' : (jours <= 3 ? 'moyenne' : 'basse');
+}
+
 function dessinerEspace() {
   const sessions = toutesLesSessions();
   dessinerCarteEleve(sessions);
-  dessinerAgenda(sessions);
-  dessinerReviennent(sessions);
-  dessinerMesFiches(sessions);
-  dessinerMesControles(sessions);
-  dessinerRegularite(sessions);
+  const comptes = {
+    revoir: dessinerReviennent(sessions),
+    agenda: dessinerAgenda(sessions),
+    fiches: dessinerMesFiches(sessions),
+    controles: dessinerMesControles(sessions),
+  };
+  dessinerIntercalaires(comptes);
   soignerTypographie($('ecran-espace'));
 }
+
+/* --- La carte, deux faces ------------------------------------------------ */
 
 function dessinerCarteEleve(sessions) {
   const mienne = carte();
@@ -240,6 +263,8 @@ function dessinerCarteEleve(sessions) {
   $('carte-classe').textContent = niveaux.length
     ? niveaux.join(' · ') + ' — ' + matieres.length + (matieres.length > 1 ? ' matières' : ' matière')
     : 'Ta première séance t’attend';
+
+  dessinerProchain(sessions);
 
   const chiffres = [
     ['Cours', sessions.length],
@@ -258,10 +283,123 @@ function dessinerCarteEleve(sessions) {
     groupe.append(dd, dt);
     boite.appendChild(groupe);
   });
+
+  dessinerRegularite(sessions);
 }
 
-/* L'agenda passe avant tout le reste : ce qui compte, c'est le prochain
- * contrôle, pas ce qui est déjà fait. */
+/* Le prochain contrôle ne se cache derrière aucun onglet : c'est la question
+ * qu'un élève se pose en ouvrant la page. Il vit sur la carte. */
+function dessinerProchain(sessions) {
+  const prochains = agenda(sessions);
+  const boite = $('prochain');
+  boite.innerHTML = '';
+  if (!prochains.length) {
+    boite.dataset.urgence = 'aucune';
+    boite.textContent = sessions.length
+      ? 'Aucun contrôle à venir.'
+      : 'Photographie ton premier cours pour commencer.';
+    return;
+  }
+  const session = prochains[0];
+  const jours = joursAvant(session.dateControle);
+  boite.dataset.urgence = urgence(jours);
+
+  const compte = document.createElement('span');
+  compte.className = 'prochain-compte';
+  compte.textContent = jours === 0 ? 'Jour J' : 'J−' + jours;
+
+  const texte = document.createElement('div');
+  const matiere = document.createElement('p');
+  matiere.className = 'prochain-matiere';
+  matiere.textContent = nomMatiere(session.matiere);
+  const quand = document.createElement('p');
+  quand.className = 'prochain-quand';
+  quand.textContent = dateCourte(session.dateControle) + ' · ' + ligneJours(jours);
+  texte.append(matiere, quand);
+
+  const aller = document.createElement('button');
+  aller.type = 'button';
+  aller.className = 'prochain-aller';
+  aller.textContent = 'Réviser';
+  aller.onclick = () => ouvrirSession(session.sessionId);
+
+  boite.append(compte, texte, aller);
+}
+
+/* --- Les intercalaires ---------------------------------------------------- */
+
+function dessinerIntercalaires(comptes) {
+  const barre = $('intercalaires');
+  barre.innerHTML = '';
+  ONGLETS.forEach((onglet, rang) => {
+    const bouton = document.createElement('button');
+    bouton.type = 'button';
+    bouton.id = 'onglet-' + onglet.cle;
+    bouton.className = 'intercalaire';
+    bouton.dataset.onglet = onglet.cle;
+    bouton.dataset.teinte = String(rang);
+    bouton.setAttribute('role', 'tab');
+    bouton.setAttribute('aria-controls', 'panneau-' + onglet.cle);
+
+    const nom = document.createElement('span');
+    nom.textContent = onglet.nom;
+    bouton.appendChild(nom);
+
+    if (comptes[onglet.cle]) {
+      const compte = document.createElement('span');
+      compte.className = 'intercalaire-compte';
+      compte.textContent = String(comptes[onglet.cle]);
+      bouton.appendChild(compte);
+    }
+
+    bouton.onclick = () => ouvrirOnglet(onglet.cle);
+    // Flèches gauche/droite entre onglets : c'est ce qu'attend un lecteur d'écran.
+    bouton.onkeydown = (evenement) => {
+      const pas = { ArrowLeft: -1, ArrowRight: 1 }[evenement.key];
+      if (!pas) return;
+      evenement.preventDefault();
+      const suivant = ONGLETS[(rang + pas + ONGLETS.length) % ONGLETS.length];
+      ouvrirOnglet(suivant.cle);
+      $('onglet-' + suivant.cle).focus();
+    };
+    barre.appendChild(bouton);
+  });
+
+  let choisi = 'revoir';
+  try { choisi = localStorage.getItem(CLE_ONGLET) || choisi; } catch (e) { /* stockage refusé */ }
+  if (!ONGLETS.some((o) => o.cle === choisi)) choisi = 'revoir';
+  // Un onglet vide ne s'ouvre pas de lui-même : on tombe sur le premier qui a
+  // quelque chose à montrer, sinon la page accueille l'élève par du vide.
+  if (!comptes[choisi]) {
+    const plein = ONGLETS.find((o) => comptes[o.cle]);
+    if (plein) choisi = plein.cle;
+  }
+  ouvrirOnglet(choisi, false);
+}
+
+function ouvrirOnglet(cle, memoriser = true) {
+  ONGLETS.forEach((onglet) => {
+    const actif = onglet.cle === cle;
+    const bouton = $('onglet-' + onglet.cle);
+    const panneau = $('panneau-' + onglet.cle);
+    if (!bouton || !panneau) return;
+    bouton.dataset.actif = actif ? 'oui' : 'non';
+    bouton.setAttribute('aria-selected', actif ? 'true' : 'false');
+    // Un onglet inactif sort du parcours de tabulation : on entre dans la barre
+    // une fois, puis on circule aux flèches.
+    bouton.tabIndex = actif ? 0 : -1;
+    panneau.hidden = !actif;
+  });
+  if (memoriser) {
+    try { localStorage.setItem(CLE_ONGLET, cle); } catch (e) { /* stockage refusé */ }
+  }
+}
+
+/* --- Les panneaux --------------------------------------------------------- */
+
+/* Chaque dessinateur renvoie son nombre d'éléments : c'est ce qui alimente la
+ * pastille de l'intercalaire, sans recompter deux fois. */
+
 function dessinerAgenda(sessions) {
   const prochains = agenda(sessions);
   const liste = $('liste-agenda');
@@ -269,20 +407,19 @@ function dessinerAgenda(sessions) {
 
   if (!prochains.length) {
     const li = document.createElement('li');
-    li.className = 'agenda-vide';
+    li.className = 'panneau-vide';
     li.textContent = sessions.length
       ? 'Aucun contrôle à venir. Prends un cours en photo quand la prochaine date tombe.'
       : 'Rien encore. Photographie ton premier cours et sa date apparaîtra ici.';
     liste.appendChild(li);
-    return;
+    return 0;
   }
 
-  prochains.forEach((session, rang) => {
+  prochains.forEach((session) => {
     const jours = joursAvant(session.dateControle);
     const li = document.createElement('li');
     li.className = 'agenda-ligne';
-    li.dataset.urgence = jours <= 1 ? 'haute' : (jours <= 3 ? 'moyenne' : 'basse');
-    if (rang === 0) li.dataset.premier = 'oui';
+    li.dataset.urgence = urgence(jours);
 
     const compte = document.createElement('span');
     compte.className = 'agenda-compte';
@@ -294,9 +431,7 @@ function dessinerAgenda(sessions) {
     titre.textContent = nomMatiere(session.matiere);
     const detail = document.createElement('p');
     detail.className = 'agenda-detail';
-    const chapitres = (session.chapitres || []).length;
-    detail.textContent = dateCourte(session.dateControle) + ' · ' + ligneJours(jours)
-      + (chapitres ? ' · ' + chapitres + (chapitres > 1 ? ' chapitres' : ' chapitre') : '');
+    detail.textContent = dateCourte(session.dateControle) + ' · ' + ligneJours(jours);
     corps.append(titre, detail);
 
     const aller = document.createElement('button');
@@ -308,55 +443,68 @@ function dessinerAgenda(sessions) {
     li.append(compte, corps, aller);
     liste.appendChild(li);
   });
+  return prochains.length;
 }
 
+/* Les notions se replient : le titre et le nombre de fois suffisent à décider,
+ * le détail ne s'ouvre que si on le demande. Six notions dépliées, c'était un
+ * écran entier pour une information qui tient en une ligne.
+ *
+ * « details » plutôt qu'un accordéon maison : le navigateur sait déjà le faire,
+ * au clavier comme au lecteur d'écran. */
 function dessinerReviennent(sessions) {
   const notions = notionsQuiReviennent(sessions);
-  $('bloc-reviennent').hidden = notions.length === 0;
   const liste = $('liste-reviennent');
   liste.innerHTML = '';
-  notions.slice(0, 8).forEach((n) => {
+  $('vide-revoir').hidden = notions.length > 0;
+
+  notions.forEach((n) => {
     const li = document.createElement('li');
-    li.className = 'revient';
-    li.dataset.insistante = n.fois > 1 ? 'oui' : 'non';
+    const pliage = document.createElement('details');
+    pliage.className = 'revient';
+    pliage.dataset.insistante = n.fois > 1 ? 'oui' : 'non';
 
-    const entete = document.createElement('div');
-    entete.className = 'revient-entete';
-    const titre = document.createElement('b');
+    const tete = document.createElement('summary');
+    tete.className = 'revient-tete';
+    const titre = document.createElement('span');
+    titre.className = 'revient-titre';
     titre.textContent = n.notion;
-    const compte = document.createElement('span');
-    compte.className = 'revient-fois';
-    compte.textContent = n.fois > 1 ? n.fois + ' fois' : '1 fois';
-    entete.append(titre, compte);
+    const badge = document.createElement('span');
+    badge.className = 'revient-fois';
+    badge.textContent = n.fois > 1 ? '×' + n.fois : nomMatiere(n.matiere);
+    tete.append(titre, badge);
 
+    const corps = document.createElement('div');
+    corps.className = 'revient-corps';
     const matiere = document.createElement('p');
     matiere.className = 'revient-matiere';
     matiere.textContent = nomMatiere(n.matiere);
-
-    li.append(entete, matiere);
+    corps.appendChild(matiere);
     if (n.pourquoi) {
       const pourquoi = document.createElement('p');
       pourquoi.className = 'revient-pourquoi';
       pourquoi.textContent = n.pourquoi;
-      li.appendChild(pourquoi);
+      corps.appendChild(pourquoi);
     }
-
     const retester = document.createElement('button');
     retester.type = 'button';
     retester.className = 'revient-action';
     retester.textContent = 'Me retester là-dessus';
     retester.onclick = () => ouvrirSession(n.sessionId, () => lancerControle([n.notion]));
-    li.appendChild(retester);
+    corps.appendChild(retester);
 
+    pliage.append(tete, corps);
+    li.appendChild(pliage);
     liste.appendChild(li);
   });
+  return notions.length;
 }
 
 function dessinerMesFiches(sessions) {
   const fiches = toutesLesFiches(sessions);
-  $('bloc-mes-fiches').hidden = fiches.length === 0;
   const liste = $('liste-mes-fiches');
   liste.innerHTML = '';
+  $('vide-fiches').hidden = fiches.length > 0;
   fiches.forEach((f, rang) => {
     const li = carteRangee(rang, f.titre,
       nomMatiere(f.session.matiere) + ' · ' + dateCourte(f.le),
@@ -364,13 +512,14 @@ function dessinerMesFiches(sessions) {
     li.querySelector('button').onclick = () => ouvrirFicheGardee(f.session.sessionId, f.rang);
     liste.appendChild(li);
   });
+  return fiches.length;
 }
 
 function dessinerMesControles(sessions) {
   const controles = tousLesControles(sessions);
-  $('bloc-mes-controles').hidden = controles.length === 0;
   const liste = $('liste-mes-controles');
   liste.innerHTML = '';
+  $('vide-controles').hidden = controles.length > 0;
   controles.forEach((c, rang) => {
     const detail = c.questions + (c.questions > 1 ? ' questions' : ' question')
       + (c.fragiles ? ' · ' + c.fragiles + ' à revoir' : '');
@@ -379,6 +528,7 @@ function dessinerMesControles(sessions) {
     li.querySelector('button').onclick = () => ouvrirControleGarde(c.session.sessionId, c.rang);
     liste.appendChild(li);
   });
+  return controles.length;
 }
 
 /* Une carte de rangée, reprise telle quelle par les fiches et les contrôles :
@@ -407,17 +557,21 @@ function carteRangee(rang, titre, dessous, etiquette) {
   return li;
 }
 
-/* La frise : huit semaines, un carré par jour. Pas de série, pas de score —
- * on regarde un mois se remplir, et rater trois jours ne casse rien. */
+/* La frise : huit semaines, un carré par jour. Pas de compte de jours
+ * consécutifs — on regarde un mois se remplir, et rater trois jours ne casse
+ * rien. Elle vit au dos de la carte, là où on va la chercher. */
 const SEMAINES_FRISE = 8;
 
 function dessinerRegularite(sessions) {
   const jours = joursTravailles(sessions);
-  $('bloc-regularite').hidden = jours.size === 0;
-  if (!jours.size) return;
-
   const frise = $('frise-regularite');
   frise.innerHTML = '';
+  if (!jours.size) {
+    $('texte-regularite').textContent = 'Ta frise se remplira à chaque séance.';
+    $('frise-legende').textContent = '';
+    return;
+  }
+
   const aujourdhui = new Date();
   aujourdhui.setHours(0, 0, 0, 0);
 
@@ -440,6 +594,27 @@ function dessinerRegularite(sessions) {
   $('texte-regularite').textContent = comptes > 1
     ? comptes + ' jours travaillés ces deux derniers mois.'
     : 'Premier jour travaillé. Le reste se construit comme ça.';
+  const mois = (d) => d.toLocaleDateString('fr-FR', { month: 'long' });
+  const debut = mois(premier);
+  const fin = mois(aujourdhui);
+  $('frise-legende').textContent = 'Une colonne = une semaine · '
+    + (debut === fin ? debut : debut + ' → ' + fin);
+}
+
+/* --- Retourner la carte --------------------------------------------------- */
+
+function retournerCarte(vers) {
+  const pivot = $('pivot-carte');
+  const face = vers || (pivot.dataset.face === 'recto' ? 'verso' : 'recto');
+  pivot.dataset.face = face;
+  // Le dos ne doit pas rester dans le parcours de tabulation quand il est
+  // derrière : on le sort de l'arbre d'accessibilité en même temps qu'il tourne.
+  $('face-recto').setAttribute('aria-hidden', face === 'recto' ? 'false' : 'true');
+  $('face-verso').setAttribute('aria-hidden', face === 'verso' ? 'false' : 'true');
+  const arrivee = face === 'recto' ? 'bouton-retourner' : 'bouton-retourner-dos';
+  if (document.activeElement && document.activeElement.classList.contains('retourner')) {
+    $(arrivee).focus();
+  }
 }
 
 /* --- Rouvrir ce qu'on retrouve ------------------------------------------ */
@@ -473,6 +648,7 @@ async function ouvrirControleGarde(sessionId, rang) {
 
 function ouvrirEspace() {
   dessinerEspace();
+  retournerCarte('recto');
   montrer('ecran-espace');
   tracer('espace', {});
 }
@@ -2191,6 +2367,8 @@ document.addEventListener('DOMContentLoaded', () => {
     montrer('ecran-accueil');
   };
   $('bouton-nouveau-cours').onclick = () => demarrerSession();
+  $('bouton-retourner').onclick = () => retournerCarte('verso');
+  $('bouton-retourner-dos').onclick = () => retournerCarte('recto');
 
   // La carte d'élève : deux réglages, gardés ici et nulle part ailleurs.
   $('champ-prenom').oninput = (evenement) => {

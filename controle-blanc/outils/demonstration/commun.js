@@ -92,7 +92,24 @@ function controleFactice(titre, jours, nbQuestions, fragiles) {
       numero: i + 1, enonce: "Question " + (i + 1), notion: "Notion " + (i + 1),
     })),
     reponses: [],
-    correction: { mot_de_fin: "", questions: [], notions_fragiles: fragiles },
+    // Une correction sans réponses corrigées rouvre une page vide : la
+    // démonstration doit montrer ce que l'élève retrouvera vraiment.
+    correction: {
+      mot_de_fin: "Deux notions à reprendre, le reste tient.",
+      reponses: fragiles.map((f, i) => ({
+        numero: i + 1,
+        enonce: "Question " + (i + 1) + " — " + f.notion,
+        statut: i === 0 ? "a_revoir" : "partiel",
+        ta_reponse: "Ce que tu avais écrit le jour du contrôle.",
+        ce_qui_va: "Tu as bien identifié le sujet de la question.",
+        erreur_reperee: f.pourquoi,
+        ce_qui_manquait: ["L'élément que ton cours donne juste après."],
+        ou_dans_ton_cours: "Dans ton chapitre, au paragraphe correspondant.",
+        reponse_attendue: "La réponse complète, telle qu'elle était attendue.",
+        signalee: false,
+      })),
+      notions_fragiles: fragiles,
+    },
   };
 }
 

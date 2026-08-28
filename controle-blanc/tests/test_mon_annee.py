@@ -79,3 +79,36 @@ def test_une_notion_qui_revient_est_comptee_et_signalee():
     assert "function notionsQuiReviennent" in CODE_NU
     assert "deja.fois += 1" in CODE_NU
     assert 'data-insistante="oui"' in STYLE or "[data-insistante=\"oui\"]" in STYLE
+
+
+def test_le_classeur_n_ouvre_qu_une_pile_a_la_fois():
+    """Tout empilé, la page dépassait trois écrans et grandissait à chaque
+    contrôle passé. Les intercalaires la rendent indépendante de l'historique."""
+    espace = PAGE[PAGE.index('id="ecran-espace"') : PAGE.index('id="ecran-contexte"')]
+    panneaux = re.findall(r'id="(panneau-[a-z]+)"[^>]*>', espace)
+    assert len(panneaux) == 4, f"quatre piles attendues, trouvé {panneaux}"
+
+    # Un seul panneau part visible ; les autres portent « hidden » dans le HTML,
+    # pour que rien ne s'empile avant même que le script tourne.
+    ouverts = [p for p in panneaux if f'id="{p}" role="tabpanel" aria-labelledby="onglet-{p[8:]}" tabindex="0">' in espace]
+    assert len(ouverts) == 1, f"une seule pile doit être ouverte au départ, trouvé {ouverts}"
+
+    assert 'role="tablist"' in espace, "la barre d'intercalaires n'est pas un tablist"
+    for attendu in ('role="tabpanel"', "aria-labelledby="):
+        assert attendu in espace, f"« {attendu} » manque"
+
+
+def test_les_onglets_se_parcourent_au_clavier():
+    """Une barre d'onglets où la tabulation traverse les quatre boutons est une
+    barre d'onglets ratée : on y entre une fois, puis on circule aux flèches."""
+    assert "ArrowLeft" in CODE_NU and "ArrowRight" in CODE_NU
+    assert "bouton.tabIndex = actif ? 0 : -1" in CODE_NU
+    assert 'setAttribute(\'aria-selected\'' in CODE_NU
+
+
+def test_le_dos_de_la_carte_sort_de_l_arbre_d_accessibilite():
+    """Une face retournée reste dans le document : sans « aria-hidden », un
+    lecteur d'écran lit les deux faces à la suite et la tabulation entre dans
+    ce qui est physiquement derrière."""
+    assert "function retournerCarte" in CODE_NU
+    assert "aria-hidden" in CODE_NU
