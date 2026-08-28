@@ -129,3 +129,40 @@ def test_le_seuil_de_revelation_reste_atteignable():
     assert "%" not in marge.group(1), (
         f"rootMargin en pourcentage ({marge.group(1)}) : le bas de page peut devenir inatteignable"
     )
+
+
+def _apres_repere() -> str:
+    repere = "/* liste-eclairables */"
+    return STYLE[STYLE.index(repere) + len(repere) :]
+
+
+def test_les_surfaces_eclairees_sont_les_memes_des_deux_cotes():
+    """La liste vit en double : dans la feuille de style et dans le script.
+
+    Si elles divergent, on ajoute une carte d'un côté sans l'autre et elle
+    reste mate — sans erreur, sans rien qui le signale.
+    """
+    import re
+
+    apres_repere = _apres_repere()
+    css = apres_repere[: apres_repere.index("{")]
+    du_style = {s.strip() for s in css.split(",") if s.strip()}
+
+    js = re.search(r"const ECLAIRABLES = (.+?);\n", SCRIPT, re.S)
+    assert js, "ECLAIRABLES introuvable dans le script"
+    du_script = {s.strip() for s in re.sub(r"['+\s]+", " ", js.group(1)).split(",") if s.strip()}
+
+    assert du_style == du_script, (
+        f"seulement dans la feuille de style : {sorted(du_style - du_script)} ; "
+        f"seulement dans le script : {sorted(du_script - du_style)}"
+    )
+
+
+def test_chaque_surface_eclairee_porte_sa_lueur_et_son_reperage():
+    """Sans « position: relative », la lueur se poserait sur toute la page."""
+    apres_repere = _apres_repere()
+    positionnees = apres_repere[: apres_repere.index("}") + 1]
+    assert "position: relative" in positionnees
+
+    for selecteur in (s.strip() for s in apres_repere[: apres_repere.index("{")].split(",")):
+        assert f"{selecteur}::after" in STYLE, f"« {selecteur} » n'a pas de lueur"

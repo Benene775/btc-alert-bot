@@ -491,21 +491,45 @@ function armerCopie() {
   setTimeout(() => { copie.dataset.ecrit = 'oui'; }, 900);
 
   if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
-
   copie.addEventListener('mouseenter', ecrire);
+}
 
-  // La lumière suit le curseur. Une seule mise à jour par trame : sur un
-  // portable modeste, un pointermove non bridé fait tomber l'animation.
+/* Les surfaces qui prennent la lumière du curseur.
+ *
+ * La liste double celle de la feuille de style (repère « liste-eclairables ») ;
+ * un test vérifie qu'elles ne divergent pas, faute de quoi on ajouterait une
+ * carte d'un côté sans l'autre et elle resterait mate sans qu'on le voie.
+ */
+const ECLAIRABLES = '.copie, .case-carrefour, .argument, .chapitres li,'
+  + ' .carte-fiche, .tuile, .carte-correction, .fragiles, .document,'
+  + ' .rappel, .lien-reprise, .zone-photos';
+
+/* Un seul écouteur pour toute la page, quel que soit le nombre de cartes —
+ * et elles se recréent à chaque fiche. En poser un par carte les multiplierait
+ * sans que rien ne les retire.
+ *
+ * Une mise à jour par trame au plus : un pointermove non bridé fait tomber
+ * l'animation sur un portable modeste.
+ */
+function armerLumiere() {
+  if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
   let attendue = null;
-  copie.addEventListener('pointermove', (evenement) => {
+  let dernier = null;
+  document.addEventListener('pointermove', (evenement) => {
+    dernier = evenement;
     if (attendue) return;
     attendue = requestAnimationFrame(() => {
       attendue = null;
-      const boite = copie.getBoundingClientRect();
-      copie.style.setProperty('--px', ((evenement.clientX - boite.left) / boite.width).toFixed(3));
-      copie.style.setProperty('--py', ((evenement.clientY - boite.top) / boite.height).toFixed(3));
+      const surface = dernier.target.closest && dernier.target.closest(ECLAIRABLES);
+      if (!surface) return;
+      const boite = surface.getBoundingClientRect();
+      if (!boite.width || !boite.height) return;
+      surface.style.setProperty('--px', ((dernier.clientX - boite.left) / boite.width).toFixed(3));
+      surface.style.setProperty('--py', ((dernier.clientY - boite.top) / boite.height).toFixed(3));
     });
-  });
+  }, { passive: true });
 }
 
 function annoncerPhotos(texte) {
@@ -1735,6 +1759,11 @@ function dateParDefaut() {
 /* ------------------------------------------------------------ câblage --- */
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Ici et pas dans initialiser(), qui sort par le haut quand l'élève arrive
+  // par un lien de reprise : la lumière vaut pour tous les écrans, pas
+  // seulement pour la page d'accueil.
+  armerLumiere();
+
   $('champ-date').value = dateParDefaut();
   $('champ-date').min = new Date().toISOString().slice(0, 10);
 

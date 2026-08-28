@@ -30,6 +30,9 @@
      l'ambre est trop clair pour porter du blanc (2,2:1 — illisible). */
   --sur-accent: #ffffff;
   --surligneur: rgba(255, 196, 60, .5);
+  /* La lueur qui suit le curseur. Assez pour se sentir, pas assez pour
+     passer devant le texte qu'elle traverse. */
+  --lueur: rgba(255, 196, 60, .22);
   /* Le stylo de l'élève reste bleu même sur du papier chaud : c'est ce qui le
      sépare du rouge du prof. Sans lui, sa copie et l'annotation se confondent. */
   --stylo-eleve: #28518f;
@@ -99,6 +102,7 @@
     --accent-doux: #2a2013;
     --sur-accent: #17130e;
     --surligneur: rgba(224, 173, 66, .3);
+    --lueur: rgba(224, 173, 66, .13);
     --stylo-eleve: #9dbcf2;
     --stylo-eleve-doux: #1b2436;
     --seyes: rgba(157, 188, 242, .05);
@@ -131,6 +135,7 @@
   --accent-doux: #2a2013;
   --sur-accent: #17130e;
   --surligneur: rgba(224, 173, 66, .3);
+  --lueur: rgba(224, 173, 66, .13);
   --stylo-eleve: #9dbcf2;
   --stylo-eleve-doux: #1b2436;
   --seyes: rgba(157, 188, 242, .05);
@@ -1732,7 +1737,7 @@ h1 {
   transform: rotate(-.5deg);
 }
 
-.copie::after {
+.copie::before {
   /* le pli d'une feuille qu'on a pliée en deux dans son sac */
   content: "";
   position: absolute;
@@ -1845,9 +1850,36 @@ h1 {
   clip-path: inset(0 100% 0 0);
 }
 
-/* La feuille prend la lumière du curseur : une page posée sur une table
-   n'est pas éclairée à plat. --px et --py viennent du script. */
-.copie::before {
+@media (prefers-reduced-motion: reduce) {
+  .copie-note { transition: none; }
+  .copie[data-ecrit="non"] .copie-note { clip-path: none; }
+}
+
+/* --- La lumière du curseur ----------------------------------------------
+ *
+ * Rien n'est éclairé à plat : une carte posée sur la page prend la lumière de
+ * là où on regarde. La lueur suit le pointeur sur tout ce qui est une surface
+ * — la copie, les cartes de fiche, les choix, les blocs de correction.
+ *
+ * Une seule règle pour toutes : la liste ci-dessous est reprise telle quelle
+ * par le script (« ECLAIRABLES » dans app.js), et un test vérifie que les deux
+ * ne divergent pas. Sans ça, on ajoute une carte d'un côté et pas de l'autre,
+ * et elle reste mate sans que personne ne s'en aperçoive.
+ *
+ * --px et --py viennent du script, en fraction de la boîte. Leur valeur de
+ * repli place la lumière au centre : si le script ne tourne pas, la lueur
+ * n'apparaît simplement jamais, faute de survol qui l'allume.
+ */
+
+/* liste-eclairables */
+.copie, .case-carrefour, .argument, .chapitres li, .carte-fiche, .tuile,
+.carte-correction, .fragiles, .document, .rappel, .lien-reprise, .zone-photos {
+  position: relative;
+}
+
+.copie::after, .case-carrefour::after, .argument::after, .chapitres li::after,
+.carte-fiche::after, .tuile::after, .carte-correction::after, .fragiles::after,
+.document::after, .rappel::after, .lien-reprise::after, .zone-photos::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -1855,17 +1887,18 @@ h1 {
   pointer-events: none;
   border-radius: inherit;
   opacity: 0;
-  transition: opacity .3s ease;
+  transition: opacity .32s ease;
   background: radial-gradient(
     46% 68% at calc(var(--px, .5) * 100%) calc(var(--py, .5) * 100%),
-    color-mix(in srgb, var(--surligneur) 46%, transparent),
-    transparent 72%);
+    var(--lueur), transparent 72%);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .copie-note { transition: none; }
-  .copie[data-ecrit="non"] .copie-note { clip-path: none; }
-  .copie::before { display: none; }
+  .copie::after, .case-carrefour::after, .argument::after, .chapitres li::after,
+  .carte-fiche::after, .tuile::after, .carte-correction::after, .fragiles::after,
+  .document::after, .rappel::after, .lien-reprise::after, .zone-photos::after {
+    display: none;
+  }
 }
 
 /* --- À la souris ---------------------------------------------------------
@@ -1909,7 +1942,12 @@ h1 {
                 0 36px 70px -34px color-mix(in srgb, var(--encre) 50%, transparent);
   }
 
-  .copie:hover::before { opacity: 1; }
+  .copie:hover::after, .case-carrefour:hover::after, .argument:hover::after,
+  .chapitres li:hover::after, .carte-fiche:hover::after, .tuile:hover::after,
+  .carte-correction:hover::after, .fragiles:hover::after, .document:hover::after,
+  .rappel:hover::after, .lien-reprise:hover::after, .zone-photos:hover::after {
+    opacity: 1;
+  }
 
   /* L'étape survolée se colore : le numéro passe du creux au plein, comme
      une case qu'on vient de cocher. */
