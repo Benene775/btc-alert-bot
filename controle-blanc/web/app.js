@@ -288,7 +288,7 @@ function dessinerCarteEleve(sessions) {
   const mienne = carte();
   $('embleme').textContent = mienne.embleme || EMBLEMES[0];
   $('champ-prenom').value = mienne.prenom || '';
-  $('pivot-carte').dataset.teinte = String(mienne.teinte || 0);
+  $('carte-annee').dataset.teinte = String(mienne.teinte || 0);
   if (!$('atelier').hidden) dessinerAtelier();
 
   const niveaux = [...new Set(sessions.map((s) => s.niveau).filter(Boolean))];
@@ -749,7 +749,7 @@ function dessinerReviennent(sessions) {
   /* Quatre au plus restent dehors : au-delà, une liste d'alertes n'alerte plus
    * de rien. Les suivantes rejoignent le tiroir de leur matière, où elles
    * gardent leur marque rouge et leur compte. */
-  const TETE_MAX = 4;
+  const TETE_MAX = 3;
   const recurrentes = notions.filter((n) => n.fois > 1);
   const enTete = recurrentes.slice(0, TETE_MAX);
   const dansTiroirs = notions.filter((n) => !enTete.includes(n));
@@ -767,6 +767,9 @@ function dessinerReviennent(sessions) {
     const li = document.createElement('li');
     const tiroir = document.createElement('details');
     tiroir.className = 'groupe';
+    // La couleur de la matière, la même que dans l'archive et les filtres :
+    // six barres grises identiques ne disent rien de ce qu'elles contiennent.
+    tiroir.dataset.teinte = teinteMatiere(matiere);
 
     const tete = document.createElement('summary');
     tete.className = 'groupe-tete';
@@ -1083,22 +1086,6 @@ function dessinerRegularite(sessions) {
     + (debut === fin ? debut : debut + ' → ' + fin);
 }
 
-/* --- Retourner la carte --------------------------------------------------- */
-
-function retournerCarte(vers) {
-  const pivot = $('pivot-carte');
-  const face = vers || (pivot.dataset.face === 'recto' ? 'verso' : 'recto');
-  pivot.dataset.face = face;
-  // Le dos ne doit pas rester dans le parcours de tabulation quand il est
-  // derrière : on le sort de l'arbre d'accessibilité en même temps qu'il tourne.
-  $('face-recto').setAttribute('aria-hidden', face === 'recto' ? 'false' : 'true');
-  $('face-verso').setAttribute('aria-hidden', face === 'verso' ? 'false' : 'true');
-  const arrivee = face === 'recto' ? 'bouton-retourner' : 'bouton-retourner-dos';
-  if (document.activeElement && document.activeElement.classList.contains('retourner')) {
-    $(arrivee).focus();
-  }
-}
-
 /* --- Rouvrir ce qu'on retrouve ------------------------------------------ */
 
 /* Ouvrir depuis « Mon année » change de séance : l'état courant devient celui
@@ -1130,7 +1117,6 @@ async function ouvrirControleGarde(sessionId, rang) {
 
 function ouvrirEspace() {
   dessinerEspace();
-  retournerCarte('recto');
   montrer('ecran-espace');
   tracer('espace', {});
 }
@@ -2897,8 +2883,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   $('mois-precedent').onclick = () => changerMois(-1);
   $('mois-suivant').onclick = () => changerMois(1);
-  $('bouton-retourner').onclick = () => retournerCarte('verso');
-  $('bouton-retourner-dos').onclick = () => retournerCarte('recto');
 
   // La carte d'élève : deux réglages, gardés ici et nulle part ailleurs.
   $('champ-prenom').oninput = (evenement) => {

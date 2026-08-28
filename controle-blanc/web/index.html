@@ -161,34 +161,32 @@
 <!-- MON ANNÉE — tout ce que l’élève a déjà fait, relu depuis son téléphone -->
 <section id="ecran-espace" class="ecran ecran-espace" hidden>
 
-  <!-- La carte d’élève a deux faces, comme celle de la cantine : devant, qui
-       on est et ce qui arrive ; derrière, ce qu’on a fait. -->
-  <div class="pivot" id="pivot-carte" data-face="recto">
-    <div class="face carte-eleve seyes" id="face-recto">
-      <button type="button" id="bouton-retourner" class="retourner" aria-label="Voir le dos de la carte">↻</button>
-      <div class="carte-eleve-haut">
-        <button type="button" id="embleme" class="embleme" aria-label="Changer d’emblème et de couleur" aria-expanded="false" aria-controls="atelier">✏️</button>
-        <div class="carte-eleve-identite">
-          <label for="champ-prenom" class="masque">Ton prénom</label>
-          <input type="text" id="champ-prenom" class="champ-prenom" maxlength="24"
-                 placeholder="Ton prénom" autocomplete="off" spellcheck="false">
-          <p class="carte-eleve-classe" id="carte-classe"></p>
-        </div>
+  <!-- Une seule carte, rien de caché. Le retournement était un mécanisme en
+       quête de contenu : la frise, qu'il fallait aller chercher au dos, est
+       la plus belle chose de cette page — elle vit maintenant devant. -->
+  <div class="carte-annee seyes" id="carte-annee">
+    <div class="annee-haut">
+      <button type="button" id="embleme" class="embleme" aria-label="Changer d’emblème et de couleur"
+              aria-expanded="false" aria-controls="atelier">✏️</button>
+      <div class="annee-identite">
+        <label for="champ-prenom" class="masque">Ton prénom</label>
+        <input type="text" id="champ-prenom" class="champ-prenom" maxlength="24"
+               placeholder="Ton prénom" autocomplete="off" spellcheck="false">
+        <p class="annee-classe" id="carte-classe"></p>
       </div>
-      <div class="prochain" id="prochain"></div>
-      <dl class="carte-eleve-chiffres" id="carte-chiffres"></dl>
     </div>
 
-    <div class="face carte-eleve carte-eleve-dos" id="face-verso" aria-hidden="true">
-      <button type="button" id="bouton-retourner-dos" class="retourner" aria-label="Revenir devant">↺</button>
-      <div class="bloc-frise">
-        <p class="aide-espace" id="texte-regularite"></p>
-        <div class="frise" id="frise-regularite" aria-hidden="true"></div>
-        <p class="frise-legende" id="frise-legende"></p>
-      </div>
-      <p class="carte-eleve-mention">Tout ça reste dans ce téléphone. Aucun compte, rien d’envoyé.</p>
+    <dl class="annee-chiffres" id="carte-chiffres"></dl>
+
+    <div class="annee-frise">
+      <div class="frise" id="frise-regularite" aria-hidden="true"></div>
+      <p class="frise-legende" id="frise-legende"></p>
+      <p class="masque" id="texte-regularite"></p>
     </div>
   </div>
+
+  <!-- La prochaine échéance : un objet à part, pas une boîte dans une boîte. -->
+  <div class="prochain" id="prochain"></div>
 
   <!-- Choisir son emblème et la couleur de sa carte. C'est tout ce qu'il y a
        à personnaliser, et ça suffit : la carte devient la sienne. -->

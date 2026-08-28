@@ -124,12 +124,19 @@ def test_les_onglets_se_parcourent_au_clavier():
     assert 'setAttribute(\'aria-selected\'' in CODE_NU
 
 
-def test_le_dos_de_la_carte_sort_de_l_arbre_d_accessibilite():
-    """Une face retournée reste dans le document : sans « aria-hidden », un
-    lecteur d'écran lit les deux faces à la suite et la tabulation entre dans
-    ce qui est physiquement derrière."""
-    assert "function retournerCarte" in CODE_NU
-    assert "aria-hidden" in CODE_NU
+def test_rien_n_est_cache_derriere_un_mecanisme():
+    """La carte se retournait pour montrer la frise.
+
+    Un retournement, c'est une face que les lecteurs d'écran lisent quand même,
+    une tabulation qui entre dans ce qui est derrière, et surtout la plus belle
+    chose de la page rendue invisible par défaut. Tout tient sur une face.
+    """
+    assert "function retournerCarte" not in SCRIPT, "le retournement est revenu"
+    assert 'id="carte-annee"' in PAGE
+    # La frise est devant, dans la carte elle-même.
+    carte = PAGE[PAGE.index('id="carte-annee"') : PAGE.index('id="prochain"')]
+    assert 'id="frise-regularite"' in carte, "la frise n'est pas sur la carte"
+    assert 'id="carte-chiffres"' in carte, "les chiffres ne sont pas sur la carte"
 
 
 def test_les_notions_se_rangent_par_matiere():
