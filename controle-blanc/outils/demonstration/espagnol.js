@@ -141,7 +141,7 @@ const FICHE_GENERALE = {
         'España es la segunda potencia mundial en número de viajeros internacionales, detrás de Francia y antes de EE. UU.',
         'El turismo representa el 13 por ciento del PIB: es un beneficio económico mayor.',
         'Las desventajas: los numerosos proyectos hoteleros y de transporte, y el problema del agua.',
-        'La conclusión du cours : España debe apostar por un turismo más sostenible.',
+        'Ce que ton cours conclut : España debe apostar por un turismo más sostenible.',
       ],
       a_retenir: 'Deux chiffres suffisent pour toute la première partie : deuxième mondial, 13 % du PIB.',
     },

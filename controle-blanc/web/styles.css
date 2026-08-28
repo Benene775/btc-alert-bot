@@ -554,31 +554,187 @@ select {
 
 .case-carrefour span { display: block; font-size: .88rem; color: var(--encre-douce); }
 
-/* --- Fiches ------------------------------------------------------------- */
+/* --- Fiches -------------------------------------------------------------
+ *
+ * Ici l'ambiance change, et c'est voulu. Le reste de l'application est une
+ * copie corrigée : papier froid de salle de classe, encre bleue, stylo rouge.
+ * La fiche, elle, se lit le soir sous une lampe. Le papier se réchauffe, et
+ * redevient froid dès qu'on passe au contrôle.
+ *
+ * Deux partis pris de lecture :
+ *   - pas de cartes. Une fiche empilée en encadrés se parcourt, elle ne se lit
+ *     pas. On la traite comme un document : des blancs, une hiérarchie, une
+ *     largeur de ligne tenue autour de soixante signes.
+ *   - « à retenir » devient un trait de surligneur, pas un cadre. C'est le
+ *     geste que l'élève fait lui-même dans son cahier.
+ */
 
-.section-fiche {
+:root[data-ecran="fiche"] {
+  --papier: #fbf7f2;
+  --carte: #fffdfa;
+  --encre: #241e17;
+  --encre-douce: #7a6a5a;
+  --trait: #ebe1d4;
+  --trait-fort: #d8c9b6;
+  --accent: #9a6410;          /* miel : les repères de lecture */
+  --accent-doux: #f7edda;
+  --surligneur: rgba(255, 209, 92, .58);
+  --alerte-fiche: #a33a2c;    /* les pièges, seul rouge de cet écran */
+  --alerte-fiche-doux: #fbeee9;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-ecran="fiche"]:not([data-theme="light"]) {
+    --papier: #17130e;
+    --carte: #211b14;
+    --encre: #f2ebe1;
+    --encre-douce: #a89887;
+    --trait: #33291e;
+    --trait-fort: #473a2a;
+    --accent: #d9a94a;
+    --accent-doux: #2a2013;
+    --surligneur: rgba(214, 163, 56, .34);
+    --alerte-fiche: #e08a76;
+    --alerte-fiche-doux: #2e1c17;
+  }
+}
+
+:root[data-theme="dark"][data-ecran="fiche"] {
+  --papier: #17130e;
+  --carte: #211b14;
+  --encre: #f2ebe1;
+  --encre-douce: #a89887;
+  --trait: #33291e;
+  --trait-fort: #473a2a;
+  --accent: #d9a94a;
+  --accent-doux: #2a2013;
+  --surligneur: rgba(214, 163, 56, .34);
+  --alerte-fiche: #e08a76;
+  --alerte-fiche-doux: #2e1c17;
+}
+
+/* Ce que la fiche coûte à lire, annoncé d'emblée : une longueur connue
+   se commence, une longueur inconnue se remet à plus tard. */
+.fiche-souffle {
+  font-family: var(--mono);
+  font-size: .71rem;
+  letter-spacing: .06em;
+  line-height: 1.8;
+  color: var(--encre-douce);
+  margin: 4px 0 44px;
+  padding-top: 14px;
+  border-top: 1px solid var(--trait);
+  max-width: 34em;
+}
+
+.ecran-fiche .chapeau { max-width: 32ch; margin-bottom: 0; }
+
+/* Chaque partie est un morceau de texte, pas une boîte. */
+.bloc-fiche {
+  max-width: 34em;              /* environ soixante signes, la largeur qui se lit */
+  margin: 0 0 46px;
+}
+
+.bloc-compteur {
+  font-family: var(--mono);
+  font-size: .7rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0 0 8px;
+}
+
+.bloc-fiche h3 {
+  font-family: var(--titre);
+  font-weight: 600;
+  font-size: 1.32rem;
+  line-height: 1.24;
+  letter-spacing: -.014em;
+  text-wrap: balance;
+  margin: 0 0 18px;
+}
+
+.points { list-style: none; margin: 0; padding: 0; }
+
+.points li {
+  position: relative;
+  padding-left: 22px;
+  margin-bottom: 15px;
+  font-size: 1.06rem;
+  line-height: 1.72;
+}
+
+.points li::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: .72em;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--trait-fort);
+}
+
+.points li:last-child { margin-bottom: 0; }
+
+/* Le surligneur : un vrai trait, irrégulier aux extrémités, qui déborde
+   légèrement du texte comme un feutre déborde d'une ligne. */
+.retenir {
+  margin: 22px 0 0;
+  font-family: var(--titre);
+  font-weight: 600;
+  font-size: 1.14rem;
+  /* Assez d'interligne pour que les bandes de surligneur se détachent les unes
+     des autres, comme des passages successifs de feutre. */
+  line-height: 1.9;
+  letter-spacing: -.008em;
+}
+
+.retenir mark {
+  background: linear-gradient(
+    103deg,
+    color-mix(in srgb, var(--surligneur) 0%, transparent) 0%,
+    var(--surligneur) 2.5%,
+    var(--surligneur) 97%,
+    color-mix(in srgb, var(--surligneur) 0%, transparent) 100%
+  );
+  color: inherit;
+  padding: .12em .28em;
+  border-radius: .18em;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+/* Les deux blocs de consultation, eux, gardent un fond : on y revient,
+   on ne les lit pas d'affilée. */
+.bloc-mots, .bloc-pieges {
+  max-width: 34em;
   background: var(--carte);
   border: 1px solid var(--trait);
-  border-radius: var(--rayon);
-  padding: 18px;
-  margin-bottom: 12px;
+  border-radius: 14px;
+  padding: 24px 22px;
+  margin-top: 56px;
 }
 
-.section-fiche h3 { margin-bottom: 12px; }
-.section-fiche ul { margin: 0; padding-left: 20px; }
-.section-fiche li { margin-bottom: 8px; }
+.bloc-mots dl { margin: 0; }
+.bloc-mots dt { font-weight: 700; margin-top: 16px; }
+.bloc-mots dt:first-of-type { margin-top: 0; }
+.bloc-mots dd { margin: 3px 0 0; color: var(--encre-douce); font-size: .97rem; line-height: 1.65; }
 
-.a-retenir {
-  margin: 14px 0 0;
-  padding: 12px 14px;
-  background: var(--accent-doux);
-  border-radius: 8px;
-  font-size: .92rem;
+/* Les pièges supposent de savoir où les élèves tombent : c'est ce que la fiche
+   a de plus précieux, et ça ne se relègue pas en annexe. */
+.bloc-pieges {
+  background: var(--alerte-fiche-doux);
+  border-color: color-mix(in srgb, var(--alerte-fiche) 26%, transparent);
 }
 
-.definitions { list-style: none; padding: 0; margin: 0; }
-.definitions li { margin-bottom: 12px; font-size: .93rem; }
-.definitions b { display: block; }
+.bloc-pieges .bloc-compteur { color: var(--alerte-fiche); }
+.bloc-pieges ol { margin: 0; padding-left: 20px; }
+.bloc-pieges li { margin-bottom: 13px; line-height: 1.62; }
+.bloc-pieges li:last-child { margin-bottom: 0; }
+.bloc-pieges li::marker { color: var(--alerte-fiche); font-weight: 700; }
+
+.ecran-fiche .principal { margin-top: 44px; }
 
 /* --- Le contrôle -------------------------------------------------------- */
 

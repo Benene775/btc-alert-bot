@@ -115,6 +115,8 @@ function tracer(type, details = {}) {
 
 function montrer(id) {
   ecrans().forEach((section) => { section.hidden = section.id !== id; });
+  // L'ambiance dépend du moment : on révise au chaud, on se teste au froid.
+  document.documentElement.dataset.ecran = id.replace('ecran-', '');
   window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
   majBandeau(id);
 }
@@ -523,6 +525,27 @@ async function demanderFicheCiblee() {
   } catch (e) { gererErreur(e); }
 }
 
+/* La typographie française colle une espace insécable avant les doubles
+ * ponctuations et à l'intérieur des guillemets. Sans elle, un « » se retrouve
+ * seul en début de ligne, et un « ! » se détache de son mot.
+ *
+ * On ne fait que remplacer une espace existante : un texte espagnol, qui n'en
+ * met pas avant sa ponctuation, n'est donc jamais touché.
+ */
+const INSECABLE = '\u202f';
+
+function soignerTypographie(racine) {
+  const parcours = document.createTreeWalker(racine, NodeFilter.SHOW_TEXT);
+  let noeud;
+  while ((noeud = parcours.nextNode())) {
+    const avant = noeud.nodeValue;
+    const apres = avant
+      .replace(/ ([;:!?»])/g, INSECABLE + '$1')
+      .replace(/« /g, '«' + INSECABLE);
+    if (apres !== avant) noeud.nodeValue = apres;
+  }
+}
+
 function afficherFiche(fiche, type) {
   $('etiquette-fiche').textContent = type === 'ciblee' ? 'Fiche ciblée' : 'Fiche générale';
   $('titre-fiche').textContent = fiche.titre || 'Ta fiche';
@@ -530,60 +553,85 @@ function afficherFiche(fiche, type) {
     ? 'Uniquement les notions que tu viens de rater. Relis-la, puis retente le contrôle.'
     : 'Relis-la une fois, sans forcer à retenir. Le contrôle blanc fera le tri ensuite.';
 
+  const sections = fiche.sections || [];
+  const pieges = fiche.pieges || [];
+  const souffle = [];
+  if (fiche.duree_lecture_minutes) souffle.push(fiche.duree_lecture_minutes + ' minutes de lecture');
+  if (sections.length) souffle.push(sections.length + (sections.length > 1 ? ' parties' : ' partie'));
+  if (pieges.length) souffle.push(pieges.length + (pieges.length > 1 ? ' pièges à la fin' : ' piège à la fin'));
+  $('fiche-souffle').textContent = souffle.join(' · ');
+
   const corps = $('corps-fiche');
   corps.innerHTML = '';
 
-  (fiche.sections || []).forEach((section) => {
-    const bloc = document.createElement('div');
-    bloc.className = 'section-fiche';
+  sections.forEach((section, index) => {
+    const bloc = document.createElement('article');
+    bloc.className = 'bloc-fiche';
+
+    const compteur = document.createElement('p');
+    compteur.className = 'bloc-compteur';
+    compteur.textContent = (index + 1) + ' / ' + sections.length;
+
     const titre = document.createElement('h3');
     titre.textContent = section.titre;
+
     const points = document.createElement('ul');
+    points.className = 'points';
     (section.points || []).forEach((point) => {
       const li = document.createElement('li');
       li.textContent = point;
       points.appendChild(li);
     });
-    bloc.append(titre, points);
+
+    bloc.append(compteur, titre, points);
+
     if (section.a_retenir) {
+      // Un trait de surligneur, pas un encadré : c'est le geste que l'élève fait
+      // lui-même dans son cahier pour dire « ça, c'est ce qui compte ».
       const retenir = document.createElement('p');
-      retenir.className = 'a-retenir';
-      retenir.textContent = section.a_retenir;
+      retenir.className = 'retenir';
+      const trait = document.createElement('mark');
+      trait.textContent = section.a_retenir;
+      retenir.appendChild(trait);
       bloc.appendChild(retenir);
     }
     corps.appendChild(bloc);
   });
 
   if ((fiche.definitions || []).length) {
-    const bloc = document.createElement('div');
-    bloc.className = 'section-fiche';
+    const bloc = document.createElement('article');
+    bloc.className = 'bloc-fiche bloc-mots';
     const titre = document.createElement('h3');
     titre.textContent = 'Les mots à connaître';
-    const liste = document.createElement('ul');
-    liste.className = 'definitions';
+    const liste = document.createElement('dl');
     fiche.definitions.forEach((d) => {
-      const li = document.createElement('li');
-      const terme = document.createElement('b');
+      const terme = document.createElement('dt');
       terme.textContent = d.terme;
-      li.append(terme, document.createTextNode(d.definition));
-      liste.appendChild(li);
+      const definition = document.createElement('dd');
+      definition.textContent = d.definition;
+      liste.append(terme, definition);
     });
     bloc.append(titre, liste);
     corps.appendChild(bloc);
   }
 
-  if ((fiche.pieges || []).length) {
-    const bloc = document.createElement('div');
-    bloc.className = 'section-fiche';
+  if (pieges.length) {
+    // C'est la partie la plus utile de la fiche : elle suppose de savoir où les
+    // élèves tombent. Elle se traite comme telle, pas comme une annexe.
+    const bloc = document.createElement('article');
+    bloc.className = 'bloc-fiche bloc-pieges';
+    const etiquette = document.createElement('p');
+    etiquette.className = 'bloc-compteur';
+    etiquette.textContent = 'À éviter';
     const titre = document.createElement('h3');
-    titre.textContent = 'Les pièges';
-    const liste = document.createElement('ul');
-    fiche.pieges.forEach((piege) => {
+    titre.textContent = pieges.length > 1 ? 'Les pièges' : 'Le piège';
+    const liste = document.createElement('ol');
+    pieges.forEach((piege) => {
       const li = document.createElement('li');
       li.textContent = piege;
       liste.appendChild(li);
     });
-    bloc.append(titre, liste);
+    bloc.append(etiquette, titre, liste);
     corps.appendChild(bloc);
   }
 
@@ -591,6 +639,7 @@ function afficherFiche(fiche, type) {
     ? 'Me retester sur ces notions'
     : 'Passer au contrôle blanc';
   $('bouton-apres-fiche').onclick = () => lancerControle(type === 'ciblee');
+  soignerTypographie(corps);
   montrer('ecran-fiche');
 }
 
@@ -649,6 +698,9 @@ function dessinerQuestion() {
   signaler.textContent = controleEnCours.signalees.has(question.numero)
     ? 'Signalée — merci'
     : 'Cette question me semble fausse';
+
+  soignerTypographie($('enonce-question'));
+  soignerTypographie($('document-question'));
 
   $('bouton-question-suivante').textContent = controleEnCours.index === total - 1
     ? 'Terminer le contrôle'
@@ -800,6 +852,8 @@ function afficherCorrection(correction) {
     corps.appendChild(carte);
   });
 
+  soignerTypographie(corps);
+  soignerTypographie($('bloc-fragiles'));
   $('bouton-fiche-ciblee').hidden = fragiles.length === 0;
   $('bouton-second-controle').hidden = fragiles.length === 0;
   montrer('ecran-correction');
