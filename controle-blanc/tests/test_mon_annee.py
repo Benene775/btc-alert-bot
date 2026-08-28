@@ -140,8 +140,33 @@ def test_les_notions_se_rangent_par_matiere():
     section avait à dire.
     """
     assert "const recurrentes = notions.filter((n) => n.fois > 1)" in CODE_NU
-    assert "const uniques = notions.filter((n) => n.fois === 1)" in CODE_NU
     assert "parMatiere" in CODE_NU, "aucun regroupement par matière"
     assert "'groupe'" in CODE_NU and ".groupe {" in STYLE, "le tiroir n'existe pas"
-    # Les récurrentes sont ajoutées à la liste avant les tiroirs.
-    assert CODE_NU.index("recurrentes.forEach") < CODE_NU.index("parMatiere.forEach")
+    # Celles qui reviennent sont posées en tête, avant les tiroirs — mais en
+    # nombre borné : au-delà de quelques-unes, une liste d'alertes n'alerte plus.
+    assert CODE_NU.index("enTete.forEach") < CODE_NU.index("parMatiere.forEach")
+    assert "const TETE_MAX" in CODE_NU, "les notions en tête ne sont pas bornées"
+
+
+def test_l_archive_est_faite_pour_une_annee_entiere():
+    """Une année, ce n'est pas quatre fiches : c'est trente, sur six matières.
+
+    En rangée qui défile, la trentième était à 3800 px du bord — quinze
+    glissements pour l'atteindre, et rien pour la chercher.
+    """
+    assert "function dessinerArchive" in CODE_NU, "fiches et contrôles ne partagent pas leur liste"
+    assert "const PAR_PAGE" in CODE_NU, "la liste n'est pas bornée"
+    assert "function dessinerFiltres" in CODE_NU, "aucun filtre par matière"
+    assert 'id="recherche-fiches"' in PAGE and 'id="recherche-controles"' in PAGE
+    # Chercher « theoreme » doit trouver « théorème » : un élève ne tape pas les accents.
+    assert "normalize('NFD')" in CODE_NU, "la recherche est sensible aux accents"
+    # La couleur d'une matière est son code : elle ne doit pas dépendre du hasard.
+    assert "function teinteMatiere" in CODE_NU
+    assert "findIndex" in CODE_NU.split("function teinteMatiere")[1][:300]
+
+
+def test_rien_dans_l_espace_ne_grandit_sans_fin():
+    """Chaque liste est bornée, sinon la page s'allonge avec l'année."""
+    assert ".slice(0, PAR_PAGE)" in CODE_NU, "l'archive n'est pas coupée"
+    assert "const TETE_MAX" in CODE_NU, "les notions récurrentes ne sont pas bornées"
+    assert "SEMAINES_FRISE" in CODE_NU, "la frise n'est pas bornée"

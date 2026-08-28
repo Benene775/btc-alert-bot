@@ -113,43 +113,60 @@ function controleFactice(titre, jours, nbQuestions, fragiles) {
   };
 }
 
+/* Une vraie année d'élève : dix cours, six matières, une trentaine de fiches et
+ * autant de contrôles. Une démonstration à trois séances ne montre pas ce que
+ * devient la page quand elle est pleine — or c'est justement là qu'elle doit
+ * tenir. */
+const ANNEE_FACTICE = [
+  ["svt", "La respiration et la circulation", 2, [
+    ["Le trajet du sang dans le cœur", "Tu inverses encore oreillettes et ventricules."],
+    ["Échanges gazeux dans les alvéoles", "Le sens des échanges n'est pas encore automatique."]]],
+  ["histoire-geographie", "La Révolution française", 9, [
+    ["La chronologie 1789-1792", "Encore deux dates inversées, mais c'est plus net."]]],
+  ["espagnol", "Turismo: luces y sombras", 16, [
+    ["El futuro hipotético", "Le subjonctif après « quizás » n'est pas encore réflexe."],
+    ["La frase exclamativa y sus acentos", "Les accents tombent au mauvais endroit."]]],
+  ["mathematiques", "Théorème de Pythagore", -6, [
+    ["Reconnaître l'hypoténuse", "Tu l'identifies bien, sauf quand la figure est tournée."]]],
+  ["francais", "Le récit fantastique", -12, [
+    ["Le registre fantastique", "Tu confonds encore fantastique et merveilleux."],
+    ["Les indices d'énonciation", "Repérés, mais pas encore interprétés."]]],
+  ["physique-chimie", "Les états de la matière", -19, [
+    ["Les changements d'état", "Fusion et solidification sont inversées une fois sur deux."]]],
+  ["histoire-geographie", "L'Europe des Lumières", -26, [
+    ["Les philosophes et leurs idées", "Les noms sont là, les idées se mélangent."]]],
+  ["svt", "Nutrition et digestion", -33, [
+    ["Le rôle des enzymes", "L'explication reste au niveau du vocabulaire."]]],
+  ["mathematiques", "Fractions et proportionnalité", -40, [
+    ["Passer d'une écriture à l'autre", "Le passage décimal/fraction coûte encore du temps."]]],
+  ["espagnol", "Madrid, capital cultural", -47, [
+    ["Los museos madrileños", "Les œuvres sont sues, les auteurs moins."]]],
+];
+
 function semerLePasse() {
   try {
     if (localStorage.getItem(CLE_SEMEE)) return;
-    const seances = [
-      seanceFactice({
-        id: "demo-svt", matiere: "svt", niveau: "4e", dansJours: 2,
-        chapitres: [{ titre: "La respiration et la circulation", notions: [], transcription: "", photos: [] }],
-        fiches: [ficheFactice("Fiche de révision — Respiration et circulation", -3)],
-        controles: [controleFactice("Contrôle blanc — Respiration et circulation", -3, 7, [
-          fragile("Le trajet du sang dans le cœur", "Tu inverses encore oreillettes et ventricules."),
-          fragile("Échanges gazeux dans les alvéoles", "Le sens des échanges n'est pas encore automatique."),
-        ])],
-      }),
-      seanceFactice({
-        id: "demo-histoire", matiere: "histoire-geographie", niveau: "4e", dansJours: 9,
-        chapitres: [{ titre: "La Révolution française", notions: [], transcription: "", photos: [] }],
-        fiches: [ficheFactice("Fiche de révision — La Révolution française", -12),
-                 ficheFactice("Ce qui ne tenait pas encore", -10, "ciblee")],
-        controles: [
-          controleFactice("Contrôle blanc — La Révolution française", -12, 8, [
-            fragile("La chronologie 1789-1792", "Les dates s'emmêlent dès qu'il y en a plus de trois."),
-          ]),
-          controleFactice("Contrôle blanc — La Révolution française", -10, 6, [
-            fragile("La chronologie 1789-1792", "Encore deux dates inversées, mais c'est plus net."),
-          ]),
-        ],
-      }),
-      seanceFactice({
-        id: "demo-maths", matiere: "mathematiques", niveau: "4e", dansJours: -6,
-        chapitres: [{ titre: "Théorème de Pythagore", notions: [], transcription: "", photos: [] }],
-        fiches: [ficheFactice("Fiche de révision — Théorème de Pythagore", -21)],
-        controles: [controleFactice("Contrôle blanc — Théorème de Pythagore", -21, 6, [
-          fragile("Reconnaître l'hypoténuse", "Tu l'identifies bien, sauf quand la figure est tournée."),
-        ])],
-      }),
-    ];
-    seances.forEach((s) => localStorage.setItem("cb.session." + s.sessionId, JSON.stringify(s)));
+    ANNEE_FACTICE.forEach(([matiere, chapitre, dansJours, fragiles], rang) => {
+      const decalage = Math.min(dansJours, 0) - 2;
+      const fiches = [ficheFactice("Fiche de révision — " + chapitre, decalage - 1)];
+      // Un cours sur deux a donné lieu à une fiche ciblée, comme dans la vraie vie.
+      if (rang % 2 === 0) fiches.push(ficheFactice("Ce qui ne tenait pas encore", decalage, "ciblee"));
+      const controles = [controleFactice("Contrôle blanc — " + chapitre, decalage - 1,
+        5 + (rang % 4), fragiles.map(([n, q]) => fragile(n, q)))];
+      // Les chapitres les plus anciens ont été repassés une seconde fois.
+      if (rang > 4) controles.push(controleFactice("Contrôle blanc — " + chapitre, decalage + 1,
+        5 + (rang % 3), fragiles.slice(0, 1).map(([n, q]) => fragile(n, q))));
+      const seance = seanceFactice({
+        id: "demo-" + rang + "-" + matiere,
+        matiere,
+        niveau: "4e",
+        dansJours,
+        chapitres: [{ titre: chapitre, notions: [], transcription: "", photos: [] }],
+        fiches,
+        controles,
+      });
+      localStorage.setItem("cb.session." + seance.sessionId, JSON.stringify(seance));
+    });
     localStorage.setItem(CLE_SEMEE, "1");
   } catch (e) { /* stockage refusé : la démonstration s'ouvrira vide */ }
 }

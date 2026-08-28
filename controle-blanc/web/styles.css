@@ -2867,74 +2867,146 @@ h1 {
 .groupe-contenu { list-style: none; margin: 0; padding: 0 8px 8px; display: flex; flex-direction: column; gap: 4px; }
 .groupe-contenu .revient { background: var(--carte); }
 
-/* --- Les rangées de fiches et de contrôles ------------------------------- */
+/* --- L'archive ------------------------------------------------------------
+ *
+ * Trente fiches ne se rangent pas comme quatre. Des lignes, pas des cartes :
+ * on en voit huit d'un coup au lieu d'une et demie, et le filet de couleur à
+ * gauche donne la matière sans qu'on ait à lire.
+ */
+.archive { display: flex; flex-direction: column; gap: var(--e2); }
 
-/* Elles défilent latéralement, comme le paquet de cartes de la fiche : le même
-   geste pour le même objet, d'un écran à l'autre. */
-.rangee-cartes {
-  list-style: none;
-  margin: 0;
-  padding: 2px var(--e3) var(--e2);
-  margin-inline: calc(-1 * var(--e3));
-  display: flex;
-  gap: var(--e2);
-  overflow-x: auto;
-  scroll-snap-type: x proximity;
-  scrollbar-width: none;
-}
-
-.rangee-cartes::-webkit-scrollbar { display: none; }
-
-.carte-rangee {
-  position: relative;
-  width: min(66vw, 240px);
-  min-height: 138px;
-  scroll-snap-align: start;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  text-align: left;
-  padding: var(--e3);
-  border: 0;
-  border-radius: var(--rayon-carte);
-  background: var(--t0);
-  box-shadow: var(--ombre-carte);
+.recherche {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 14px;
+  font-family: var(--texte);
+  font-size: .92rem;
   color: var(--encre);
+  background: var(--papier);
+  border: 1px solid var(--trait);
+  border-radius: 999px;
+  box-shadow: none;
+  appearance: none;
 }
 
-.carte-rangee[data-teinte="1"] { background: var(--t1); }
-.carte-rangee[data-teinte="2"] { background: var(--t2); }
-.carte-rangee[data-teinte="3"] { background: var(--t3); }
-.carte-rangee[data-teinte="4"] { background: var(--t4); }
-.carte-rangee[data-teinte="5"] { background: var(--t5); }
+.recherche::placeholder { color: var(--encre-douce); }
+.recherche::-webkit-search-cancel-button { -webkit-appearance: none; }
 
-.carte-rangee-etiquette {
+.filtres {
+  display: flex;
+  gap: 5px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin-inline: calc(-1 * var(--e3));
+  padding: 0 var(--e3) 2px;
+}
+
+.filtres::-webkit-scrollbar { display: none; }
+
+.puce {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--trait);
+  border-radius: 999px;
+  background: var(--papier);
+  color: var(--encre-douce);
+  padding: 7px 12px;
+  min-height: 36px;
+  font-size: .78rem;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: background .18s ease, color .18s ease, border-color .18s ease;
+}
+
+.puce-compte {
   font-family: var(--mono);
-  font-size: .58rem;
+  font-size: .62rem;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  opacity: .7;
+}
+
+/* Une puce active porte la couleur de sa matière : le filet des lignes qu'elle
+   laisse passer est le même. */
+.puce[aria-pressed="true"] { color: var(--encre); border-color: transparent; background: var(--t0); }
+.puce[aria-pressed="true"][data-teinte="1"] { background: var(--t1); }
+.puce[aria-pressed="true"][data-teinte="2"] { background: var(--t2); }
+.puce[aria-pressed="true"][data-teinte="3"] { background: var(--t3); }
+.puce[aria-pressed="true"][data-teinte="4"] { background: var(--t4); }
+.puce[aria-pressed="true"][data-teinte="5"] { background: var(--t5); }
+
+.archive-liste { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+
+.archive-mois {
+  font-family: var(--mono);
+  font-size: .6rem;
   letter-spacing: .12em;
   text-transform: uppercase;
-  color: color-mix(in srgb, var(--encre) 55%, transparent);
+  color: var(--encre-douce);
+  margin: var(--e2) 0 2px;
 }
 
-.carte-rangee-titre {
-  font-family: var(--titre);
-  font-weight: 600;
-  font-size: 1rem;
-  line-height: 1.2;
-  margin: 0;
-  flex: 1;
-  /* Un bouton rogne son contenu : sans limite de lignes, un titre long
-     disparaît sous le bord au lieu de s'abréger. */
+.archive-mois:first-child { margin-top: 0; }
+
+.ligne-archive {
+  position: relative;
+  display: flex;
+  width: 100%;
+  text-align: left;
+  gap: var(--e2);
+  padding: 9px 12px 9px 16px;
+  border: 0;
+  border-radius: var(--rayon);
+  background: var(--papier);
+  color: var(--encre);
+  min-height: 50px;
+  align-items: center;
+  overflow: hidden;
+}
+
+/* Le filet de matière, à gauche : lu avant le texte. */
+.ligne-archive::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  background: var(--t0);
+}
+
+.ligne-archive[data-teinte="1"]::before { background: var(--t1); }
+.ligne-archive[data-teinte="2"]::before { background: var(--t2); }
+.ligne-archive[data-teinte="3"]::before { background: var(--t3); }
+.ligne-archive[data-teinte="4"]::before { background: var(--t4); }
+.ligne-archive[data-teinte="5"]::before { background: var(--t5); }
+
+.ligne-archive-corps { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+
+.ligne-archive-titre {
+  font-weight: 700;
+  font-size: .92rem;
+  line-height: 1.25;
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
-.carte-rangee-bas {
-  font-size: .76rem;
-  color: color-mix(in srgb, var(--encre) 62%, transparent);
-  margin: 0;
+.ligne-archive-bas { font-size: .74rem; color: var(--encre-douce); }
+
+.archive-plus {
+  border: 1px dashed var(--trait-fort);
+  background: none;
+  color: var(--encre-douce);
+  border-radius: var(--rayon);
+  padding: 11px;
+  min-height: 44px;
+  font-size: .84rem;
+  font-weight: 700;
+  margin-top: 2px;
 }
 
 /* --- La lumière du curseur ----------------------------------------------

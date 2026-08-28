@@ -746,13 +746,18 @@ function dessinerReviennent(sessions) {
    * Sauf celles qui sont revenues plusieurs fois : elles restent dehors, en
    * tête. C'est toute la raison d'être de cette section — les ranger dans un
    * tiroir fermé reviendrait à cacher la seule chose qu'on avait à dire. */
+  /* Quatre au plus restent dehors : au-delà, une liste d'alertes n'alerte plus
+   * de rien. Les suivantes rejoignent le tiroir de leur matière, où elles
+   * gardent leur marque rouge et leur compte. */
+  const TETE_MAX = 4;
   const recurrentes = notions.filter((n) => n.fois > 1);
-  const uniques = notions.filter((n) => n.fois === 1);
+  const enTete = recurrentes.slice(0, TETE_MAX);
+  const dansTiroirs = notions.filter((n) => !enTete.includes(n));
 
-  recurrentes.forEach((n) => liste.appendChild(ligneNotion(n)));
+  enTete.forEach((n) => liste.appendChild(ligneNotion(n)));
 
   const parMatiere = new Map();
-  uniques.forEach((n) => {
+  dansTiroirs.forEach((n) => {
     const cle = n.matiere || '';
     if (!parMatiere.has(cle)) parMatiere.set(cle, []);
     parMatiere.get(cle).push(n);
@@ -834,61 +839,204 @@ function ligneNotion(n, montrerMatiere = true) {
   return li;
 }
 
-function dessinerMesFiches(sessions) {
-  const fiches = toutesLesFiches(sessions);
-  const liste = $('liste-mes-fiches');
-  liste.innerHTML = '';
-  $('vide-fiches').hidden = fiches.length > 0;
-  fiches.forEach((f, rang) => {
-    const li = carteRangee(rang, f.titre,
-      nomMatiere(f.session.matiere) + ' · ' + dateCourte(f.le),
-      f.type === 'ciblee' ? 'Fiche ciblée' : 'Fiche générale');
-    li.querySelector('button').onclick = () => ouvrirFicheGardee(f.session.sessionId, f.rang);
-    liste.appendChild(li);
-  });
-  return fiches.length;
+/* --- L'archive ------------------------------------------------------------
+ *
+ * Une année d'élève, ce n'est pas quatre fiches : c'est trente, sur six
+ * matières. En rangée qui défile, la trentième était à trois mille huit cents
+ * pixels du bord — quinze glissements pour l'atteindre, et rien pour la
+ * chercher.
+ *
+ * Fiches et contrôles sont deux listes du même objet : une seule archive les
+ * dessine, avec sa recherche, ses filtres par matière et ses lignes groupées
+ * par mois. On n'en montre que huit ; le reste se déplie à la demande, pour
+ * que la page ne s'allonge pas avec l'année.
+ */
+const PAR_PAGE = 8;
+
+const archives = {
+  fiches: { recherche: '', matiere: '', tout: false },
+  controles: { recherche: '', matiere: '', tout: false },
+};
+
+/* La couleur d'une matière ne change jamais : c'est son code, d'un écran à
+ * l'autre. Prise sur sa position dans la liste des matières, pas au hasard. */
+function teinteMatiere(cle) {
+  const rang = (config.matieres || []).findIndex((m) => m.cle === cle);
+  return String((rang < 0 ? 0 : rang) % 6);
 }
 
-function dessinerMesControles(sessions) {
-  const controles = tousLesControles(sessions);
-  const liste = $('liste-mes-controles');
-  liste.innerHTML = '';
-  $('vide-controles').hidden = controles.length > 0;
-  controles.forEach((c, rang) => {
-    const detail = c.questions + (c.questions > 1 ? ' questions' : ' question')
-      + (c.fragiles ? ' · ' + c.fragiles + ' à revoir' : '');
-    const li = carteRangee(rang, c.titre,
-      nomMatiere(c.session.matiere) + ' · ' + dateCourte(c.le), detail);
-    li.querySelector('button').onclick = () => ouvrirControleGarde(c.session.sessionId, c.rang);
-    liste.appendChild(li);
-  });
-  return controles.length;
+function sansAccent(texte) {
+  return String(texte || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 }
 
-/* Une carte de rangée, reprise telle quelle par les fiches et les contrôles :
- * ce sont deux listes du même objet, elles doivent se ressembler. */
-function carteRangee(rang, titre, dessous, etiquette) {
+function moisDe(iso) {
+  return new Date(iso).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+}
+
+function dessinerArchive(genre, elements, sousTitre) {
+  const reglages = archives[genre];
+  const liste = $('liste-mes-' + genre);
+  const plus = $('plus-' + genre);
+  liste.innerHTML = '';
+  $('vide-' + genre).hidden = elements.length > 0;
+
+  // Chercher et filtrer n'a de sens qu'au-delà d'une poignée d'éléments.
+  const outils = elements.length > PAR_PAGE;
+  $('recherche-' + genre).hidden = !outils;
+  $('filtres-' + genre).hidden = !outils;
+  if (outils) dessinerFiltres(genre, elements);
+
+  const cherche = sansAccent(reglages.recherche);
+  const retenus = elements.filter((e) => {
+    if (reglages.matiere && e.session.matiere !== reglages.matiere) return false;
+    if (!cherche) return true;
+    return sansAccent(e.titre + ' ' + nomMatiere(e.session.matiere)).includes(cherche);
+  });
+
+  if (!retenus.length && elements.length) {
+    const li = document.createElement('li');
+    li.className = 'panneau-vide';
+    li.textContent = 'Rien ne correspond. Essaie un autre mot, ou enlève le filtre.';
+    liste.appendChild(li);
+    plus.hidden = true;
+    return elements.length;
+  }
+
+  const visibles = reglages.tout ? retenus : retenus.slice(0, PAR_PAGE);
+  let moisCourant = null;
+  visibles.forEach((e) => {
+    const mois = moisDe(e.le);
+    if (mois !== moisCourant) {
+      moisCourant = mois;
+      const entete = document.createElement('li');
+      entete.className = 'archive-mois';
+      entete.textContent = mois;
+      liste.appendChild(entete);
+    }
+    liste.appendChild(ligneArchive(e, sousTitre));
+  });
+
+  const reste = retenus.length - visibles.length;
+  plus.hidden = reste <= 0 && !reglages.tout;
+  if (reglages.tout && retenus.length > PAR_PAGE) {
+    plus.hidden = false;
+    plus.textContent = 'Réduire la liste';
+    plus.onclick = () => { reglages.tout = false; dessinerEspace(); };
+  } else if (reste > 0) {
+    plus.textContent = 'Voir les ' + reste + ' autres';
+    plus.onclick = () => { reglages.tout = true; dessinerEspace(); };
+  }
+  return retenus.length;
+}
+
+/* Une puce par matière, avec son compte. La matière courante se retire d'un
+ * second appui : un filtre qu'on ne sait pas enlever est un piège. */
+function dessinerFiltres(genre, elements) {
+  const reglages = archives[genre];
+  const boite = $('filtres-' + genre);
+  boite.innerHTML = '';
+
+  const comptes = new Map();
+  elements.forEach((e) => {
+    const cle = e.session.matiere || '';
+    comptes.set(cle, (comptes.get(cle) || 0) + 1);
+  });
+
+  const puce = (cle, libelle, nombre) => {
+    const bouton = document.createElement('button');
+    bouton.type = 'button';
+    bouton.className = 'puce';
+    bouton.dataset.teinte = cle ? teinteMatiere(cle) : '';
+    bouton.setAttribute('aria-pressed', reglages.matiere === cle ? 'true' : 'false');
+    bouton.textContent = libelle;
+    if (nombre !== null) {
+      const compte = document.createElement('span');
+      compte.className = 'puce-compte';
+      compte.textContent = String(nombre);
+      bouton.appendChild(compte);
+    }
+    bouton.onclick = () => {
+      reglages.matiere = reglages.matiere === cle ? '' : cle;
+      reglages.tout = false;
+      dessinerEspace();
+    };
+    return bouton;
+  };
+
+  boite.appendChild(puce('', 'Tout', elements.length));
+  [...comptes.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .forEach(([cle, nombre]) => boite.appendChild(puce(cle, nomMatiere(cle), nombre)));
+}
+
+function ligneArchive(e, sousTitre) {
   const li = document.createElement('li');
   const bouton = document.createElement('button');
   bouton.type = 'button';
-  bouton.className = 'carte-rangee';
-  bouton.dataset.teinte = String(rang % 6);
+  bouton.className = 'ligne-archive';
+  bouton.dataset.teinte = teinteMatiere(e.session.matiere);
 
-  const marque = document.createElement('span');
-  marque.className = 'carte-rangee-etiquette';
-  marque.textContent = etiquette;
+  const corps = document.createElement('span');
+  corps.className = 'ligne-archive-corps';
 
-  const nom = document.createElement('p');
-  nom.className = 'carte-rangee-titre';
-  nom.textContent = titre;
+  const titre = document.createElement('span');
+  titre.className = 'ligne-archive-titre';
+  titre.textContent = e.titre;
 
-  const bas = document.createElement('p');
-  bas.className = 'carte-rangee-bas';
-  bas.textContent = dessous;
+  const bas = document.createElement('span');
+  bas.className = 'ligne-archive-bas';
+  bas.textContent = nomMatiere(e.session.matiere) + ' · ' + dateCourte(e.le)
+    + (sousTitre(e) ? ' · ' + sousTitre(e) : '');
 
-  bouton.append(marque, nom, bas);
+  corps.append(titre, bas);
+  bouton.appendChild(corps);
   li.appendChild(bouton);
   return li;
+}
+
+/* Dans une liste de fiches, « Fiche de révision — » se répète à chaque ligne
+ * sans rien dire : on ne garde que le chapitre, qui est ce qu'on cherche. */
+function titreCourt(titre) {
+  return String(titre || '').replace(/^(Fiche de révision|Contrôle blanc)\s*[—-]\s*/i, '');
+}
+
+function dessinerMesFiches(sessions) {
+  const fiches = toutesLesFiches(sessions)
+    .map((f) => ({ ...f, titre: titreCourt(f.titre) }));
+  const total = dessinerArchive('fiches', fiches,
+    (f) => (f.type === 'ciblee' ? 'ciblée' : ''));
+  const visiblesFiches = visiblesArchive('fiches', fiches);
+  $('liste-mes-fiches').querySelectorAll('.ligne-archive').forEach((bouton, rang) => {
+    const visible = visiblesFiches[rang];
+    if (visible) bouton.onclick = () => ouvrirFicheGardee(visible.session.sessionId, visible.rang);
+  });
+  return total;
+}
+
+function dessinerMesControles(sessions) {
+  const controles = tousLesControles(sessions)
+    .map((c) => ({ ...c, titre: titreCourt(c.titre) }));
+  const total = dessinerArchive('controles', controles,
+    (c) => c.questions + (c.questions > 1 ? ' questions' : ' question'));
+  const visiblesControles = visiblesArchive('controles', controles);
+  $('liste-mes-controles').querySelectorAll('.ligne-archive').forEach((bouton, rang) => {
+    const visible = visiblesControles[rang];
+    if (visible) bouton.onclick = () => ouvrirControleGarde(visible.session.sessionId, visible.rang);
+  });
+  return total;
+}
+
+/* Les éléments effectivement dessinés, dans l'ordre : c'est eux que les
+ * boutons doivent ouvrir, pas la liste complète. */
+function visiblesArchive(genre, elements) {
+  const reglages = archives[genre];
+  const cherche = sansAccent(reglages.recherche);
+  const retenus = elements.filter((e) => {
+    if (reglages.matiere && e.session.matiere !== reglages.matiere) return false;
+    if (!cherche) return true;
+    return sansAccent(e.titre + ' ' + nomMatiere(e.session.matiere)).includes(cherche);
+  });
+  return reglages.tout ? retenus : retenus.slice(0, PAR_PAGE);
 }
 
 /* La frise : huit semaines, un carré par jour. Pas de compte de jours
@@ -2736,6 +2884,17 @@ document.addEventListener('DOMContentLoaded', () => {
     jourChoisi = null;
     dessinerEspace();
   };
+  ['fiches', 'controles'].forEach((genre) => {
+    $('recherche-' + genre).oninput = (evenement) => {
+      archives[genre].recherche = evenement.target.value;
+      archives[genre].tout = false;
+      dessinerEspace();
+      // Redessiner remplace le champ dans le DOM des filtres voisins, pas le
+      // champ lui-même : le focus et le curseur ne bougent pas.
+      $('recherche-' + genre).focus();
+    };
+  });
+
   $('mois-precedent').onclick = () => changerMois(-1);
   $('mois-suivant').onclick = () => changerMois(1);
   $('bouton-retourner').onclick = () => retournerCarte('verso');

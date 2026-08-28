@@ -223,13 +223,27 @@
     </div>
 
     <div class="panneau" id="panneau-fiches" role="tabpanel" aria-labelledby="onglet-fiches" tabindex="0" hidden>
-      <ul class="rangee-cartes" id="liste-mes-fiches"></ul>
-      <p class="panneau-vide" id="vide-fiches" hidden>Aucune fiche encore.</p>
+      <div class="archive">
+        <label class="masque" for="recherche-fiches">Chercher une fiche</label>
+        <input type="search" id="recherche-fiches" class="recherche" placeholder="Chercher une fiche…"
+               autocomplete="off" enterkeyhint="search">
+        <div class="filtres" id="filtres-fiches" role="group" aria-label="Filtrer par matière"></div>
+        <ul class="archive-liste" id="liste-mes-fiches"></ul>
+        <button type="button" class="archive-plus" id="plus-fiches" hidden></button>
+        <p class="panneau-vide" id="vide-fiches" hidden>Aucune fiche encore.</p>
+      </div>
     </div>
 
     <div class="panneau" id="panneau-controles" role="tabpanel" aria-labelledby="onglet-controles" tabindex="0" hidden>
-      <ul class="rangee-cartes" id="liste-mes-controles"></ul>
-      <p class="panneau-vide" id="vide-controles" hidden>Aucun contrôle blanc encore.</p>
+      <div class="archive">
+        <label class="masque" for="recherche-controles">Chercher un contrôle blanc</label>
+        <input type="search" id="recherche-controles" class="recherche" placeholder="Chercher un contrôle…"
+               autocomplete="off" enterkeyhint="search">
+        <div class="filtres" id="filtres-controles" role="group" aria-label="Filtrer par matière"></div>
+        <ul class="archive-liste" id="liste-mes-controles"></ul>
+        <button type="button" class="archive-plus" id="plus-controles" hidden></button>
+        <p class="panneau-vide" id="vide-controles" hidden>Aucun contrôle blanc encore.</p>
+      </div>
     </div>
   </div>
 
