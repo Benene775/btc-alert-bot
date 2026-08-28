@@ -546,101 +546,272 @@ function soignerTypographie(racine) {
   }
 }
 
+/* La fiche est un paquet de cartes qu’on fait glisser, pas une page qu’on
+ * déroule. Une notion par écran : c’est ainsi que les élèves lisent déjà tout
+ * le reste sur leur téléphone, et c’est ce qui empêche la fiche de ressembler
+ * à un mur de texte.
+ *
+ * Chaque carte porte sa teinte et son chiffre. Le bouton « tout afficher »
+ * remet le tout en colonne, pour qui préfère lire d’une traite.
+ */
+
+const TEINTES = 6;
+let observateurCartes = null;
+
+function carteFiche(teinte) {
+  const carte = document.createElement('article');
+  carte.className = 'carte-fiche';
+  carte.dataset.teinte = String(teinte % TEINTES);
+  carte.tabIndex = 0;
+  // Tête fixe, corps qui défile, pied épinglé : la phrase à retenir reste
+  // visible même quand la carte est trop longue pour l’écran.
+  carte.innerHTML = '<div class="carte-tete"></div><div class="carte-corps"></div>';
+  return carte;
+}
+
+function tete(carte) { return carte.querySelector('.carte-tete'); }
+function corps(carte) { return carte.querySelector('.carte-corps'); }
+
+function chiffreGeant(texte) {
+  const chiffre = document.createElement('span');
+  chiffre.className = 'carte-chiffre';
+  chiffre.setAttribute('aria-hidden', 'true');
+  chiffre.textContent = texte;
+  return chiffre;
+}
+
+/* Une section entière ne tient pas sur un écran de téléphone : on l’a mesuré,
+ * quatre points denses en laissent un ou deux visibles. Elle est donc découpée
+ * en cartes d’au plus trois points, et sa phrase à retenir occupe une carte à
+ * elle seule — c’est le point d’arrivée de la notion, pas une note de bas de page.
+ *
+ * Les rubans, eux, comptent les notions et non les cartes : l’élève veut savoir
+ * qu’il en est à la troisième idée sur six, pas à la quatorzième carte sur vingt.
+ */
+const POINTS_PAR_CARTE = 3;
+
+function decouper(points) {
+  const groupes = Math.max(1, Math.ceil(points.length / POINTS_PAR_CARTE));
+  const taille = Math.ceil(points.length / groupes);
+  const morceaux = [];
+  for (let i = 0; i < points.length; i += taille) morceaux.push(points.slice(i, i + taille));
+  return morceaux;
+}
+
 function afficherFiche(fiche, type) {
   $('etiquette-fiche').textContent = type === 'ciblee' ? 'Fiche ciblée' : 'Fiche générale';
   $('titre-fiche').textContent = fiche.titre || 'Ta fiche';
-  $('chapeau-fiche').textContent = type === 'ciblee'
-    ? 'Uniquement les notions que tu viens de rater. Relis-la, puis retente le contrôle.'
-    : 'Relis-la une fois, sans forcer à retenir. Le contrôle blanc fera le tri ensuite.';
 
   const sections = fiche.sections || [];
+  const definitions = fiche.definitions || [];
   const pieges = fiche.pieges || [];
+
   const souffle = [];
-  if (fiche.duree_lecture_minutes) souffle.push(fiche.duree_lecture_minutes + ' minutes de lecture');
-  if (sections.length) souffle.push(sections.length + (sections.length > 1 ? ' parties' : ' partie'));
-  if (pieges.length) souffle.push(pieges.length + (pieges.length > 1 ? ' pièges à la fin' : ' piège à la fin'));
-  $('fiche-souffle').textContent = souffle.join(' · ');
+  if (fiche.duree_lecture_minutes) souffle.push(fiche.duree_lecture_minutes + ' min');
+  souffle.push(sections.length + (sections.length > 1 ? ' notions' : ' notion'));
+  if (pieges.length) souffle.push(pieges.length + (pieges.length > 1 ? ' pièges' : ' piège'));
+  $('fiche-souffle').textContent = souffle.join(' · ') + ' · fais glisser';
 
-  const corps = $('corps-fiche');
-  corps.innerHTML = '';
+  const paquet = $('paquet');
+  paquet.innerHTML = '';
+  const groupes = [];
+  let index = 0;
 
-  sections.forEach((section, index) => {
-    const bloc = document.createElement('article');
-    bloc.className = 'bloc-fiche';
+  const ajouter = (carte) => {
+    carte.dataset.index = String(index);
+    carte.dataset.ruban = String(groupes.length - 1);
+    paquet.appendChild(carte);
+    index += 1;
+  };
 
-    const compteur = document.createElement('p');
-    compteur.className = 'bloc-compteur';
-    compteur.textContent = (index + 1) + ' / ' + sections.length;
+  sections.forEach((section, rang) => {
+    groupes.push(section.titre);
+    const morceaux = decouper(section.points || []);
 
-    const titre = document.createElement('h3');
-    titre.textContent = section.titre;
+    morceaux.forEach((points, morceau) => {
+      const carte = carteFiche(rang);
+      const titre = document.createElement('h3');
+      titre.textContent = section.titre;
 
-    const points = document.createElement('ul');
-    points.className = 'points';
-    (section.points || []).forEach((point) => {
-      const li = document.createElement('li');
-      li.textContent = point;
-      points.appendChild(li);
+      const liste = document.createElement('ul');
+      liste.className = 'points';
+      points.forEach((point) => {
+        const li = document.createElement('li');
+        li.textContent = point;
+        liste.appendChild(li);
+      });
+
+      tete(carte).append(chiffreGeant(String(rang + 1)), titre);
+      if (morceaux.length > 1) {
+        const suite = document.createElement('p');
+        suite.className = 'carte-suite';
+        suite.textContent = (morceau + 1) + ' sur ' + morceaux.length;
+        tete(carte).appendChild(suite);
+      }
+      corps(carte).appendChild(liste);
+      ajouter(carte);
     });
 
-    bloc.append(compteur, titre, points);
-
     if (section.a_retenir) {
-      // Un trait de surligneur, pas un encadré : c'est le geste que l'élève fait
-      // lui-même dans son cahier pour dire « ça, c'est ce qui compte ».
+      // La phrase surlignée a sa carte : c’est ce qu’on veut voir rester.
+      const carte = carteFiche(rang);
+      carte.classList.add('carte-retenir');
+      const etiquette = document.createElement('p');
+      etiquette.className = 'carte-etiquette';
+      etiquette.textContent = 'Notion ' + (rang + 1) + ' · à retenir';
       const retenir = document.createElement('p');
       retenir.className = 'retenir';
       const trait = document.createElement('mark');
       trait.textContent = section.a_retenir;
       retenir.appendChild(trait);
-      bloc.appendChild(retenir);
+      // Étiquette et phrase forment un bloc, centré ensemble dans la carte.
+      const groupe = document.createElement('div');
+      groupe.append(etiquette, retenir);
+      corps(carte).appendChild(groupe);
+      ajouter(carte);
     }
-    corps.appendChild(bloc);
   });
 
-  if ((fiche.definitions || []).length) {
-    const bloc = document.createElement('article');
-    bloc.className = 'bloc-fiche bloc-mots';
-    const titre = document.createElement('h3');
-    titre.textContent = 'Les mots à connaître';
-    const liste = document.createElement('dl');
-    fiche.definitions.forEach((d) => {
-      const terme = document.createElement('dt');
-      terme.textContent = d.terme;
-      const definition = document.createElement('dd');
-      definition.textContent = d.definition;
-      liste.append(terme, definition);
+  if (definitions.length) {
+    groupes.push('Les mots');
+    decouper(definitions).forEach((lot, morceau, tous) => {
+      const carte = carteFiche(sections.length);
+      carte.classList.add('carte-mots');
+      const titre = document.createElement('h3');
+      titre.textContent = 'Les mots à connaître';
+      const liste = document.createElement('dl');
+      lot.forEach((d) => {
+        const terme = document.createElement('dt');
+        terme.textContent = d.terme;
+        const definition = document.createElement('dd');
+        definition.textContent = d.definition;
+        liste.append(terme, definition);
+      });
+      tete(carte).append(chiffreGeant('Aa'), titre);
+      if (tous.length > 1) {
+        const suite = document.createElement('p');
+        suite.className = 'carte-suite';
+        suite.textContent = (morceau + 1) + ' sur ' + tous.length;
+        tete(carte).appendChild(suite);
+      }
+      corps(carte).appendChild(liste);
+      ajouter(carte);
     });
-    bloc.append(titre, liste);
-    corps.appendChild(bloc);
   }
 
   if (pieges.length) {
-    // C'est la partie la plus utile de la fiche : elle suppose de savoir où les
-    // élèves tombent. Elle se traite comme telle, pas comme une annexe.
-    const bloc = document.createElement('article');
-    bloc.className = 'bloc-fiche bloc-pieges';
-    const etiquette = document.createElement('p');
-    etiquette.className = 'bloc-compteur';
-    etiquette.textContent = 'À éviter';
-    const titre = document.createElement('h3');
-    titre.textContent = pieges.length > 1 ? 'Les pièges' : 'Le piège';
-    const liste = document.createElement('ol');
-    pieges.forEach((piege) => {
-      const li = document.createElement('li');
-      li.textContent = piege;
-      liste.appendChild(li);
+    groupes.push('Les pièges');
+    decouper(pieges).forEach((lot, morceau, tous) => {
+      const carte = carteFiche(sections.length + 1);
+      carte.classList.add('carte-pieges');
+      const titre = document.createElement('h3');
+      titre.textContent = pieges.length > 1 ? 'Les pièges' : 'Le piège';
+      const liste = document.createElement('ul');
+      liste.className = 'liste-pieges';
+      lot.forEach((piege) => {
+        const li = document.createElement('li');
+        li.textContent = piege;
+        liste.appendChild(li);
+      });
+      tete(carte).append(chiffreGeant('!'), titre);
+      if (tous.length > 1) {
+        const suite = document.createElement('p');
+        suite.className = 'carte-suite';
+        suite.textContent = (morceau + 1) + ' sur ' + tous.length;
+        tete(carte).appendChild(suite);
+      }
+      corps(carte).appendChild(liste);
+      ajouter(carte);
     });
-    bloc.append(etiquette, titre, liste);
-    corps.appendChild(bloc);
   }
 
-  $('bouton-apres-fiche').textContent = type === 'ciblee'
-    ? 'Me retester sur ces notions'
-    : 'Passer au contrôle blanc';
-  $('bouton-apres-fiche').onclick = () => lancerControle(type === 'ciblee');
-  soignerTypographie(corps);
+  groupes.push('C’est tout');
+  const finale = carteFiche(sections.length + 2);
+  finale.classList.add('carte-fin');
+  const titreFin = document.createElement('h3');
+  titreFin.textContent = type === 'ciblee' ? 'Tu as relu tes points faibles.' : 'Tu as tout lu.';
+  const motFin = document.createElement('p');
+  motFin.className = 'mot-fin';
+  motFin.textContent = type === 'ciblee'
+    ? 'Le moment de vérifier que ça tient : refais un contrôle sur ces notions-là.'
+    : 'Le seul moyen de savoir ce qui est vraiment acquis, c’est de te tester.';
+
+  const suivant = document.createElement('button');
+  suivant.type = 'button';
+  suivant.className = 'principal';
+  suivant.id = 'bouton-apres-fiche';
+  suivant.textContent = type === 'ciblee' ? 'Me retester sur ces notions' : 'Passer au contrôle blanc';
+  suivant.onclick = () => lancerControle(type === 'ciblee');
+
+  const plusTard = document.createElement('button');
+  plusTard.type = 'button';
+  plusTard.className = 'discret';
+  plusTard.id = 'bouton-fiche-accueil';
+  plusTard.textContent = 'Plus tard, garder ma session';
+  plusTard.onclick = reprendre;
+
+  tete(finale).appendChild(chiffreGeant('✓'));
+  corps(finale).append(titreFin, motFin, suivant, plusTard);
+  ajouter(finale);
+
+  dessinerRubans(groupes);
+  soignerTypographie(paquet);
+  paquet.scrollLeft = 0;
+  suivreCartes();
   montrer('ecran-fiche');
+}
+
+/* Les rubans disent où on en est et permettent de sauter d’une carte à l’autre. */
+function dessinerRubans(titres) {
+  const rubans = $('rubans');
+  rubans.innerHTML = '';
+  titres.forEach((titre, index) => {
+    const ruban = document.createElement('button');
+    ruban.type = 'button';
+    ruban.className = 'ruban';
+    ruban.setAttribute('role', 'tab');
+    ruban.setAttribute('aria-label', 'Carte ' + (index + 1) + ' — ' + titre);
+    ruban.onclick = () => {
+      const premiere = Array.from($('paquet').children)
+        .findIndex((c) => Number(c.dataset.ruban) === index);
+      if (premiere >= 0) allerACarte(premiere);
+    };
+    rubans.appendChild(ruban);
+  });
+}
+
+function allerACarte(index) {
+  const carte = $('paquet').children[index];
+  if (carte) carte.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+}
+
+function suivreCartes() {
+  if (observateurCartes) observateurCartes.disconnect();
+  const paquet = $('paquet');
+  const rubans = $('rubans');
+
+  observateurCartes = new IntersectionObserver((entrees) => {
+    entrees.forEach((entree) => {
+      if (!entree.isIntersecting) return;
+      const groupe = Number(entree.target.dataset.ruban);
+      Array.from(rubans.children).forEach((ruban, i) => {
+        ruban.dataset.etat = i < groupe ? 'passe' : (i === groupe ? 'ici' : 'a-venir');
+      });
+    });
+  }, { root: paquet, threshold: 0.6 });
+
+  Array.from(paquet.children).forEach((carte) => observateurCartes.observe(carte));
+
+  // Les flèches du clavier font aussi défiler le paquet.
+  paquet.onkeydown = (evenement) => {
+    const cartes = Array.from(paquet.children);
+    const vue = cartes.findIndex((c) => {
+      const boite = c.getBoundingClientRect();
+      return boite.left >= -4 && boite.left < paquet.clientWidth / 2;
+    });
+    if (evenement.key === 'ArrowRight') { allerACarte(vue + 1); evenement.preventDefault(); }
+    if (evenement.key === 'ArrowLeft') { allerACarte(Math.max(0, vue - 1)); evenement.preventDefault(); }
+  };
 }
 
 /* --------------------------------------------- étape 4 : contrôle blanc -- */
@@ -1035,7 +1206,6 @@ document.addEventListener('DOMContentLoaded', () => {
   $('bouton-perimetre-ok').onclick = confirmerPerimetre;
   $('bouton-plus-de-photos').onclick = () => montrer('ecran-photos');
 
-  $('bouton-fiche-accueil').onclick = reprendre;
   $('bouton-correction-accueil').onclick = reprendre;
   $('bouton-accueil').onclick = reprendre;
 
@@ -1047,6 +1217,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   $('bouton-fiche-ciblee').onclick = demanderFicheCiblee;
   $('bouton-second-controle').onclick = () => lancerControle(true);
+
+  $('bouton-tout-afficher').onclick = () => {
+    const paquet = $('paquet');
+    const colonne = paquet.dataset.vue === 'colonne';
+    paquet.dataset.vue = colonne ? 'paquet' : 'colonne';
+    $('rubans').hidden = !colonne;
+    $('bouton-tout-afficher').textContent = colonne
+      ? 'Tout afficher d’un coup'
+      : 'Revenir aux cartes';
+    if (colonne) suivreCartes();
+  };
 
   $('bouton-copier').onclick = copierLien;
   $('bouton-nouveau-cours').onclick = () => demarrerSession();

@@ -556,17 +556,17 @@ select {
 
 /* --- Fiches -------------------------------------------------------------
  *
- * Ici l'ambiance change, et c'est voulu. Le reste de l'application est une
- * copie corrigée : papier froid de salle de classe, encre bleue, stylo rouge.
- * La fiche, elle, se lit le soir sous une lampe. Le papier se réchauffe, et
- * redevient froid dès qu'on passe au contrôle.
+ * Une fiche qui se déroule est un mur de texte, et un mur de texte sur un
+ * téléphone se scrolle sans se lire. Elle devient donc un paquet de cartes
+ * qu’on fait glisser : une notion par écran, comme les élèves lisent déjà
+ * tout le reste sur leur téléphone.
  *
- * Deux partis pris de lecture :
- *   - pas de cartes. Une fiche empilée en encadrés se parcourt, elle ne se lit
- *     pas. On la traite comme un document : des blancs, une hiérarchie, une
- *     largeur de ligne tenue autour de soixante signes.
- *   - « à retenir » devient un trait de surligneur, pas un cadre. C'est le
- *     geste que l'élève fait lui-même dans son cahier.
+ * L’ambiance change aussi : le reste de l’application est une copie corrigée,
+ * papier froid de salle de classe. La fiche se lit le soir sous une lampe.
+ * Le papier se réchauffe ici, et redevient froid dès le contrôle.
+ *
+ * Chaque carte porte sa teinte et son chiffre géant. « À retenir » est un
+ * trait de surligneur, le geste que l’élève fait dans son propre cahier.
  */
 
 :root[data-ecran="fiche"] {
@@ -576,165 +576,371 @@ select {
   --encre-douce: #7a6a5a;
   --trait: #ebe1d4;
   --trait-fort: #d8c9b6;
-  --accent: #9a6410;          /* miel : les repères de lecture */
+  --accent: #9a6410;
   --accent-doux: #f7edda;
-  --surligneur: rgba(255, 209, 92, .58);
-  --alerte-fiche: #a33a2c;    /* les pièges, seul rouge de cet écran */
-  --alerte-fiche-doux: #fbeee9;
+  --surligneur: rgba(255, 196, 60, .5);
+
+  --t0: #fbeed2;  /* miel */
+  --t1: #fbe3d2;  /* abricot */
+  --t2: #fadee0;  /* rose */
+  --t3: #e3ecde;  /* sauge */
+  --t4: #dde8f1;  /* ciel */
+  --t5: #e7e1f0;  /* lilas */
 }
 
 @media (prefers-color-scheme: dark) {
   :root[data-ecran="fiche"]:not([data-theme="light"]) {
     --papier: #17130e;
     --carte: #211b14;
-    --encre: #f2ebe1;
+    --encre: #f4ede3;
     --encre-douce: #a89887;
     --trait: #33291e;
     --trait-fort: #473a2a;
     --accent: #d9a94a;
     --accent-doux: #2a2013;
-    --surligneur: rgba(214, 163, 56, .34);
-    --alerte-fiche: #e08a76;
-    --alerte-fiche-doux: #2e1c17;
+    --surligneur: rgba(224, 173, 66, .3);
+
+    --t0: #2c2313;
+    --t1: #2e2118;
+    --t2: #2e1c1e;
+    --t3: #1b2619;
+    --t4: #16222c;
+    --t5: #231d2e;
   }
 }
 
 :root[data-theme="dark"][data-ecran="fiche"] {
   --papier: #17130e;
   --carte: #211b14;
-  --encre: #f2ebe1;
+  --encre: #f4ede3;
   --encre-douce: #a89887;
   --trait: #33291e;
   --trait-fort: #473a2a;
   --accent: #d9a94a;
   --accent-doux: #2a2013;
-  --surligneur: rgba(214, 163, 56, .34);
-  --alerte-fiche: #e08a76;
-  --alerte-fiche-doux: #2e1c17;
+  --surligneur: rgba(224, 173, 66, .3);
+
+  --t0: #2c2313;
+  --t1: #2e2118;
+  --t2: #2e1c1e;
+  --t3: #1b2619;
+  --t4: #16222c;
+  --t5: #231d2e;
 }
 
-/* Ce que la fiche coûte à lire, annoncé d'emblée : une longueur connue
-   se commence, une longueur inconnue se remet à plus tard. */
+/* L’écran de fiche occupe toute la hauteur : une carte = un écran, on glisse
+   à l’horizontale et jamais à la verticale. */
+.ecran-fiche {
+  display: flex;
+  flex-direction: column;
+  /* Une hauteur fixe, pas un minimum : sinon le paquet grandit avec son contenu
+     et la carte repasse sous la ligne de flottaison. Ce qu’on retranche, c’est
+     le bandeau et les marges de la scène. */
+  height: calc(100dvh - 106px);
+}
+
+.ecran-fiche h2 {
+  max-width: 18ch;
+  font-size: clamp(1.3rem, 5.2vw, 1.6rem);
+  margin-bottom: 4px;
+}
+
 .fiche-souffle {
   font-family: var(--mono);
   font-size: .71rem;
-  letter-spacing: .06em;
-  line-height: 1.8;
+  letter-spacing: .07em;
+  text-transform: lowercase;
   color: var(--encre-douce);
-  margin: 4px 0 44px;
-  padding-top: 14px;
-  border-top: 1px solid var(--trait);
-  max-width: 34em;
+  margin: 8px 0 16px;
 }
 
-.ecran-fiche .chapeau { max-width: 32ch; margin-bottom: 0; }
-
-/* Chaque partie est un morceau de texte, pas une boîte. */
-.bloc-fiche {
-  max-width: 34em;              /* environ soixante signes, la largeur qui se lit */
-  margin: 0 0 46px;
+/* Sur un écran court, l’en-tête cède la place aux cartes. */
+@media (max-height: 720px) {
+  .ecran-fiche .etape { margin-bottom: 6px; }
+  .ecran-fiche h2 { font-size: 1.22rem; }
+  .fiche-souffle { margin: 6px 0 12px; }
+  .rubans { margin-bottom: 12px; }
 }
 
-.bloc-compteur {
-  font-family: var(--mono);
-  font-size: .7rem;
-  letter-spacing: .12em;
-  text-transform: uppercase;
-  color: var(--accent);
-  margin: 0 0 8px;
+/* Les rubans : où on en est, et un raccourci pour y aller. */
+.rubans {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 18px;
 }
 
-.bloc-fiche h3 {
+.ruban {
+  flex: 1;
+  height: 4px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--trait);
+  transition: background .25s ease;
+}
+
+.ruban[data-etat="passe"] { background: var(--trait-fort); }
+.ruban[data-etat="ici"] { background: var(--accent); }
+
+/* Le paquet déborde de la colonne de lecture : les cartes viennent lécher
+   les bords de l’écran, et celle d’après se devine. */
+.paquet {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  gap: 14px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  margin-inline: calc(-1 * var(--marge));
+  padding: 4px var(--marge) 22px;
+  scrollbar-width: none;
+}
+
+.paquet::-webkit-scrollbar { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .paquet { scroll-behavior: auto; }
+}
+
+.carte-fiche {
+  position: relative;
+  flex: 0 0 min(82vw, 420px);
+  scroll-snap-align: center;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 280px;
+  padding: 26px 24px 24px;
+  border-radius: 22px;
+  background: var(--t0);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--encre) 8%, transparent),
+              0 14px 34px -18px color-mix(in srgb, var(--encre) 32%, transparent);
+  scrollbar-width: none;
+}
+
+.carte-tete { position: relative; flex: 0 0 auto; }
+
+.carte-corps {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-width: none;
+  /* Un dégradé en bas signale qu’il reste du texte sous la ligne de flottaison. */
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 26px), transparent 100%);
+}
+
+.carte-corps::-webkit-scrollbar { display: none; }
+
+.carte-fiche[data-teinte="1"] { background: var(--t1); }
+.carte-fiche[data-teinte="2"] { background: var(--t2); }
+.carte-fiche[data-teinte="3"] { background: var(--t3); }
+.carte-fiche[data-teinte="4"] { background: var(--t4); }
+.carte-fiche[data-teinte="5"] { background: var(--t5); }
+
+/* Le chiffre est l’élément graphique de la carte : énorme, débordant,
+   presque effacé. Il dit où on est sans qu’on ait à lire. */
+.carte-chiffre {
+  position: absolute;
+  top: -14px;
+  right: 8px;
   font-family: var(--titre);
   font-weight: 600;
-  font-size: 1.32rem;
-  line-height: 1.24;
-  letter-spacing: -.014em;
+  font-size: 8.5rem;
+  line-height: 1;
+  letter-spacing: -.05em;
+  color: color-mix(in srgb, var(--encre) 11%, transparent);
+  pointer-events: none;
+  user-select: none;
+}
+
+@media (max-height: 700px) {
+  .carte-chiffre { font-size: 6.5rem; }
+}
+
+.carte-suite {
+  font-family: var(--mono);
+  font-size: .66rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--encre) 46%, transparent);
+  margin: -10px 0 16px;
+}
+
+.carte-etiquette {
+  font-family: var(--mono);
+  font-size: .68rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--encre) 50%, transparent);
+  margin: 0 0 4px;
+}
+
+.carte-fiche h3 {
+  position: relative;
+  font-family: var(--titre);
+  font-weight: 600;
+  font-size: 1.42rem;
+  line-height: 1.18;
+  letter-spacing: -.016em;
   text-wrap: balance;
   margin: 0 0 18px;
+  max-width: 19ch;
 }
 
 .points { list-style: none; margin: 0; padding: 0; }
 
 .points li {
   position: relative;
-  padding-left: 22px;
-  margin-bottom: 15px;
-  font-size: 1.06rem;
-  line-height: 1.72;
+  padding-left: 20px;
+  margin-bottom: 14px;
+  font-size: 1.02rem;
+  line-height: 1.62;
 }
 
 .points li::before {
   content: "";
   position: absolute;
-  left: 2px;
-  top: .72em;
+  left: 1px;
+  top: .68em;
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--trait-fort);
+  background: color-mix(in srgb, var(--encre) 30%, transparent);
 }
 
 .points li:last-child { margin-bottom: 0; }
 
-/* Le surligneur : un vrai trait, irrégulier aux extrémités, qui déborde
-   légèrement du texte comme un feutre déborde d'une ligne. */
+.carte-retenir .carte-tete { display: none; }
+
+.carte-retenir .carte-corps {
+  display: flex;
+  align-items: center;
+  mask-image: none;
+}
+
+.carte-retenir .carte-etiquette { margin-bottom: 14px; }
+
 .retenir {
-  margin: 22px 0 0;
+  margin: 0;
   font-family: var(--titre);
   font-weight: 600;
-  font-size: 1.14rem;
-  /* Assez d'interligne pour que les bandes de surligneur se détachent les unes
-     des autres, comme des passages successifs de feutre. */
-  line-height: 1.9;
-  letter-spacing: -.008em;
+  font-size: clamp(1.15rem, 4.6vw, 1.42rem);
+  /* De l’air entre les lignes pour que les traits de surligneur se détachent,
+     comme des passages successifs de feutre. */
+  line-height: 2;
+  letter-spacing: -.006em;
 }
 
 .retenir mark {
   background: linear-gradient(
     103deg,
-    color-mix(in srgb, var(--surligneur) 0%, transparent) 0%,
+    transparent 0%,
     var(--surligneur) 2.5%,
     var(--surligneur) 97%,
-    color-mix(in srgb, var(--surligneur) 0%, transparent) 100%
+    transparent 100%
   );
   color: inherit;
-  padding: .12em .28em;
+  padding: .1em .3em;
   border-radius: .18em;
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
 }
 
-/* Les deux blocs de consultation, eux, gardent un fond : on y revient,
-   on ne les lit pas d'affilée. */
-.bloc-mots, .bloc-pieges {
-  max-width: 34em;
-  background: var(--carte);
-  border: 1px solid var(--trait);
-  border-radius: 14px;
-  padding: 24px 22px;
-  margin-top: 56px;
+/* Les mots à connaître */
+.carte-mots dl { margin: 0; }
+.carte-mots dt { font-weight: 700; margin-top: 15px; font-size: 1rem; }
+.carte-mots dt:first-of-type { margin-top: 0; }
+.carte-mots dd {
+  margin: 3px 0 0;
+  color: color-mix(in srgb, var(--encre) 72%, transparent);
+  font-size: .95rem;
+  line-height: 1.58;
 }
 
-.bloc-mots dl { margin: 0; }
-.bloc-mots dt { font-weight: 700; margin-top: 16px; }
-.bloc-mots dt:first-of-type { margin-top: 0; }
-.bloc-mots dd { margin: 3px 0 0; color: var(--encre-douce); font-size: .97rem; line-height: 1.65; }
+/* Les pièges : la partie qui suppose de savoir où les élèves tombent. */
+.carte-pieges { background: var(--t2); }
+.liste-pieges { list-style: none; margin: 0; padding: 0; }
 
-/* Les pièges supposent de savoir où les élèves tombent : c'est ce que la fiche
-   a de plus précieux, et ça ne se relègue pas en annexe. */
-.bloc-pieges {
-  background: var(--alerte-fiche-doux);
-  border-color: color-mix(in srgb, var(--alerte-fiche) 26%, transparent);
+.liste-pieges li {
+  position: relative;
+  padding-left: 24px;
+  margin-bottom: 15px;
+  line-height: 1.58;
+  font-size: .99rem;
 }
 
-.bloc-pieges .bloc-compteur { color: var(--alerte-fiche); }
-.bloc-pieges ol { margin: 0; padding-left: 20px; }
-.bloc-pieges li { margin-bottom: 13px; line-height: 1.62; }
-.bloc-pieges li:last-child { margin-bottom: 0; }
-.bloc-pieges li::marker { color: var(--alerte-fiche); font-weight: 700; }
+.liste-pieges li::before {
+  content: "✕";
+  position: absolute;
+  left: 0;
+  top: .05em;
+  font-size: .82rem;
+  color: color-mix(in srgb, var(--encre) 52%, transparent);
+}
 
-.ecran-fiche .principal { margin-top: 44px; }
+.liste-pieges li:last-child { margin-bottom: 0; }
+
+/* La carte de fin referme la lecture au lieu de la laisser tomber. */
+.carte-fin { background: var(--t3); justify-content: center; text-align: center; }
+.carte-fin h3 { max-width: none; margin-bottom: 12px; font-size: 1.6rem; }
+.carte-fin .mot-fin {
+  color: color-mix(in srgb, var(--encre) 74%, transparent);
+  margin: 0 0 26px;
+  font-size: .98rem;
+  line-height: 1.6;
+}
+.carte-fin .principal { background: var(--encre); color: var(--papier); }
+.carte-fin .discret { color: color-mix(in srgb, var(--encre) 60%, transparent); }
+
+/* Sur cet écran, la scène rend sa marge basse au paquet. */
+:root[data-ecran="fiche"] #scene {
+  padding-bottom: calc(8px + env(safe-area-inset-bottom));
+}
+
+.fiche-pied { display: flex; justify-content: center; flex: 0 0 auto; }
+
+.lien-outil {
+  background: none;
+  border: 0;
+  color: var(--encre-douce);
+  font-family: var(--texte);
+  font-size: .85rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  padding: 12px 8px;
+  min-height: 44px;
+}
+
+/* Pour qui préfère tout lire d’une traite : les cartes se remettent en colonne. */
+.paquet[data-vue="colonne"] {
+  display: block;
+  flex: none;
+  height: auto;
+  overflow: visible;
+  scroll-snap-type: none;
+  margin-inline: 0;
+  padding-inline: 0;
+}
+
+.ecran-fiche:has(.paquet[data-vue="colonne"]) { height: auto; }
+
+.paquet[data-vue="colonne"] .carte-fiche {
+  height: auto;
+  min-height: 0;
+  margin-bottom: 14px;
+}
+
+.paquet[data-vue="colonne"] .carte-corps {
+  overflow: visible;
+  mask-image: none;
+}
+
+.paquet[data-vue="colonne"] .retenir { margin-top: 0; }
+.paquet[data-vue="colonne"] .carte-retenir .carte-corps { display: block; }
 
 /* --- Le contrôle -------------------------------------------------------- */
 

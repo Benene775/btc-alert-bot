@@ -157,11 +157,15 @@
 <section id="ecran-fiche" class="ecran ecran-fiche" hidden>
   <p class="etape" id="etiquette-fiche">Fiche de révision</p>
   <h2 id="titre-fiche">Fiche</h2>
-  <p class="chapeau" id="chapeau-fiche"></p>
   <p class="fiche-souffle" id="fiche-souffle"></p>
-  <div id="corps-fiche"></div>
-  <button type="button" class="principal" id="bouton-apres-fiche">Passer au contrôle blanc</button>
-  <button type="button" class="discret" id="bouton-fiche-accueil">Plus tard, garder ma session</button>
+
+  <div class="rubans" id="rubans" role="tablist" aria-label="Cartes de la fiche"></div>
+
+  <div class="paquet" id="paquet"></div>
+
+  <div class="fiche-pied">
+    <button type="button" class="lien-outil" id="bouton-tout-afficher">Tout afficher d’un coup</button>
+  </div>
 </section>
 
 <!-- ÉTAPE 4 — le contrôle blanc -->
