@@ -166,3 +166,39 @@ def test_chaque_surface_eclairee_porte_sa_lueur_et_son_reperage():
 
     for selecteur in (s.strip() for s in apres_repere[: apres_repere.index("{")].split(",")):
         assert f"{selecteur}::after" in STYLE, f"« {selecteur} » n'a pas de lueur"
+
+
+def test_aucun_identifiant_n_est_utilise_deux_fois():
+    """Deux éléments au même identifiant, et le second devient inatteignable.
+
+    C'est arrivé : « Mon année » et l'écran de reprise portaient tous deux un
+    « bouton-nouveau-cours ». getElementById renvoyant le premier, le bouton de
+    la reprise n'a plus jamais reçu son gestionnaire — sans erreur, sans rien.
+    """
+    import collections
+    import re
+
+    compte = collections.Counter(re.findall(r'id="([a-z0-9-]+)"', PAGE))
+    doublons = sorted(i for i, n in compte.items() if n > 1)
+    assert not doublons, f"identifiants en double : {doublons}"
+
+
+def test_aucune_liste_ne_se_deplie_entierement():
+    """La règle qui a coûté le plus cher : une page de 3 km.
+
+    La correction dépliait ses neuf questions — 7098 px, huit écrans et demi de
+    défilement. Tout ce qui est une liste d'éléments détaillés se replie
+    désormais : chaque élément tient en une ligne et s'ouvre à la demande.
+    """
+    for liste, marqueur in (
+        ("les questions de la correction", "carte-correction"),
+        ("les notions à revoir", "revient"),
+    ):
+        assert f"createElement('details')" in SCRIPT, f"{liste} ne se replie pas"
+        assert marqueur in SCRIPT, f"{liste} introuvable"
+
+    # Une carte ouverte d'office coûtait un demi-écran et choisissait à la place
+    # de l'élève : la correction s'ouvre entièrement repliée.
+    correction = SCRIPT[SCRIPT.index("function afficherCorrection") :]
+    correction = correction[: correction.index("\n}\n")]
+    assert "carte.open = true" not in correction, "une question s'ouvre d'elle-même"

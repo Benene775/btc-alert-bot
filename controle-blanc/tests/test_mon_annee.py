@@ -26,8 +26,26 @@ CODE = SCRIPT[DEBUT:FIN]
 CODE_NU = re.sub(r"//[^\n]*", "", re.sub(r"/\*.*?\*/", "", CODE, flags=re.S))
 
 
+def test_l_agenda_est_un_agenda_que_l_eleve_remplit():
+    """Une date de contrôle se connaît des semaines avant qu'on photographie le
+    cours : l'agenda doit exister avant la séance, pas en être un sous-produit."""
+    assert "CLE_AGENDA" in SCRIPT, "aucun stockage de dates saisies"
+    assert "function ajouterRendezVous" in CODE_NU
+    assert "function retirerRendezVous" in CODE_NU
+    assert 'id="mois-grille"' in PAGE, "pas de calendrier"
+    assert "function formulaireRendezVous" in CODE_NU, "rien pour ajouter une date"
+    # Une date posée sans cours mène à l'appareil photo, pas à une séance vide.
+    assert "demarrerSession({ matiere:" in CODE_NU
+
+
+def test_le_calendrier_ne_decale_pas_les_jours():
+    """toISOString bascule en UTC : le soir, en France, il rend la veille."""
+    assert "toISOString" not in CODE_NU.split("function cleJour")[1].split("}")[0]
+    assert "function cleJour" in CODE_NU
+
+
 def test_l_ecran_existe_avec_ses_sections():
-    for identifiant in ("ecran-espace", "liste-agenda", "liste-reviennent",
+    for identifiant in ("ecran-espace", "mois-grille", "jour-detail", "liste-reviennent",
                         "liste-mes-fiches", "liste-mes-controles", "frise-regularite",
                         "champ-prenom", "embleme", "carte-chiffres"):
         assert f'id="{identifiant}"' in PAGE, f"« {identifiant} » manque dans la page"

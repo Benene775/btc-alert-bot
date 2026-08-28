@@ -1467,45 +1467,95 @@ select {
   margin-bottom: 24px;
 }
 
-.fragiles h3 { font-family: var(--titre); font-size: 1.15rem; font-weight: 600; margin-bottom: 14px; }
+.fragiles h3 { font-family: var(--titre); font-size: 1.1rem; font-weight: 600; margin-bottom: 10px; }
 .fragiles ol { margin: 0; padding-left: 20px; }
-.fragiles li { margin-bottom: 14px; }
+.fragiles li { margin-bottom: 10px; }
 .fragiles li::marker { font-family: var(--mono); font-size: .85rem; color: var(--accent); }
 .fragiles li:last-child { margin-bottom: 0; }
 .fragiles b { display: block; }
 .fragiles span { font-size: .88rem; color: var(--encre-douce); }
 
 /* Le filet de gauche, c'est le stylo du prof dans la marge. */
+/* Repliée, une question tient en une ligne ; dépliée, elle donne tout. Neuf
+   questions dépliées, c'était huit écrans et demi de défilement. */
 .carte-correction {
   background: var(--carte);
   border: 0;
   border-left: 4px solid var(--trait-fort);
   border-radius: 6px var(--rayon-carte) var(--rayon-carte) 6px;
   box-shadow: var(--ombre-carte);
-  padding: 20px 22px;
-  margin-bottom: 14px;
+  padding: 0 20px 0;
+  margin-bottom: 10px;
+  overflow: hidden;
 }
+
+.carte-correction[open] { padding-bottom: 18px; }
+
+.tete-correction {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 0;
+  cursor: pointer;
+  list-style: none;
+}
+
+.tete-correction::-webkit-details-marker { display: none; }
+
+.numero-correction {
+  flex: 0 0 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-family: var(--mono);
+  font-size: .72rem;
+  background: color-mix(in srgb, var(--encre) 7%, transparent);
+  color: var(--encre-douce);
+}
+
+[data-statut="acquis"] .numero-correction { background: var(--acquis-doux); color: var(--acquis); }
+[data-statut="partiel"] .numero-correction { background: var(--partiel-doux); color: var(--partiel); }
+[data-statut="a_revoir"] .numero-correction { background: var(--rouge-doux); color: var(--rouge); }
+
+.tete-correction .question-correction { flex: 1; min-width: 0; }
 
 .carte-correction[data-statut="acquis"] { border-left-color: var(--acquis); }
 .carte-correction[data-statut="partiel"] { border-left-color: var(--partiel); }
 .carte-correction[data-statut="a_revoir"] { border-left-color: var(--rouge); }
 
+/* En tête de l'énoncé, pas au-dessus : le texte coule autour. */
 .etiquette-statut {
-  display: inline-block;
   font-family: var(--mono);
-  font-size: .66rem;
-  letter-spacing: .12em;
+  font-size: .6rem;
+  letter-spacing: .1em;
   text-transform: uppercase;
-  padding: 4px 8px;
+  padding: 3px 7px;
   border-radius: 5px;
-  margin-bottom: 10px;
+  margin-right: 7px;
+  white-space: nowrap;
 }
 
 [data-statut="acquis"] .etiquette-statut { color: var(--acquis); background: var(--acquis-doux); }
 [data-statut="partiel"] .etiquette-statut { color: var(--partiel); background: var(--partiel-doux); }
 [data-statut="a_revoir"] .etiquette-statut { color: var(--rouge); background: var(--rouge-doux); }
 
-.question-correction { font-weight: 700; margin: 0 0 14px; }
+/* Repliée, une question s'abrège : deux lignes suffisent à la reconnaître. */
+.question-correction {
+  font-weight: 700;
+  margin: 2px 0 0;
+  font-size: .94rem;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.carte-correction[open] .question-correction {
+  -webkit-line-clamp: none;
+  margin-bottom: 4px;
+}
 
 .bloc-correction { margin-bottom: 14px; }
 .bloc-correction:last-child { margin-bottom: 0; }
@@ -2200,49 +2250,168 @@ h1 {
 
 .aide-espace { font-size: .85rem; color: var(--encre-douce); margin: 0; }
 
-/* --- L'agenda ------------------------------------------------------------ */
+/* --- L'agenda ------------------------------------------------------------
+ *
+ * Un vrai agenda : l'élève y pose ses dates. Un mois tient en 240 px, une
+ * liste de rendez-vous non. Et un mois se lit d'un coup d'oeil — « c'est
+ * quelle semaine, déjà ? » est la question qu'on se pose.
+ */
 
-.agenda { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.mois-barre { display: flex; align-items: center; justify-content: space-between; gap: var(--e2); }
 
-.agenda-ligne {
+.mois-titre {
+  margin: 0;
+  font-family: var(--titre);
+  font-weight: 600;
+  font-size: 1.1rem;
+  text-transform: capitalize;
+}
+
+.mois-fleche {
+  width: 40px;
+  height: 40px;
+  min-height: 0;
+  padding: 0;
+  border: 1px solid var(--trait);
+  border-radius: 50%;
+  background: var(--papier);
+  color: var(--encre);
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.jours-semaine, .mois {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+
+.jours-semaine {
+  font-family: var(--mono);
+  font-size: .6rem;
+  letter-spacing: .08em;
+  color: var(--encre-douce);
+  text-align: center;
+  margin-top: 2px;
+}
+
+.jour, .jour-vide { aspect-ratio: 1; border-radius: 9px; }
+
+.jour {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: 0;
+  background: var(--papier);
+  color: var(--encre-douce);
+  font-size: .82rem;
+  padding: 0;
+  min-height: 0;
+  transition: transform .12s ease, background .18s ease;
+}
+
+.jour:active { transform: scale(.92); }
+.jour[data-aujourdhui="oui"] { box-shadow: inset 0 0 0 1.5px var(--trait-fort); color: var(--encre); font-weight: 700; }
+
+/* Un jour occupé porte la couleur de l'échéance, pas un simple point : sur un
+   mois entier, c'est ce qui se voit sans lire. */
+.jour[data-occupe="oui"] { background: var(--t0); color: var(--encre); font-weight: 700; }
+.jour[data-occupe="oui"][data-passe="oui"] { background: var(--papier); color: var(--trait-fort); font-weight: 400; }
+
+/* Le jour choisi passe devant tout le reste. « .jour[data-occupe][data-passe] »
+   compte trois sélecteurs et l'emportait : un jour passé restait pâle même
+   quand on venait de le toucher. */
+.jour[data-choisi="oui"],
+.jour[data-choisi="oui"][data-occupe="oui"],
+.jour[data-choisi="oui"][data-occupe="oui"][data-passe="oui"] {
+  background: var(--accent);
+  color: var(--sur-accent);
+  font-weight: 700;
+}
+
+.jour-points { display: flex; gap: 2px; height: 4px; }
+.jour-points i { width: 4px; height: 4px; border-radius: 50%; background: var(--accent); }
+.jour[data-choisi="oui"] .jour-points i { background: var(--sur-accent); }
+.jour[data-passe="oui"] .jour-points i { background: var(--trait-fort); }
+
+/* --- Le jour choisi ------------------------------------------------------ */
+
+.jour-detail { display: flex; flex-direction: column; gap: 6px; margin-top: var(--e2); }
+
+.jour-detail-titre {
+  font-family: var(--mono);
+  font-size: .64rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--encre-douce);
+  margin: 0;
+}
+
+.rendez-vous {
   display: flex;
   align-items: center;
-  gap: var(--e3);
+  gap: var(--e2);
   padding: 10px 12px;
   border-radius: var(--rayon);
   background: var(--papier);
 }
 
-.agenda-compte {
-  flex: 0 0 auto;
-  min-width: 54px;
-  text-align: center;
-  font-family: var(--mono);
-  font-size: .78rem;
-  font-variant-numeric: tabular-nums;
-  padding: 7px 6px;
-  border-radius: 9px;
-  background: var(--accent-doux);
-  color: var(--accent);
-}
+.rendez-vous[data-source="saisi"] { border-left: 3px solid var(--trait-fort); }
+.rendez-vous > div { flex: 1; min-width: 0; }
+.rendez-vous-matiere { font-weight: 700; margin: 0; font-size: .92rem; }
+.rendez-vous-etat { font-size: .78rem; color: var(--encre-douce); margin: 2px 0 0; }
 
-.agenda-ligne[data-urgence="moyenne"] .agenda-compte { background: var(--partiel-doux); color: var(--partiel); }
-.agenda-ligne[data-urgence="haute"] .agenda-compte { background: var(--rouge-doux); color: var(--rouge); }
-
-.agenda-ligne > div { flex: 1; min-width: 0; }
-.agenda-matiere { font-weight: 700; margin: 0; font-size: .95rem; }
-.agenda-detail { font-size: .8rem; color: var(--encre-douce); margin: 2px 0 0; }
-
-.agenda-aller {
+.rendez-vous-action {
   flex: 0 0 auto;
   border: 1px solid var(--trait-fort);
   background: none;
   color: var(--encre);
   border-radius: 999px;
-  padding: 7px 13px;
+  padding: 7px 12px;
   min-height: 38px;
-  font-size: .82rem;
+  font-size: .8rem;
   font-weight: 700;
+}
+
+.rendez-vous-retirer {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--encre-douce);
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.ajout-rv { display: flex; gap: 6px; margin-top: 2px; }
+
+.ajout-rv select {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 34px 10px 12px;
+  font-size: .88rem;
+  box-shadow: none;
+  background-position: right 12px center;
+}
+
+.ajout-rv-valider {
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: var(--rayon);
+  background: var(--accent);
+  color: var(--sur-accent);
+  padding: 0 16px;
+  min-height: 44px;
+  font-weight: 700;
+  font-size: .88rem;
 }
 
 /* --- Ce qui ne tient pas encore ------------------------------------------ */

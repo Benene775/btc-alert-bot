@@ -148,7 +148,16 @@
     </div>
 
     <div class="panneau" id="panneau-agenda" role="tabpanel" aria-labelledby="onglet-agenda" tabindex="0" hidden>
-      <ul class="agenda" id="liste-agenda"></ul>
+      <div class="mois-barre">
+        <button type="button" id="mois-precedent" class="mois-fleche" aria-label="Mois précédent">‹</button>
+        <p class="mois-titre" id="mois-titre" aria-live="polite"></p>
+        <button type="button" id="mois-suivant" class="mois-fleche" aria-label="Mois suivant">›</button>
+      </div>
+      <div class="jours-semaine" aria-hidden="true">
+        <span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span>
+      </div>
+      <div class="mois" id="mois-grille"></div>
+      <div class="jour-detail" id="jour-detail"></div>
     </div>
 
     <div class="panneau" id="panneau-fiches" role="tabpanel" aria-labelledby="onglet-fiches" tabindex="0" hidden>
@@ -162,7 +171,7 @@
     </div>
   </div>
 
-  <button type="button" class="principal" id="bouton-nouveau-cours">Photographier un nouveau cours</button>
+  <button type="button" class="principal" id="bouton-espace-nouveau">Photographier un nouveau cours</button>
   <button type="button" class="discret" id="bouton-quitter-espace">Revenir</button>
 </section>
 

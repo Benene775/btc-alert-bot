@@ -290,18 +290,16 @@ function dessinerCarteEleve(sessions) {
 /* Le prochain contrôle ne se cache derrière aucun onglet : c'est la question
  * qu'un élève se pose en ouvrant la page. Il vit sur la carte. */
 function dessinerProchain(sessions) {
-  const prochains = agenda(sessions);
+  const prochains = prochainesEcheances(sessions);
   const boite = $('prochain');
   boite.innerHTML = '';
   if (!prochains.length) {
     boite.dataset.urgence = 'aucune';
-    boite.textContent = sessions.length
-      ? 'Aucun contrôle à venir.'
-      : 'Photographie ton premier cours pour commencer.';
+    boite.textContent = 'Pose la date de ton prochain contrôle dans l’agenda.';
     return;
   }
   const session = prochains[0];
-  const jours = joursAvant(session.dateControle);
+  const jours = joursAvant(session.date);
   boite.dataset.urgence = urgence(jours);
 
   const compte = document.createElement('span');
@@ -314,16 +312,264 @@ function dessinerProchain(sessions) {
   matiere.textContent = nomMatiere(session.matiere);
   const quand = document.createElement('p');
   quand.className = 'prochain-quand';
-  quand.textContent = dateCourte(session.dateControle) + ' · ' + ligneJours(jours);
+  quand.textContent = dateCourte(session.date) + ' · ' + ligneJours(jours);
   texte.append(matiere, quand);
 
   const aller = document.createElement('button');
   aller.type = 'button';
   aller.className = 'prochain-aller';
-  aller.textContent = 'Réviser';
-  aller.onclick = () => ouvrirSession(session.sessionId);
+  // Une date posée sans cours photographié n'a rien à réviser : elle mène à
+  // l'appareil photo, pas à une séance qui n'existe pas.
+  aller.textContent = session.sessionId ? 'Réviser' : 'Photographier';
+  aller.onclick = () => (session.sessionId
+    ? ouvrirSession(session.sessionId)
+    : demarrerSession({ matiere: session.matiere, date: session.date }));
 
   boite.append(compte, texte, aller);
+}
+
+/* --- L'agenda ------------------------------------------------------------
+ *
+ * Un agenda où l'élève pose lui-même ses dates. Une date de contrôle se
+ * connaît des semaines avant qu'on prenne le cours en photo — l'agenda doit
+ * donc exister avant la séance, pas en être un sous-produit.
+ *
+ * Deux sources se rejoignent dans le calendrier : les dates saisies ici, et
+ * celles des séances déjà commencées. Une date saisie devient une séance dès
+ * qu'on photographie le cours ; elle n'est alors plus comptée deux fois.
+ */
+const CLE_AGENDA = 'cb.agenda';
+
+function rendezVous() {
+  try {
+    const brut = localStorage.getItem(CLE_AGENDA);
+    const liste = brut ? JSON.parse(brut) : [];
+    return Array.isArray(liste) ? liste : [];
+  } catch (e) { return []; }
+}
+
+function garderRendezVous(liste) {
+  try { localStorage.setItem(CLE_AGENDA, JSON.stringify(liste)); }
+  catch (e) { message("Ton téléphone n’a plus de place pour enregistrer.", 'alerte'); }
+}
+
+function ajouterRendezVous(date, matiere, note) {
+  const liste = rendezVous();
+  liste.push({ id: 'rv-' + Date.now().toString(36), date, matiere, note: note || '' });
+  garderRendezVous(liste);
+}
+
+function retirerRendezVous(id) {
+  garderRendezVous(rendezVous().filter((r) => r.id !== id));
+}
+
+function cleJour(d) {
+  // Pas toISOString : il bascule en UTC et décale d'un jour le soir en France.
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')
+    + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+/* Tout ce qui tombe un jour donné : les dates posées à la main et les séances
+ * déjà ouvertes. Une séance qui reprend une date saisie la remplace. */
+function evenementsDuJour(jour, sessions) {
+  const desSessions = sessions
+    .filter((s) => s.dateControle === jour)
+    .map((s) => ({ source: 'session', date: jour, matiere: s.matiere,
+                   sessionId: s.sessionId, chapitres: (s.chapitres || []).length }));
+  const matieresPrises = new Set(desSessions.map((e) => e.matiere));
+  const saisis = rendezVous()
+    .filter((r) => r.date === jour && !matieresPrises.has(r.matiere))
+    .map((r) => ({ source: 'saisi', ...r }));
+  return [...desSessions, ...saisis];
+}
+
+/* Les prochaines échéances, toutes sources confondues : c'est ce que compte
+ * l'intercalaire et ce qui alimente la carte d'élève. */
+function prochainesEcheances(sessions) {
+  const parJour = new Map();
+  const ajouter = (date, entree) => {
+    if (!date || joursAvant(date) < 0) return;
+    if (!parJour.has(date)) parJour.set(date, []);
+    parJour.get(date).push(entree);
+  };
+  sessions.forEach((s) => ajouter(s.dateControle, { source: 'session', matiere: s.matiere, sessionId: s.sessionId }));
+  rendezVous().forEach((r) => ajouter(r.date, { source: 'saisi', matiere: r.matiere, id: r.id, note: r.note }));
+
+  return [...parJour.entries()]
+    .map(([date, entrees]) => {
+      const session = entrees.find((e) => e.source === 'session');
+      return { date, ...(session || entrees[0]), total: entrees.length };
+    })
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+let moisAffiche = null;
+let jourChoisi = null;
+
+function dessinerAgenda(sessions) {
+  if (!moisAffiche) {
+    const aujourdhui = new Date();
+    moisAffiche = new Date(aujourdhui.getFullYear(), aujourdhui.getMonth(), 1);
+  }
+  dessinerMois(sessions);
+  dessinerJourChoisi(sessions);
+  return prochainesEcheances(sessions).length;
+}
+
+function dessinerMois(sessions) {
+  $('mois-titre').textContent = moisAffiche
+    .toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+
+  const grille = $('mois-grille');
+  grille.innerHTML = '';
+
+  const premier = new Date(moisAffiche.getFullYear(), moisAffiche.getMonth(), 1);
+  const dernier = new Date(moisAffiche.getFullYear(), moisAffiche.getMonth() + 1, 0);
+  // La semaine française commence le lundi.
+  const decalage = (premier.getDay() + 6) % 7;
+  const aujourdhui = cleJour(new Date());
+
+  for (let i = 0; i < decalage; i++) {
+    const vide = document.createElement('span');
+    vide.className = 'jour-vide';
+    grille.appendChild(vide);
+  }
+
+  for (let n = 1; n <= dernier.getDate(); n++) {
+    const date = new Date(moisAffiche.getFullYear(), moisAffiche.getMonth(), n);
+    const cle = cleJour(date);
+    const evenements = evenementsDuJour(cle, sessions);
+
+    const jour = document.createElement('button');
+    jour.type = 'button';
+    jour.className = 'jour';
+    jour.dataset.jour = cle;
+    if (cle === aujourdhui) jour.dataset.aujourdhui = 'oui';
+    if (cle === jourChoisi) jour.dataset.choisi = 'oui';
+    if (evenements.length) {
+      jour.dataset.occupe = 'oui';
+      const passe = joursAvant(cle) < 0;
+      jour.dataset.passe = passe ? 'oui' : 'non';
+    }
+    jour.setAttribute('aria-label', date.toLocaleDateString('fr-FR',
+      { weekday: 'long', day: 'numeric', month: 'long' })
+      + (evenements.length ? ' — ' + evenements.length + ' contrôle(s)' : ''));
+
+    const chiffre = document.createElement('span');
+    chiffre.className = 'jour-chiffre';
+    chiffre.textContent = String(n);
+    jour.appendChild(chiffre);
+
+    if (evenements.length) {
+      const points = document.createElement('span');
+      points.className = 'jour-points';
+      evenements.slice(0, 3).forEach(() => points.appendChild(document.createElement('i')));
+      jour.appendChild(points);
+    }
+
+    jour.onclick = () => { jourChoisi = cle; dessinerAgenda(toutesLesSessions()); };
+    grille.appendChild(jour);
+  }
+}
+
+function dessinerJourChoisi(sessions) {
+  const boite = $('jour-detail');
+  boite.innerHTML = '';
+  if (!jourChoisi) {
+    const invite = document.createElement('p');
+    invite.className = 'panneau-vide';
+    const prochaines = prochainesEcheances(sessions);
+    invite.textContent = prochaines.length
+      ? 'Touche un jour pour voir ou ajouter un contrôle.'
+      : 'Touche le jour de ton prochain contrôle pour l’ajouter.';
+    boite.appendChild(invite);
+    return;
+  }
+
+  const date = new Date(jourChoisi + 'T00:00:00');
+  const titre = document.createElement('p');
+  titre.className = 'jour-detail-titre';
+  titre.textContent = date.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+  boite.appendChild(titre);
+
+  const evenements = evenementsDuJour(jourChoisi, sessions);
+  evenements.forEach((e) => {
+    const ligne = document.createElement('div');
+    ligne.className = 'rendez-vous';
+    ligne.dataset.source = e.source;
+
+    const corps = document.createElement('div');
+    const nom = document.createElement('p');
+    nom.className = 'rendez-vous-matiere';
+    nom.textContent = nomMatiere(e.matiere);
+    corps.appendChild(nom);
+    const etat = document.createElement('p');
+    etat.className = 'rendez-vous-etat';
+    etat.textContent = e.source === 'session'
+      ? (e.chapitres ? e.chapitres + (e.chapitres > 1 ? ' chapitres prêts' : ' chapitre prêt') : 'Séance commencée')
+      : (e.note || 'Cours pas encore photographié');
+    corps.appendChild(etat);
+    ligne.appendChild(corps);
+
+    const action = document.createElement('button');
+    action.type = 'button';
+    action.className = 'rendez-vous-action';
+    if (e.source === 'session') {
+      action.textContent = 'Ouvrir';
+      action.onclick = () => ouvrirSession(e.sessionId);
+    } else {
+      action.textContent = 'Photographier';
+      action.onclick = () => demarrerSession({ matiere: e.matiere, date: e.date });
+    }
+    ligne.appendChild(action);
+
+    if (e.source === 'saisi') {
+      const retirer = document.createElement('button');
+      retirer.type = 'button';
+      retirer.className = 'rendez-vous-retirer';
+      retirer.setAttribute('aria-label', 'Retirer ce contrôle');
+      retirer.textContent = '×';
+      retirer.onclick = () => { retirerRendezVous(e.id); dessinerEspace(); };
+      ligne.appendChild(retirer);
+    }
+    boite.appendChild(ligne);
+  });
+
+  boite.appendChild(formulaireRendezVous());
+}
+
+function formulaireRendezVous() {
+  const forme = document.createElement('form');
+  forme.className = 'ajout-rv';
+
+  const etiquette = document.createElement('label');
+  etiquette.className = 'masque';
+  etiquette.setAttribute('for', 'rv-matiere');
+  etiquette.textContent = 'Matière du contrôle';
+
+  const choix = document.createElement('select');
+  choix.id = 'rv-matiere';
+  (config.matieres || []).forEach((m) => {
+    const option = document.createElement('option');
+    option.value = m.cle;
+    option.textContent = m.nom;
+    choix.appendChild(option);
+  });
+  if (etat && etat.matiere) choix.value = etat.matiere;
+
+  const valider = document.createElement('button');
+  valider.type = 'submit';
+  valider.className = 'ajout-rv-valider';
+  valider.textContent = 'Ajouter';
+
+  forme.onsubmit = (evenement) => {
+    evenement.preventDefault();
+    ajouterRendezVous(jourChoisi, choix.value, '');
+    dessinerEspace();
+  };
+
+  forme.append(etiquette, choix, valider);
+  return forme;
 }
 
 /* --- Les intercalaires ---------------------------------------------------- */
@@ -399,52 +645,6 @@ function ouvrirOnglet(cle, memoriser = true) {
 
 /* Chaque dessinateur renvoie son nombre d'éléments : c'est ce qui alimente la
  * pastille de l'intercalaire, sans recompter deux fois. */
-
-function dessinerAgenda(sessions) {
-  const prochains = agenda(sessions);
-  const liste = $('liste-agenda');
-  liste.innerHTML = '';
-
-  if (!prochains.length) {
-    const li = document.createElement('li');
-    li.className = 'panneau-vide';
-    li.textContent = sessions.length
-      ? 'Aucun contrôle à venir. Prends un cours en photo quand la prochaine date tombe.'
-      : 'Rien encore. Photographie ton premier cours et sa date apparaîtra ici.';
-    liste.appendChild(li);
-    return 0;
-  }
-
-  prochains.forEach((session) => {
-    const jours = joursAvant(session.dateControle);
-    const li = document.createElement('li');
-    li.className = 'agenda-ligne';
-    li.dataset.urgence = urgence(jours);
-
-    const compte = document.createElement('span');
-    compte.className = 'agenda-compte';
-    compte.textContent = jours === 0 ? 'Jour J' : 'J−' + jours;
-
-    const corps = document.createElement('div');
-    const titre = document.createElement('p');
-    titre.className = 'agenda-matiere';
-    titre.textContent = nomMatiere(session.matiere);
-    const detail = document.createElement('p');
-    detail.className = 'agenda-detail';
-    detail.textContent = dateCourte(session.dateControle) + ' · ' + ligneJours(jours);
-    corps.append(titre, detail);
-
-    const aller = document.createElement('button');
-    aller.type = 'button';
-    aller.className = 'agenda-aller';
-    aller.textContent = 'Ouvrir';
-    aller.onclick = () => ouvrirSession(session.sessionId);
-
-    li.append(compte, corps, aller);
-    liste.appendChild(li);
-  });
-  return prochains.length;
-}
 
 /* Les notions se replient : le titre et le nombre de fois suffisent à décider,
  * le détail ne s'ouvre que si on le demande. Six notions dépliées, c'était un
@@ -813,7 +1013,7 @@ function gererErreur(erreur) {
   fermerAttente();
   if (erreur instanceof ErreurApi) {
     message(erreur.message, erreur.genre === 'quota' ? 'neutre' : 'alerte', 7000);
-    if (erreur.genre === 'session') demarrerSession(true);
+    if (erreur.genre === 'session') demarrerSession();
     return;
   }
   console.error(erreur);
@@ -873,11 +1073,18 @@ function remplirSelecteur(selecteur, valeurs, defaut) {
   });
 }
 
-async function demarrerSession(silencieux = false) {
+async function demarrerSession(depuisAgenda = null) {
   try {
-    if (!silencieux) attendre('On prépare ta session…');
+    attendre('On prépare ta session…');
     const info = await api('/api/session', { method: 'POST' });
     etat = etatNeuf(info.session_id, info.lien_de_reprise);
+    // Venir de l'agenda, c'est déjà savoir quoi et quand : on ne le redemande pas.
+    if (depuisAgenda) {
+      etat.matiere = depuisAgenda.matiere || '';
+      etat.dateControle = depuisAgenda.date || '';
+      if (etat.matiere) $('champ-matiere').value = etat.matiere;
+      if (etat.dateControle) $('champ-date').value = etat.dateControle;
+    }
     sauver();
     fermerAttente();
     montrer('ecran-contexte');
@@ -2135,22 +2342,42 @@ function afficherCorrection(correction) {
     liste.appendChild(li);
   });
 
+  /* Une correction dépliée, c'était huit écrans et demi de défilement : neuf
+   * questions, chacune avec ce qui va, l'erreur, ce qui manquait, où relire et
+   * la réponse attendue. Or la première question qu'un élève se pose est
+   * « lesquelles j'ai ratées ? », pas « qu'est-ce que j'ai écrit à la 7 ».
+   *
+   * Chaque question tient donc en une ligne — son numéro, son état, son énoncé —
+   * et s'ouvre si on la demande. Aucune ne s'ouvre d'elle-même : en ouvrir une
+   * coûtait un demi-écran et choisissait à la place de l'élève, alors que le
+   * bloc des notions fragiles, juste au-dessus, lui a déjà dit où regarder. */
   const corps = $('corps-correction');
   corps.innerHTML = '';
+
   (correction.reponses || []).forEach((ligne) => {
-    const carte = document.createElement('div');
+    const carte = document.createElement('details');
     carte.className = 'carte-correction';
     carte.dataset.statut = ligne.statut;
 
+    const tete = document.createElement('summary');
+    tete.className = 'tete-correction';
+
+    const numero = document.createElement('span');
+    numero.className = 'numero-correction';
+    numero.textContent = String(ligne.numero);
+
+    // L'état se glisse en tête de l'énoncé : sur sa propre ligne, il coûtait
+    // 22 px par question sans rien dire que la couleur du numéro ne dise déjà.
     const etiquette = document.createElement('span');
     etiquette.className = 'etiquette-statut';
     etiquette.textContent = ligne.signalee ? 'Signalée' : (LIBELLES_STATUT[ligne.statut] || '');
 
     const enonce = document.createElement('p');
     enonce.className = 'question-correction';
-    enonce.textContent = ligne.numero + '. ' + (ligne.enonce || '');
+    enonce.append(etiquette, document.createTextNode(ligne.enonce || ''));
 
-    carte.append(etiquette, enonce);
+    tete.append(numero, enonce);
+    carte.appendChild(tete);
 
     if (ligne.ce_qui_va) carte.appendChild(blocTexte('Ce qui va', ligne.ce_qui_va));
     // En maths et en sciences, l’élève se trompe plus souvent qu’il n’oublie :
@@ -2366,7 +2593,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (etat) return reprendre();
     montrer('ecran-accueil');
   };
-  $('bouton-nouveau-cours').onclick = () => demarrerSession();
+  $('bouton-espace-nouveau').onclick = () => demarrerSession();
+
+  const changerMois = (pas) => {
+    moisAffiche = new Date(moisAffiche.getFullYear(), moisAffiche.getMonth() + pas, 1);
+    // Changer de mois ne garde pas un jour choisi qui n'y est plus.
+    jourChoisi = null;
+    dessinerEspace();
+  };
+  $('mois-precedent').onclick = () => changerMois(-1);
+  $('mois-suivant').onclick = () => changerMois(1);
   $('bouton-retourner').onclick = () => retournerCarte('verso');
   $('bouton-retourner-dos').onclick = () => retournerCarte('recto');
 
