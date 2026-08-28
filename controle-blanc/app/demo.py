@@ -352,6 +352,8 @@ def correction(
                 else ("Tu as bien identifié le sujet de la question." if texte else "")
             ),
             "ce_qui_manquait": [] if statut == "acquis" else attendus[1:] or attendus,
+            "erreur_reperee": "" if statut != "partiel" else
+                "Tu t’es arrêté au premier élément attendu.",
             "ou_dans_ton_cours": q.get("ou_dans_le_cours", ""),
             "reponse_attendue": " ".join(attendus),
         })

@@ -692,6 +692,14 @@ select {
 
 .ta-reponse { white-space: pre-wrap; color: var(--encre-douce); font-style: italic; }
 
+/* L’erreur nommée : c’est le stylo rouge dans la marge, on la traite comme telle. */
+.erreur {
+  background: var(--rouge-doux);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: .92rem;
+}
+
 /* Le renvoi au cours, c'est le cœur de la correction : on le pose en bleu,
    du côté de l'élève, pas en rouge. */
 .repere {

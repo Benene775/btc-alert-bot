@@ -141,26 +141,51 @@ def test_les_photos_sont_reduites_avant_envoi(banc, tmp_path):
     assert max(relue.size) == banc.COTE_MAX
 
 
-def test_le_corpus_couvre_tout_le_programme_de_6e(banc):
-    """Neuf chapitres, trois thèmes : c’est le programme d’histoire de 6e entier."""
+def test_chaque_corpus_couvre_son_programme(banc):
+    """Histoire : 3 thèmes, 9 chapitres. Maths : les 6 domaines du programme 2025."""
     chapitres = banc.corpus_disponible()
-    assert len(chapitres) == 9
-    assert sorted({c["theme"] for c in chapitres}) == [1, 2, 3]
-    assert len({c["id"] for c in chapitres}) == 9, "identifiants en double"
+    assert len({c["id"] for c in chapitres}) == len(chapitres), "identifiants en double"
+
+    histoire = [c for c in chapitres if c["matiere"] == "histoire-geographie"]
+    assert len(histoire) == 9
+    assert sorted({c["groupe"] for c in histoire}) == [1, 2, 3]
+
+    maths = [c for c in chapitres if c["matiere"] == "mathematiques"]
+    assert sorted({c["groupe"] for c in maths}) == [1, 2, 3, 4, 5, 6], "les six domaines"
+
     for chapitre in chapitres:
         assert len(chapitre["transcription"]) > 1200, chapitre["id"]
         assert len(chapitre["notions"]) >= 4, chapitre["id"]
-        # Un cours de 6e a des définitions et des repères datés : c’est ce qui
-        # rend les questions générées vérifiables.
+        assert chapitre["groupe_nom"], chapitre["id"]
+        # Un cours de 6e a des définitions : c’est ce qui rend les questions
+        # générées vérifiables plutôt qu’inventées.
         assert "Déf" in chapitre["transcription"], chapitre["id"]
-        assert "Dates" in chapitre["transcription"], chapitre["id"]
+
+
+def test_les_corpus_declarent_leur_programme_de_reference(banc):
+    """Les programmes changent : celui de maths a basculé en 2025, celui
+    d’histoire basculera en 2027. Chaque corpus doit dire lequel il suit."""
+    for chapitre in banc.corpus_disponible():
+        assert "arrêté" in chapitre["programme"], chapitre["id"]
+        assert chapitre["niveau"] == "6e"
 
 
 def test_un_chapitre_du_corpus_prend_la_forme_d_une_transcription(banc):
     chapitre = banc.chapitre_du_corpus("revolution-neolithique")
-    assert set(chapitre) == {"titre", "notions", "transcription", "photos"}
     assert chapitre["photos"] == [], "un chapitre de corpus ne vient d’aucune photo"
     assert "Croissant fertile" in chapitre["transcription"]
+    assert chapitre["matiere"] == "histoire-geographie"
+
+
+def test_le_corpus_de_maths_porte_ses_notations(banc):
+    """Les maths écrivent des fractions, des puissances et des symboles. C’est
+    précisément ce que le produit ne sait pas encore afficher."""
+    fractions = banc.chapitre_du_corpus("fractions")
+    assert "3/4" in fractions["transcription"]
+    aires = banc.chapitre_du_corpus("longueurs-aires")
+    assert "cm²" in aires["transcription"]
+    angles = banc.chapitre_du_corpus("droites-angles")
+    assert "⊥" in angles["transcription"] and "//" in angles["transcription"]
 
 
 def test_chapitre_inconnu_refuse_avec_la_liste(banc):

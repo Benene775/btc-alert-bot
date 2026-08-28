@@ -264,9 +264,15 @@ Pour chaque question, dans l'ordre :
 réponse est vide, laisse ce champ vide plutôt que d'inventer un encouragement creux.
 - « ce_qui_manquait » : les éléments attendus absents, formulés comme un professeur les \
 écrirait en marge de la copie. Un à trois éléments. Vide si "acquis".
+- « erreur_reperee » : quand l'élève ne s'est pas contenté d'oublier mais s'est trompé, \
+nomme l'erreur elle-même en une phrase — la règle mal appliquée, la confusion, le calcul \
+faux. En mathématiques et en sciences, c'est presque toujours ça qui coince, et un \
+« il manquait… » ne décrit pas ce qui s'est passé. Vide s'il n'y a qu'un oubli.
 - « ou_dans_ton_cours » : où l'élève va relire ça dans SON cours — le chapitre, puis le \
 passage précis. C'est le cœur de la correction, ne le bâcle pas.
-- « reponse_attendue » : ce qu'une bonne réponse aurait contenu, rédigée en 1 à 3 phrases.
+- « reponse_attendue » : ce qu'une bonne réponse aurait contenu, en 1 à 3 phrases. Dans \
+une matière scientifique, écris la démarche et pas seulement le résultat : c'est elle qui \
+est notée.
 
 Ensuite, « notions_fragiles » : au plus 3 notions, les plus rentables à retravailler \
 d'ici le contrôle. Tu les classes de la plus fragile à la moins fragile. Pour chacune, \
@@ -288,11 +294,15 @@ SCHEMA_CORRECTION = {
                     "statut": {"type": "string", "enum": ["acquis", "partiel", "a_revoir"]},
                     "ce_qui_va": {"type": "string"},
                     "ce_qui_manquait": {"type": "array", "items": {"type": "string"}},
+                    "erreur_reperee": {
+                        "type": "string",
+                        "description": "L'erreur commise, nommée en une phrase. Vide s'il n'y a qu'un oubli.",
+                    },
                     "ou_dans_ton_cours": {"type": "string"},
                     "reponse_attendue": {"type": "string"},
                 },
                 "required": [
-                    "numero", "statut", "ce_qui_va", "ce_qui_manquait",
+                    "numero", "statut", "ce_qui_va", "ce_qui_manquait", "erreur_reperee",
                     "ou_dans_ton_cours", "reponse_attendue",
                 ],
                 "additionalProperties": False,

@@ -33,10 +33,16 @@ FORMATS: dict[str, Format] = {
         "nom": "Mathématiques",
         "duree_minutes": 55,
         "structure": (
-            "Exercice 1 : questions d'application directe du cours (calcul, propriété à "
-            "reconnaître). Exercice 2 : exercice guidé en 2 ou 3 questions qui s'enchaînent. "
-            "Exercice 3 : un problème court à mettre en équation ou à justifier. "
-            "Toujours demander la justification, pas seulement le résultat."
+            "Exercice 1 : des automatismes — 4 à 6 questions très courtes, à traiter de tête, "
+            "sur les définitions, le calcul mental et les propriétés du cours. "
+            "Exercice 2 : un exercice guidé en 2 ou 3 questions qui s'enchaînent, où l'élève "
+            "applique une méthode du cours. "
+            "Exercice 3 : selon le chapitre, une construction géométrique décrite pas à pas "
+            "que l'élève réalise avec ses instruments, ou un exercice de représentation. "
+            "Exercice 4 : un problème concret, ou une affirmation d'élève à corriger et à "
+            "justifier — c'est ce qui révèle le mieux ce qui n'est pas compris. "
+            "Le barème tient sur 20 points. Toujours exiger la justification : un résultat "
+            "seul ne vaut rien. La mise en équation n'apparaît qu'à partir de la 4e."
         ),
     },
     "histoire-geographie": {

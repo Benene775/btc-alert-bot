@@ -764,6 +764,11 @@ function afficherCorrection(correction) {
     carte.append(etiquette, enonce);
 
     if (ligne.ce_qui_va) carte.appendChild(blocTexte('Ce qui va', ligne.ce_qui_va));
+    // En maths et en sciences, l’élève se trompe plus souvent qu’il n’oublie :
+    // nommer l’erreur vaut mieux que lister ce qui manquait.
+    if (ligne.erreur_reperee) {
+      carte.appendChild(blocTexte('L’erreur', ligne.erreur_reperee, 'erreur'));
+    }
     if ((ligne.ce_qui_manquait || []).length) {
       carte.appendChild(blocListe('Ce qui manquait', ligne.ce_qui_manquait));
     }

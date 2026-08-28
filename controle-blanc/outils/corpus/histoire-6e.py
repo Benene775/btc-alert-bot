@@ -19,6 +19,9 @@ Bulletin officiel n°22 du 28 mai 2026, n’entre en vigueur en 6e qu’à la re
 
 from __future__ import annotations
 
+MATIERE = "histoire-geographie"
+NIVEAU = "6e"
+CLE_GROUPE = "theme"
 PROGRAMME = "Histoire, classe de 6e — arrêté de 2015 modifié (en vigueur en 6e jusqu’en 2027)"
 
 THEMES = [
@@ -529,3 +532,5 @@ Dates : 206 av. J.-C. – 220 apr. J.-C., dynastie Han. ~105, invention du papie
 ambassade venue de l’Empire romain en Chine.""",
     },
 ]
+
+NOMS_GROUPES = THEMES

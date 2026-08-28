@@ -300,14 +300,29 @@ def rapport_html(essai: dict, chemin: Path) -> None:
 # --- Programme --------------------------------------------------------------
 
 def corpus_disponible() -> list[dict]:
-    """Le programme d’histoire de 6e, qui tient lieu de photos tant qu’on n’en a pas."""
+    """Tous les chapitres des corpus, qui tiennent lieu de photos tant qu’on n’en a pas.
+
+    Un fichier par matière dans outils/corpus/. En ajouter une ne demande rien
+    d’autre que d’y déposer un fichier de la même forme.
+    """
     import importlib.util
 
-    chemin = RACINE / "outils" / "corpus" / "histoire-6e.py"
-    spec = importlib.util.spec_from_file_location("corpus_histoire_6e", chemin)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module.CHAPITRES
+    chapitres = []
+    for chemin in sorted((RACINE / "outils" / "corpus").glob("*.py")):
+        spec = importlib.util.spec_from_file_location(f"corpus_{chemin.stem}", chemin)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        for chapitre in module.CHAPITRES:
+            groupe = chapitre[module.CLE_GROUPE]
+            chapitres.append({
+                **chapitre,
+                "matiere": module.MATIERE,
+                "niveau": module.NIVEAU,
+                "programme": module.PROGRAMME,
+                "groupe": groupe,
+                "groupe_nom": module.NOMS_GROUPES[groupe - 1],
+            })
+    return chapitres
 
 
 def chapitre_du_corpus(identifiant: str) -> dict:
@@ -318,6 +333,8 @@ def chapitre_du_corpus(identifiant: str) -> dict:
                 "notions": chapitre["notions"],
                 "transcription": chapitre["transcription"],
                 "photos": [],
+                "matiere": chapitre["matiere"],
+                "niveau": chapitre["niveau"],
             }
     connus = ", ".join(c["id"] for c in corpus_disponible())
     raise SystemExit(f"chapitre inconnu : {identifiant}\nDisponibles : {connus}")
@@ -343,8 +360,12 @@ def main() -> int:
     arguments = analyseur.parse_args()
 
     if arguments.corpus == "liste":
+        matiere_courante = None
         for chapitre in corpus_disponible():
-            print(f"  {chapitre['id']:28} thème {chapitre['theme']} — {chapitre['titre']}")
+            if chapitre["matiere"] != matiere_courante:
+                matiere_courante = chapitre["matiere"]
+                print(f"\n{chapitre['programme']}")
+            print(f"  {chapitre['id']:26} {chapitre['groupe_nom'][:44]:44} {chapitre['titre']}")
         return 0
 
     if bool(arguments.photos) == bool(arguments.corpus):

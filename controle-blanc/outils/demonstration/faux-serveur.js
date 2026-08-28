@@ -128,6 +128,7 @@ async function api(chemin, options = {}) {
           ? "Tu as signalé cette question, on ne la retient pas contre toi."
           : (texte ? 'Tu as bien identifié le sujet de la question.' : ''),
         ce_qui_manquait: statut === 'acquis' ? [] : question.points_attendus.slice(1),
+        erreur_reperee: statut === 'partiel' ? 'Tu t’es arrêté au premier élément attendu.' : '',
         ou_dans_ton_cours: question.ou_dans_le_cours,
         reponse_attendue: question.points_attendus.join(' '),
         enonce: question.enonce,
