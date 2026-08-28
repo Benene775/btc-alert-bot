@@ -14,32 +14,56 @@
 /* --- Jetons ------------------------------------------------------------- */
 
 :root {
-  /* Papier froid, celui d'une salle de classe sous néon — pas un beige chaleureux. */
-  --papier: #f6f7fa;
-  --carte: #ffffff;
-  --encre: #16203a;
-  --encre-douce: #5b6480;
-  --trait: #dde2ec;
-  --trait-fort: #c4ccdd;
+  /* Le papier de la fiche, partout. L'application entière se lit le soir sous
+     une lampe, pas sous les néons d'une salle de classe. */
+  --papier: #fbf7f2;
+  --carte: #fffdfa;
+  --encre: #241e17;
+  --encre-douce: #7a6a5a;
+  --trait: #ebe1d4;
+  --trait-fort: #d8c9b6;
 
   /* Le stylo de l'élève. */
-  --accent: #2f4fd8;
-  --accent-doux: #e9edff;
+  --accent: #9a6410;
+  --accent-doux: #f7edda;
+  /* Ce qui s'écrit SUR l'accent : blanc ici, encre sombre en mode sombre, où
+     l'ambre est trop clair pour porter du blanc (2,2:1 — illisible). */
+  --sur-accent: #ffffff;
+  --surligneur: rgba(255, 196, 60, .5);
+  /* Le stylo de l'élève reste bleu même sur du papier chaud : c'est ce qui le
+     sépare du rouge du prof. Sans lui, sa copie et l'annotation se confondent. */
+  --stylo-eleve: #28518f;
+  --stylo-eleve-doux: #e6edf9;
 
   /* Le stylo du prof. Sémantique, jamais décoratif. */
-  --rouge: #cf3a2c;
-  --rouge-doux: #fdeceb;
-  --acquis: #1c7a58;
-  --acquis-doux: #e4f3ec;
-  --partiel: #9c6410;
-  --partiel-doux: #fbf0dc;
+  --rouge: #a33a2c;
+  --rouge-doux: #f8e7e2;
+  --acquis: #1c6f4e;
+  --acquis-doux: #e4f0e7;
+  --partiel: #8a5a12;
+  --partiel-doux: #f9edd8;
+
+  /* Les six teintes des cartes, disponibles partout : c'est ce qui fait
+     reconnaître une page de l'application au premier coup d'oeil. */
+  --t0: #fbeed2;  /* miel */
+  --t1: #fbe3d2;  /* abricot */
+  --t2: #fadee0;  /* rose */
+  --t3: #e3ecde;  /* sauge */
+  --t4: #dde8f1;  /* ciel */
+  --t5: #e7e1f0;  /* lilas */
+
+  /* Une carte se pose sur le papier, elle ne s'y découpe pas au trait. */
+  --ombre-carte: 0 1px 2px color-mix(in srgb, var(--encre) 8%, transparent),
+                 0 14px 34px -18px color-mix(in srgb, var(--encre) 32%, transparent);
+  --voile: rgba(36, 30, 23, .82);
 
   --titre: "Fraunces", Georgia, "Times New Roman", serif;
   --texte: "Schibsted Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
   --manuscrit: "Caveat", "Segoe Script", cursive;
 
-  --rayon: 12px;
+  --rayon: 16px;
+  --rayon-carte: 22px;
   --marge: 20px;
   --colonne: 620px;
 }
@@ -48,38 +72,60 @@
    ou « système », qui ne marque rien et ne laisse que prefers-color-scheme. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --papier: #0e1220;
-    --carte: #171d2f;
-    --encre: #e9edf8;
-    --encre-douce: #949db8;
-    --trait: #262f48;
-    --trait-fort: #37425f;
-    --accent: #8aa0ff;
-    --accent-doux: #1a2244;
-    --rouge: #f0796a;
+    --papier: #17130e;
+    --carte: #211b14;
+    --encre: #f4ede3;
+    --encre-douce: #a89887;
+    --trait: #33291e;
+    --trait-fort: #473a2a;
+    --accent: #d9a94a;
+    --accent-doux: #2a2013;
+    --sur-accent: #17130e;
+    --surligneur: rgba(224, 173, 66, .3);
+    --stylo-eleve: #9dbcf2;
+    --stylo-eleve-doux: #1b2436;
+    --rouge: #e08a76;
     --rouge-doux: #2e1a19;
     --acquis: #55bd90;
     --acquis-doux: #13291f;
     --partiel: #d7a548;
     --partiel-doux: #2a2013;
+    --t0: #2c2313;
+    --t1: #2e2118;
+    --t2: #2e1c1e;
+    --t3: #1b2619;
+    --t4: #16222c;
+    --t5: #231d2e;
+    --voile: rgba(10, 8, 5, .86);
   }
 }
 
 :root[data-theme="dark"] {
-  --papier: #0e1220;
-  --carte: #171d2f;
-  --encre: #e9edf8;
-  --encre-douce: #949db8;
-  --trait: #262f48;
-  --trait-fort: #37425f;
-  --accent: #8aa0ff;
-  --accent-doux: #1a2244;
-  --rouge: #f0796a;
+    --papier: #17130e;
+  --carte: #211b14;
+  --encre: #f4ede3;
+  --encre-douce: #a89887;
+  --trait: #33291e;
+  --trait-fort: #473a2a;
+  --accent: #d9a94a;
+  --accent-doux: #2a2013;
+  --sur-accent: #17130e;
+  --surligneur: rgba(224, 173, 66, .3);
+  --stylo-eleve: #9dbcf2;
+  --stylo-eleve-doux: #1b2436;
+  --rouge: #e08a76;
   --rouge-doux: #2e1a19;
   --acquis: #55bd90;
   --acquis-doux: #13291f;
   --partiel: #d7a548;
   --partiel-doux: #2a2013;
+  --t0: #2c2313;
+  --t1: #2e2118;
+  --t2: #2e1c1e;
+  --t3: #1b2619;
+  --t4: #16222c;
+  --t5: #231d2e;
+  --voile: rgba(10, 8, 5, .86);
 }
 
 * { box-sizing: border-box; }
@@ -113,8 +159,8 @@ body {
   justify-content: space-between;
   gap: 12px;
   padding: max(10px, env(safe-area-inset-top)) var(--marge) 10px;
-  background: color-mix(in srgb, var(--papier) 90%, transparent);
-  backdrop-filter: blur(10px);
+  background: color-mix(in srgb, var(--papier) 88%, transparent);
+  backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--trait);
 }
 
@@ -137,8 +183,8 @@ body {
   letter-spacing: .04em;
   color: var(--accent);
   background: var(--accent-doux);
-  padding: 6px 10px;
-  border-radius: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
   white-space: nowrap;
 }
 
@@ -251,10 +297,10 @@ h3 {
   display: flex;
   margin: 6px 0 0;
   background: var(--carte);
-  border: 1px solid var(--trait);
-  border-radius: var(--rayon);
+  border: 0;
+  border-radius: var(--rayon-carte);
   overflow: hidden;
-  box-shadow: 0 1px 2px color-mix(in srgb, var(--encre) 6%, transparent);
+  box-shadow: var(--ombre-carte);
 }
 
 .copie-marge {
@@ -284,7 +330,7 @@ h3 {
   font-family: var(--manuscrit);
   font-size: 1.5rem;
   line-height: 1.25;
-  color: var(--accent);
+  color: var(--stylo-eleve);
   margin: 0 0 14px;
 }
 
@@ -360,8 +406,16 @@ button { font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparen
   transition: transform .1s ease, opacity .15s ease;
 }
 
-.principal { background: var(--accent); color: #fff; }
-.secondaire { background: var(--carte); color: var(--encre); border-color: var(--trait-fort); }
+/* En mode sombre l'ambre est trop clair pour porter du blanc (2,2:1). C'est le
+   rôle de « --sur-accent » : blanc sur l'ambre foncé, encre sur l'ambre clair. */
+.principal { background: var(--accent); color: var(--sur-accent); }
+
+.secondaire {
+  background: var(--carte);
+  color: var(--encre);
+  border-color: transparent;
+  box-shadow: var(--ombre-carte);
+}
 .discret { background: none; color: var(--encre-douce); min-height: 48px; font-weight: 400; }
 
 .principal:active, .secondaire:active { transform: scale(.985); }
@@ -406,13 +460,14 @@ label {
 select, input[type="date"], textarea {
   width: 100%;
   min-height: 54px;
-  padding: 14px;
+  padding: 14px 16px;
   font-family: var(--texte);
   font-size: 1rem;
   color: var(--encre);
   background: var(--carte);
-  border: 1px solid var(--trait-fort);
+  border: 1px solid var(--trait);
   border-radius: var(--rayon);
+  box-shadow: var(--ombre-carte);
   appearance: none;
 }
 
@@ -436,9 +491,9 @@ select {
   min-height: 150px;
   padding: 24px;
   margin: 0;
-  border: 1.5px dashed var(--trait-fort);
-  border-radius: var(--rayon);
-  background: var(--carte);
+  border: 2px dashed var(--trait-fort);
+  border-radius: var(--rayon-carte);
+  background: var(--t0);
   cursor: pointer;
   text-align: center;
 }
@@ -475,8 +530,8 @@ select {
   height: 30px;
   border-radius: 50%;
   border: 0;
-  background: rgba(22, 32, 58, .85);
-  color: #fff;
+  background: var(--voile);
+  color: var(--papier);
   font-size: 1rem;
   line-height: 1;
   display: grid;
@@ -498,8 +553,8 @@ select {
   height: 24px;
   padding: 0 6px;
   border-radius: 12px;
-  background: rgba(22, 32, 58, .85);
-  color: #fff;
+  background: var(--voile);
+  color: var(--papier);
   font-family: var(--mono);
   font-size: .72rem;
   display: grid;
@@ -521,8 +576,8 @@ select {
   height: 30px;
   border-radius: 50%;
   border: 0;
-  background: rgba(22, 32, 58, .85);
-  color: #fff;
+  background: var(--voile);
+  color: var(--papier);
   font-size: .9rem;
   line-height: 1;
   display: grid;
@@ -555,13 +610,22 @@ select {
 
 .chapitres { list-style: none; padding: 0; margin: 0 0 12px; }
 
+/* Un chapitre repéré est déjà une notion : on lui donne la carte teintée de la
+   fiche, pour que l'élève reconnaisse la même matière d'un écran à l'autre. */
 .chapitres li {
-  background: var(--carte);
-  border: 1px solid var(--trait);
-  border-radius: var(--rayon);
-  padding: 16px;
-  margin-bottom: 10px;
+  background: var(--t0);
+  border: 0;
+  border-radius: var(--rayon-carte);
+  box-shadow: var(--ombre-carte);
+  padding: 18px 20px;
+  margin-bottom: 12px;
 }
+
+.chapitres li:nth-child(6n+2) { background: var(--t1); }
+.chapitres li:nth-child(6n+3) { background: var(--t2); }
+.chapitres li:nth-child(6n+4) { background: var(--t3); }
+.chapitres li:nth-child(6n+5) { background: var(--t4); }
+.chapitres li:nth-child(6n+6) { background: var(--t5); }
 
 .chapitres li[data-actif="non"] { opacity: .48; }
 
@@ -581,7 +645,8 @@ select {
 
 .alerte {
   background: var(--rouge-doux);
-  border: 1px solid color-mix(in srgb, var(--rouge) 30%, transparent);
+  border: 0;
+  border-left: 3px solid var(--rouge);
   border-radius: var(--rayon);
   padding: 14px 16px;
   margin-bottom: 18px;
@@ -599,13 +664,16 @@ select {
   display: block;
   width: 100%;
   text-align: left;
-  background: var(--carte);
-  border: 1px solid var(--trait-fort);
-  border-radius: var(--rayon);
-  padding: 22px;
+  background: var(--t0);
+  border: 0;
+  border-radius: var(--rayon-carte);
+  box-shadow: var(--ombre-carte);
+  padding: 24px;
   min-height: 132px;
   color: var(--encre);
 }
+
+.carrefour .case-carrefour:nth-child(2) { background: var(--t3); }
 
 .case-carrefour:active { transform: scale(.985); }
 
@@ -635,67 +703,10 @@ select {
  * trait de surligneur, le geste que l’élève fait dans son propre cahier.
  */
 
-:root[data-ecran="fiche"] {
-  --papier: #fbf7f2;
-  --carte: #fffdfa;
-  --encre: #241e17;
-  --encre-douce: #7a6a5a;
-  --trait: #ebe1d4;
-  --trait-fort: #d8c9b6;
-  --accent: #9a6410;
-  --accent-doux: #f7edda;
-  --surligneur: rgba(255, 196, 60, .5);
-  --alerte-fiche: #a33a2c;
-
-  --t0: #fbeed2;  /* miel */
-  --t1: #fbe3d2;  /* abricot */
-  --t2: #fadee0;  /* rose */
-  --t3: #e3ecde;  /* sauge */
-  --t4: #dde8f1;  /* ciel */
-  --t5: #e7e1f0;  /* lilas */
-}
-
-@media (prefers-color-scheme: dark) {
-  :root[data-ecran="fiche"]:not([data-theme="light"]) {
-    --papier: #17130e;
-    --carte: #211b14;
-    --encre: #f4ede3;
-    --encre-douce: #a89887;
-    --trait: #33291e;
-    --trait-fort: #473a2a;
-    --accent: #d9a94a;
-    --accent-doux: #2a2013;
-    --surligneur: rgba(224, 173, 66, .3);
-    --alerte-fiche: #e08a76;
-
-    --t0: #2c2313;
-    --t1: #2e2118;
-    --t2: #2e1c1e;
-    --t3: #1b2619;
-    --t4: #16222c;
-    --t5: #231d2e;
-  }
-}
-
-:root[data-theme="dark"][data-ecran="fiche"] {
-  --papier: #17130e;
-  --carte: #211b14;
-  --encre: #f4ede3;
-  --encre-douce: #a89887;
-  --trait: #33291e;
-  --trait-fort: #473a2a;
-  --accent: #d9a94a;
-  --accent-doux: #2a2013;
-  --surligneur: rgba(224, 173, 66, .3);
-  --alerte-fiche: #e08a76;
-
-  --t0: #2c2313;
-  --t1: #2e2118;
-  --t2: #2e1c1e;
-  --t3: #1b2619;
-  --t4: #16222c;
-  --t5: #231d2e;
-}
+/* La palette chaude et les six teintes vivent maintenant dans « :root » : la
+ * fiche ne les réservait plus pour elle seule. Il ne reste ici que ce qui
+ * relève de la mise en page du paquet de cartes.
+ */
 
 /* L’écran de fiche occupe toute la hauteur : une carte = un écran, on glisse
    à l’horizontale et jamais à la verticale. */
@@ -839,8 +850,8 @@ select {
 }
 
 /* Une notion mise de côté se repère au premier coup d’œil. */
-.tuile[data-marque="revoir"] { box-shadow: inset 0 0 0 2px var(--alerte-fiche); }
-.tuile[data-marque="revoir"] .tuile-etat { color: var(--alerte-fiche); }
+.tuile[data-marque="revoir"] { box-shadow: inset 0 0 0 2px var(--rouge); }
+.tuile[data-marque="revoir"] .tuile-etat { color: var(--rouge); }
 .tuile[data-marque="acquis"] .tuile-etat { color: color-mix(in srgb, var(--encre) 44%, transparent); }
 
 .ruban {
@@ -858,7 +869,7 @@ select {
 .ruban[data-etat="ici"] { background: var(--accent); }
 
 /* Une notion mise de côté se voit d’un coup d’œil dans la barre du haut. */
-.ruban[data-revoir="oui"] { background: var(--alerte-fiche); }
+.ruban[data-revoir="oui"] { background: var(--rouge); }
 
 /* Le paquet déborde de la colonne de lecture : les cartes viennent lécher
    les bords de l’écran, et celle d’après se devine. */
@@ -1357,13 +1368,14 @@ select {
   font-family: var(--mono);
   font-variant-numeric: tabular-nums;
   font-size: 1.05rem;
-  padding: 5px 11px;
-  border-radius: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
   background: var(--carte);
-  border: 1px solid var(--trait-fort);
+  border: 0;
+  box-shadow: var(--ombre-carte);
 }
 
-.chrono[data-urgent="oui"] { color: #fff; background: var(--rouge); border-color: var(--rouge); }
+.chrono[data-urgent="oui"] { color: var(--papier); background: var(--rouge); }
 
 .jauge { height: 3px; background: var(--trait); border-radius: 999px; overflow: hidden; margin-bottom: 24px; }
 #jauge-remplie { height: 100%; width: 0; background: var(--accent); transition: width .3s ease; }
@@ -1373,11 +1385,11 @@ select {
 /* Le document tient dans la marge, comme une pièce jointe au sujet. */
 .document {
   margin: 0 0 20px;
-  padding: 16px 18px;
-  background: var(--carte);
-  border: 1px solid var(--trait);
-  border-left: 3px solid var(--trait-fort);
-  border-radius: 0 var(--rayon) var(--rayon) 0;
+  padding: 18px 20px;
+  background: var(--t4);
+  border: 0;
+  border-radius: var(--rayon-carte);
+  box-shadow: var(--ombre-carte);
   font-size: .92rem;
   white-space: pre-wrap;
 }
@@ -1395,10 +1407,11 @@ select {
 /* --- La correction ------------------------------------------------------ */
 
 .fragiles {
-  background: var(--carte);
-  border: 1px solid var(--trait-fort);
-  border-radius: var(--rayon);
-  padding: 20px;
+  background: var(--t0);
+  border: 0;
+  border-radius: var(--rayon-carte);
+  box-shadow: var(--ombre-carte);
+  padding: 22px 24px;
   margin-bottom: 24px;
 }
 
@@ -1413,11 +1426,12 @@ select {
 /* Le filet de gauche, c'est le stylo du prof dans la marge. */
 .carte-correction {
   background: var(--carte);
-  border: 1px solid var(--trait);
-  border-left: 3px solid var(--trait-fort);
-  border-radius: 0 var(--rayon) var(--rayon) 0;
-  padding: 18px;
-  margin-bottom: 12px;
+  border: 0;
+  border-left: 4px solid var(--trait-fort);
+  border-radius: 6px var(--rayon-carte) var(--rayon-carte) 6px;
+  box-shadow: var(--ombre-carte);
+  padding: 20px 22px;
+  margin-bottom: 14px;
 }
 
 .carte-correction[data-statut="acquis"] { border-left-color: var(--acquis); }
@@ -1461,9 +1475,11 @@ select {
 }
 
 /* Le renvoi au cours, c'est le cœur de la correction : on le pose en bleu,
-   du côté de l'élève, pas en rouge. */
+   du côté de l'élève, pas en rouge — et pas dans l'ambre du reste de la page,
+   qui le ferait disparaître dans le décor. */
 .repere {
-  background: var(--accent-doux);
+  background: var(--stylo-eleve-doux);
+  border-left: 3px solid var(--stylo-eleve);
   border-radius: 8px;
   padding: 11px 13px;
   font-size: .9rem;
@@ -1487,10 +1503,11 @@ details.detail-reponse p { font-size: .92rem; margin: 0 0 10px; }
 /* --- Reprise de session ------------------------------------------------- */
 
 .rappel {
-  background: var(--carte);
-  border: 1px solid var(--trait);
-  border-radius: var(--rayon);
-  padding: 16px;
+  background: var(--t3);
+  border: 0;
+  border-radius: var(--rayon-carte);
+  box-shadow: var(--ombre-carte);
+  padding: 18px 20px;
   margin-bottom: 20px;
   font-size: .95rem;
 }
@@ -1513,9 +1530,10 @@ details.detail-reponse p { font-size: .92rem; margin: 0 0 10px; }
 
 .lien-reprise {
   background: var(--carte);
-  border: 1px solid var(--trait-fort);
-  border-radius: var(--rayon);
-  padding: 18px;
+  border: 0;
+  border-radius: var(--rayon-carte);
+  box-shadow: var(--ombre-carte);
+  padding: 20px;
   margin-bottom: 20px;
 }
 
@@ -1591,20 +1609,20 @@ details.detail-reponse p { font-size: .92rem; margin: 0 0 10px; }
   pointer-events: none;
 }
 
-.message[data-ton="alerte"] { background: var(--rouge); color: #fff; }
+.message[data-ton="alerte"] { background: var(--rouge); color: var(--papier); }
 
 /* --- Dialogue ----------------------------------------------------------- */
 
 dialog {
   border: 0;
-  border-radius: var(--rayon);
+  border-radius: var(--rayon-carte);
   padding: 22px;
   width: min(440px, calc(100vw - 32px));
   background: var(--carte);
   color: var(--encre);
 }
 
-dialog::backdrop { background: rgba(14, 18, 32, .5); }
+dialog::backdrop { background: color-mix(in srgb, var(--encre) 48%, transparent); }
 dialog h3 { margin-top: 0; font-family: var(--titre); font-size: 1.2rem; }
 dialog textarea { min-height: 90px; margin-top: 12px; }
 dialog menu { display: flex; gap: 10px; padding: 0; margin: 16px 0 0; }
