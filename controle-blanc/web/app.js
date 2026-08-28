@@ -740,46 +740,98 @@ function dessinerReviennent(sessions) {
   liste.innerHTML = '';
   $('vide-revoir').hidden = notions.length > 0;
 
-  notions.forEach((n) => {
+  /* Sept notions à la file, c'est une liste qu'on ne lit pas. On les range donc
+   * par matière, en groupes qui se déplient.
+   *
+   * Sauf celles qui sont revenues plusieurs fois : elles restent dehors, en
+   * tête. C'est toute la raison d'être de cette section — les ranger dans un
+   * tiroir fermé reviendrait à cacher la seule chose qu'on avait à dire. */
+  const recurrentes = notions.filter((n) => n.fois > 1);
+  const uniques = notions.filter((n) => n.fois === 1);
+
+  recurrentes.forEach((n) => liste.appendChild(ligneNotion(n)));
+
+  const parMatiere = new Map();
+  uniques.forEach((n) => {
+    const cle = n.matiere || '';
+    if (!parMatiere.has(cle)) parMatiere.set(cle, []);
+    parMatiere.get(cle).push(n);
+  });
+
+  parMatiere.forEach((groupe, matiere) => {
     const li = document.createElement('li');
-    const pliage = document.createElement('details');
-    pliage.className = 'revient';
-    pliage.dataset.insistante = n.fois > 1 ? 'oui' : 'non';
+    const tiroir = document.createElement('details');
+    tiroir.className = 'groupe';
 
     const tete = document.createElement('summary');
-    tete.className = 'revient-tete';
-    const titre = document.createElement('span');
-    titre.className = 'revient-titre';
-    titre.textContent = n.notion;
-    const badge = document.createElement('span');
-    badge.className = 'revient-fois';
-    badge.textContent = n.fois > 1 ? '×' + n.fois : nomMatiere(n.matiere);
-    tete.append(titre, badge);
+    tete.className = 'groupe-tete';
+    const nom = document.createElement('span');
+    nom.className = 'groupe-nom';
+    nom.textContent = nomMatiere(matiere);
+    const compte = document.createElement('span');
+    compte.className = 'groupe-compte';
+    compte.textContent = String(groupe.length);
+    const chevron = document.createElement('span');
+    chevron.className = 'groupe-chevron';
+    chevron.setAttribute('aria-hidden', 'true');
+    chevron.textContent = '⌄';
+    tete.append(nom, compte, chevron);
 
-    const corps = document.createElement('div');
-    corps.className = 'revient-corps';
+    const dedans = document.createElement('ul');
+    dedans.className = 'groupe-contenu';
+    groupe.forEach((n) => dedans.appendChild(ligneNotion(n, false)));
+
+    tiroir.append(tete, dedans);
+    li.appendChild(tiroir);
+    liste.appendChild(li);
+  });
+
+  return notions.length;
+}
+
+/* Une notion, repliée. Le titre et le nombre de fois suffisent à décider ; le
+ * détail ne s'ouvre que si on le demande. */
+function ligneNotion(n, montrerMatiere = true) {
+  const li = document.createElement('li');
+  const pliage = document.createElement('details');
+  pliage.className = 'revient';
+  pliage.dataset.insistante = n.fois > 1 ? 'oui' : 'non';
+
+  const tete = document.createElement('summary');
+  tete.className = 'revient-tete';
+  const titre = document.createElement('span');
+  titre.className = 'revient-titre';
+  titre.textContent = n.notion;
+  const badge = document.createElement('span');
+  badge.className = 'revient-fois';
+  badge.textContent = n.fois > 1 ? '×' + n.fois : (montrerMatiere ? nomMatiere(n.matiere) : '');
+  tete.append(titre, badge);
+
+  const corps = document.createElement('div');
+  corps.className = 'revient-corps';
+  // Dans un tiroir de matière, redire la matière sous chaque notion ne dit rien.
+  if (montrerMatiere) {
     const matiere = document.createElement('p');
     matiere.className = 'revient-matiere';
     matiere.textContent = nomMatiere(n.matiere);
     corps.appendChild(matiere);
-    if (n.pourquoi) {
-      const pourquoi = document.createElement('p');
-      pourquoi.className = 'revient-pourquoi';
-      pourquoi.textContent = n.pourquoi;
-      corps.appendChild(pourquoi);
-    }
-    const retester = document.createElement('button');
-    retester.type = 'button';
-    retester.className = 'revient-action';
-    retester.textContent = 'Me retester là-dessus';
-    retester.onclick = () => ouvrirSession(n.sessionId, () => lancerControle([n.notion]));
-    corps.appendChild(retester);
+  }
+  if (n.pourquoi) {
+    const pourquoi = document.createElement('p');
+    pourquoi.className = 'revient-pourquoi';
+    pourquoi.textContent = n.pourquoi;
+    corps.appendChild(pourquoi);
+  }
+  const retester = document.createElement('button');
+  retester.type = 'button';
+  retester.className = 'revient-action';
+  retester.textContent = 'Me retester là-dessus';
+  retester.onclick = () => ouvrirSession(n.sessionId, () => lancerControle([n.notion]));
+  corps.appendChild(retester);
 
-    pliage.append(tete, corps);
-    li.appendChild(pliage);
-    liste.appendChild(li);
-  });
-  return notions.length;
+  pliage.append(tete, corps);
+  li.appendChild(pliage);
+  return li;
 }
 
 function dessinerMesFiches(sessions) {

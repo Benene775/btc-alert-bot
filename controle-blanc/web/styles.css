@@ -2805,6 +2805,68 @@ h1 {
   text-underline-offset: 3px;
 }
 
+/* --- Les tiroirs par matière ---------------------------------------------
+ *
+ * Une liste de sept notions à la file ne se lit pas. Rangées par matière dans
+ * des tiroirs, elles tiennent en trois lignes, et on ouvre celle qui concerne
+ * le contrôle de demain.
+ */
+.groupe {
+  border-radius: var(--rayon);
+  background: var(--papier);
+  overflow: hidden;
+}
+
+.groupe-tete {
+  display: flex;
+  align-items: center;
+  gap: var(--e2);
+  padding: 12px;
+  min-height: 46px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.groupe-tete::-webkit-details-marker { display: none; }
+
+.groupe-nom {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--mono);
+  font-size: .68rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--encre);
+}
+
+.groupe-compte {
+  flex: 0 0 auto;
+  font-family: var(--mono);
+  font-size: .64rem;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--encre) 9%, transparent);
+  color: var(--encre-douce);
+  font-variant-numeric: tabular-nums;
+}
+
+.groupe-chevron {
+  flex: 0 0 auto;
+  font-size: .9rem;
+  line-height: 1;
+  color: var(--encre-douce);
+  transition: transform .22s cubic-bezier(.2, .7, .3, 1);
+}
+
+.groupe[open] .groupe-chevron { transform: rotate(180deg); }
+
+@media (prefers-reduced-motion: reduce) { .groupe-chevron { transition: none; } }
+
+/* Dedans, les notions gardent leur forme mais perdent leur fond : elles sont
+   déjà dans un tiroir, un second cadre ferait empilement de boîtes. */
+.groupe-contenu { list-style: none; margin: 0; padding: 0 8px 8px; display: flex; flex-direction: column; gap: 4px; }
+.groupe-contenu .revient { background: var(--carte); }
+
 /* --- Les rangées de fiches et de contrôles ------------------------------- */
 
 /* Elles défilent latéralement, comme le paquet de cartes de la fiche : le même

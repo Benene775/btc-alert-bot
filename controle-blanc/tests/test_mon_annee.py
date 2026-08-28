@@ -130,3 +130,18 @@ def test_le_dos_de_la_carte_sort_de_l_arbre_d_accessibilite():
     ce qui est physiquement derrière."""
     assert "function retournerCarte" in CODE_NU
     assert "aria-hidden" in CODE_NU
+
+
+def test_les_notions_se_rangent_par_matiere():
+    """Sept notions à la file, c'est une liste qu'on ne lit pas.
+
+    Elles se rangent en tiroirs par matière — sauf celles qui sont revenues
+    plusieurs fois : les enfermer reviendrait à cacher la seule chose que cette
+    section avait à dire.
+    """
+    assert "const recurrentes = notions.filter((n) => n.fois > 1)" in CODE_NU
+    assert "const uniques = notions.filter((n) => n.fois === 1)" in CODE_NU
+    assert "parMatiere" in CODE_NU, "aucun regroupement par matière"
+    assert "'groupe'" in CODE_NU and ".groupe {" in STYLE, "le tiroir n'existe pas"
+    # Les récurrentes sont ajoutées à la liste avant les tiroirs.
+    assert CODE_NU.index("recurrentes.forEach") < CODE_NU.index("parMatiere.forEach")
