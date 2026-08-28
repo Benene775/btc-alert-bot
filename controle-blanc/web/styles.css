@@ -1828,6 +1828,46 @@ h1 {
   .a-reveler { opacity: 1; transform: none; transition: none; }
 }
 
+/* --- La copie : l'annotation s'écrit ------------------------------------
+ *
+ * C'est la thèse du produit en un geste : le prof passe derrière, souligne, et
+ * renvoie au cours. Le trait rouge de la marge apparaît d'abord, le mot suit —
+ * comme une main qui écrit, pas comme un bloc qui s'allume.
+ *
+ * Elle se joue une fois à l'arrivée, pour que l'élève au téléphone la voie
+ * aussi, et se rejoue au survol pour qui a une souris.
+ */
+.copie-note {
+  transition: clip-path .85s cubic-bezier(.25, .8, .35, 1);
+}
+
+.copie[data-ecrit="non"] .copie-note {
+  clip-path: inset(0 100% 0 0);
+}
+
+/* La feuille prend la lumière du curseur : une page posée sur une table
+   n'est pas éclairée à plat. --px et --py viennent du script. */
+.copie::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity .3s ease;
+  background: radial-gradient(
+    46% 68% at calc(var(--px, .5) * 100%) calc(var(--py, .5) * 100%),
+    color-mix(in srgb, var(--surligneur) 46%, transparent),
+    transparent 72%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .copie-note { transition: none; }
+  .copie[data-ecrit="non"] .copie-note { clip-path: none; }
+  .copie::before { display: none; }
+}
+
 /* --- À la souris ---------------------------------------------------------
  *
  * Le produit est fait pour le téléphone, mais un élève l'ouvre aussi sur
@@ -1857,9 +1897,103 @@ h1 {
 
   .bouton-marque:hover { border-color: var(--accent); }
 
-  /* La copie se redresse quand on la regarde de près. */
-  .copie { transition: transform .35s cubic-bezier(.2, .7, .3, 1); }
-  .copie:hover { transform: rotate(0deg); }
+  /* La copie se redresse et s'éclaire quand on la regarde de près. */
+  .copie {
+    transition: transform .4s cubic-bezier(.2, .7, .3, 1),
+                box-shadow .4s ease;
+  }
+
+  .copie:hover {
+    transform: rotate(0deg) translateY(-3px);
+    box-shadow: 0 3px 6px color-mix(in srgb, var(--encre) 9%, transparent),
+                0 36px 70px -34px color-mix(in srgb, var(--encre) 50%, transparent);
+  }
+
+  .copie:hover::before { opacity: 1; }
+
+  /* L'étape survolée se colore : le numéro passe du creux au plein, comme
+     une case qu'on vient de cocher. */
+  .deroule li { transition: transform .18s ease; }
+  .deroule li:hover { transform: translateY(-2px); }
+
+  .deroule-numero { transition: background .2s ease, color .2s ease, transform .25s cubic-bezier(.2,.7,.3,1); }
+
+  .deroule li:hover .deroule-numero {
+    background: var(--accent);
+    color: var(--sur-accent);
+    transform: scale(1.12);
+  }
+
+  /* Sur une carte de fiche, le chiffre géant se décale un peu : la carte a
+     de l'épaisseur, le chiffre est dessous. */
+  .carte-fiche { transition: box-shadow .3s ease; }
+  .carte-chiffre { transition: transform .45s cubic-bezier(.2, .7, .3, 1), color .3s ease; }
+
+  .carte-fiche:hover {
+    box-shadow: 0 2px 4px color-mix(in srgb, var(--encre) 10%, transparent),
+                0 26px 50px -24px color-mix(in srgb, var(--encre) 42%, transparent);
+  }
+
+  .carte-fiche:hover .carte-chiffre {
+    transform: translate(-6px, 4px);
+    color: color-mix(in srgb, var(--encre) 15%, transparent);
+  }
+
+  /* La vignette du cahier montre un peu plus de la page quand on la vise. */
+  .provenance-vignette { transition: transform .3s cubic-bezier(.2, .7, .3, 1); }
+  .provenance:hover .provenance-vignette { transform: scale(1.14); }
+
+  .vignettes li { transition: transform .2s ease; }
+  .vignettes li:hover { transform: translateY(-3px); }
+  .vignettes li:hover img { border-color: var(--trait-fort); }
+  .poignee { transition: background .2s ease, transform .2s ease; }
+  .poignee:hover { background: var(--accent); transform: scale(1.08); }
+
+  /* Le lien du bandeau et les liens discrets : le trait se dessine. */
+  .signalement { text-decoration-color: transparent; transition: text-decoration-color .2s ease, color .2s ease; }
+  .signalement:hover { text-decoration-color: currentColor; }
+}
+
+/* --- Au doigt ------------------------------------------------------------
+ *
+ * Le survol n'existe pas sur un téléphone, et c'est là que sont les élèves.
+ * L'équivalent tactile, c'est l'appui : tout ce qu'on peut toucher doit
+ * répondre sous le doigt, sinon l'interface paraît morte là où elle compte.
+ */
+.case-carrefour:active, .argument:active, .chapitres li:active { transform: scale(.985); }
+.provenance:active { transform: scale(.97); }
+.vignettes li:active { transform: scale(.97); }
+.deroule li:active .deroule-numero { transform: scale(.92); }
+.bouton-marque:active, .reveler:active { transform: scale(.96); }
+
+.provenance, .bouton-marque, .reveler, .chapitres li,
+.case-carrefour, .argument, .vignettes li, .deroule-numero {
+  transition: transform .12s ease, background .2s ease, border-color .2s ease;
+}
+
+/* --- Au clavier ----------------------------------------------------------
+ *
+ * Qui navigue au clavier doit voir la même chose que qui survole : sans ça,
+ * l'interface s'anime pour les uns et reste plate pour les autres.
+ */
+.case-carrefour:focus-visible, .argument:focus-visible {
+  transform: translateY(-2px);
+}
+
+.provenance:focus-visible .provenance-vignette { transform: scale(1.14); }
+
+.deroule li:focus-within .deroule-numero {
+  background: var(--accent);
+  color: var(--sur-accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .case-carrefour, .argument, .chapitres li, .provenance, .vignettes li,
+  .deroule li, .carte-fiche, .carte-chiffre, .provenance-vignette, .poignee,
+  .bouton-marque, .reveler {
+    transition: none !important;
+    transform: none !important;
+  }
 }
 
 /* --- Écrans larges ------------------------------------------------------

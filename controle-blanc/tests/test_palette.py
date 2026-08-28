@@ -93,10 +93,15 @@ def test_aucun_jeton_utilise_n_est_indefini():
 
     Les définitions sont relevées dans toute la feuille, pas seulement dans
     « :root » : « --reglure » est défini sur « .seyes », là où il sert.
+
+    Un « var() » muni d'une valeur de repli est en revanche légitime, même sans
+    définition : c'est ainsi qu'on lit une variable posée par le script — la
+    position du curseur, par exemple — sans que la page casse s'il ne tourne pas.
     """
     definis = set(re.findall(r"(--[a-z0-9-]+)\s*:", STYLE))
-    utilises = set(re.findall(r"var\((--[a-z0-9-]+)", STYLE))
-    assert not utilises - definis, f"jetons utilisés mais jamais définis : {sorted(utilises - definis)}"
+    sans_repli = set(re.findall(r"var\((--[a-z0-9-]+)\s*\)", STYLE))
+    orphelins = sorted(sans_repli - definis)
+    assert not orphelins, f"jetons utilisés sans définition ni valeur de repli : {orphelins}"
 
 
 def test_la_palette_chaude_est_celle_de_toute_l_application():

@@ -270,6 +270,7 @@ async function initialiser() {
   }
   montrer('ecran-accueil');
   armerRevelations();
+  armerCopie();
 }
 
 function remplirSelecteur(selecteur, valeurs, defaut) {
@@ -461,6 +462,50 @@ function armerRevelations() {
   // et courte ne peut pas dépasser la hauteur de défilement disponible.
   }, { rootMargin: '0px 0px -40px 0px' });
   blocs.forEach((b) => guetteur.observe(b));
+}
+
+/* La copie corrigée de l'accueil : l'annotation du prof s'écrit, et la feuille
+ * prend la lumière du curseur.
+ *
+ * Tout part d'ici et pas de la feuille de style, pour la même raison que les
+ * révélations : si le script ne tourne pas, l'annotation est simplement là.
+ */
+function armerCopie() {
+  const copie = document.querySelector('.copie');
+  if (!copie) return;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  const ecrire = () => {
+    copie.dataset.ecrit = 'non';
+    // Deux trames : la première pose l'état caché, la seconde le relâche —
+    // sans quoi le navigateur regroupe les deux et ne transitionne pas.
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      copie.dataset.ecrit = 'oui';
+    }));
+  };
+
+  // On cache tout de suite, on écrit après : attendre pour cacher ferait
+  // apparaître l'annotation, disparaître, puis se réécrire.
+  copie.dataset.ecrit = 'non';
+  // La phrase du prof est la chute du héros : elle arrive après lui.
+  setTimeout(() => { copie.dataset.ecrit = 'oui'; }, 900);
+
+  if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+
+  copie.addEventListener('mouseenter', ecrire);
+
+  // La lumière suit le curseur. Une seule mise à jour par trame : sur un
+  // portable modeste, un pointermove non bridé fait tomber l'animation.
+  let attendue = null;
+  copie.addEventListener('pointermove', (evenement) => {
+    if (attendue) return;
+    attendue = requestAnimationFrame(() => {
+      attendue = null;
+      const boite = copie.getBoundingClientRect();
+      copie.style.setProperty('--px', ((evenement.clientX - boite.left) / boite.width).toFixed(3));
+      copie.style.setProperty('--py', ((evenement.clientY - boite.top) / boite.height).toFixed(3));
+    });
+  });
 }
 
 function annoncerPhotos(texte) {
