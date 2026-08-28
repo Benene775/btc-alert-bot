@@ -598,6 +598,129 @@ function decouper(points) {
   return morceaux;
 }
 
+/* La carte « à retenir » est la seule de la fiche qui demande quelque chose.
+ *
+ * Cacher la réponse et essayer de se souvenir avant de vérifier est le geste
+ * que tout élève fait avec sa main sur son cahier, et c’est la méthode de
+ * révision la plus efficace qu’on connaisse. Un écran sait le faire mieux
+ * qu’une feuille : les traits de surligneur sont là, les mots pas encore.
+ *
+ * Ce n’est pas une note. L’élève juge lui-même, en deux boutons, et ce qu’il
+ * met de côté alimente le contrôle blanc — la fiche cesse d’être un cul-de-sac.
+ */
+function carteRetenir(section, rang) {
+  const carte = carteFiche(rang);
+  carte.classList.add('carte-retenir');
+
+  const etiquette = document.createElement('p');
+  etiquette.className = 'carte-etiquette';
+  etiquette.textContent = 'Notion ' + (rang + 1) + ' · à retenir';
+
+  const retenir = document.createElement('p');
+  retenir.className = 'retenir';
+  retenir.dataset.masque = 'oui';
+  const trait = document.createElement('mark');
+  trait.textContent = section.a_retenir;
+  retenir.appendChild(trait);
+
+  const invite = document.createElement('button');
+  invite.type = 'button';
+  invite.className = 'reveler';
+  invite.innerHTML = '<span class="reveler-question">Tu te souviens ?</span>'
+    + '<span class="reveler-geste">touche pour voir</span>';
+
+  const marques = document.createElement('div');
+  marques.className = 'marques';
+  marques.hidden = true;
+  [['acquis', 'C’est bon'], ['revoir', 'Pas encore']].forEach(([valeur, libelle]) => {
+    const bouton = document.createElement('button');
+    bouton.type = 'button';
+    bouton.className = 'bouton-marque';
+    bouton.dataset.marque = valeur;
+    bouton.textContent = libelle;
+    bouton.onclick = (evenement) => {
+      evenement.stopPropagation();
+      marquerNotion(section.titre, valeur);
+      Array.from(marques.children).forEach((b) => {
+        b.dataset.choisi = b.dataset.marque === valeur ? 'oui' : 'non';
+      });
+    };
+    marques.appendChild(bouton);
+  });
+
+  const reveler = () => {
+    if (retenir.dataset.masque !== 'oui') return;
+    retenir.dataset.masque = 'non';
+    invite.hidden = true;
+    marques.hidden = false;
+  };
+  invite.onclick = (evenement) => { evenement.stopPropagation(); reveler(); };
+  carte.onclick = reveler;
+
+  const groupe = document.createElement('div');
+  groupe.className = 'bloc-retenir';
+  groupe.append(etiquette, retenir, invite, marques);
+  corps(carte).appendChild(groupe);
+
+  // Une notion déjà jugée reste jugée quand on revient sur la fiche.
+  const deja = (etat.marques || {})[section.titre];
+  if (deja) {
+    reveler();
+    Array.from(marques.children).forEach((b) => {
+      b.dataset.choisi = b.dataset.marque === deja ? 'oui' : 'non';
+    });
+  }
+
+  carteRetenir.derniere = carte;
+  return carte;
+}
+
+function marquerNotion(titre, valeur) {
+  etat.marques = etat.marques || {};
+  etat.marques[titre] = valeur;
+  sauver();
+  majRubansMarques();
+  majCarteFin();
+}
+
+function notionsARevoir() {
+  const marques = etat.marques || {};
+  return Object.keys(marques).filter((titre) => marques[titre] === 'revoir');
+}
+
+function majRubansMarques() {
+  const marques = etat.marques || {};
+  Array.from($('rubans').children).forEach((ruban) => {
+    ruban.dataset.revoir = marques[ruban.dataset.titre] === 'revoir' ? 'oui' : 'non';
+  });
+}
+
+/* La dernière carte reflète ce que l’élève vient de mettre de côté. */
+function majCarteFin() {
+  const carte = $('paquet').querySelector('.carte-fin');
+  if (!carte) return;
+  const aRevoir = notionsARevoir();
+  const titre = carte.querySelector('h3');
+  const mot = carte.querySelector('.mot-fin');
+  const bouton = carte.querySelector('#bouton-apres-fiche');
+
+  if (aRevoir.length) {
+    titre.textContent = aRevoir.length > 1
+      ? aRevoir.length + ' notions à revoir.'
+      : '1 notion à revoir.';
+    mot.textContent = 'Tu les as mises de côté en lisant. Le contrôle blanc va porter dessus.';
+    bouton.textContent = aRevoir.length > 1
+      ? 'Me tester sur ces ' + aRevoir.length + ' notions'
+      : 'Me tester sur cette notion';
+    bouton.onclick = () => lancerControle(aRevoir);
+  } else {
+    titre.textContent = carte.dataset.titreParDefaut;
+    mot.textContent = carte.dataset.motParDefaut;
+    bouton.textContent = carte.dataset.boutonParDefaut;
+    bouton.onclick = () => lancerControle(carte.dataset.cible === 'oui' ? notionsFragiles() : []);
+  }
+}
+
 function afficherFiche(fiche, type) {
   $('etiquette-fiche').textContent = type === 'ciblee' ? 'Fiche ciblée' : 'Fiche générale';
   $('titre-fiche').textContent = fiche.titre || 'Ta fiche';
@@ -653,22 +776,7 @@ function afficherFiche(fiche, type) {
     });
 
     if (section.a_retenir) {
-      // La phrase surlignée a sa carte : c’est ce qu’on veut voir rester.
-      const carte = carteFiche(rang);
-      carte.classList.add('carte-retenir');
-      const etiquette = document.createElement('p');
-      etiquette.className = 'carte-etiquette';
-      etiquette.textContent = 'Notion ' + (rang + 1) + ' · à retenir';
-      const retenir = document.createElement('p');
-      retenir.className = 'retenir';
-      const trait = document.createElement('mark');
-      trait.textContent = section.a_retenir;
-      retenir.appendChild(trait);
-      // Étiquette et phrase forment un bloc, centré ensemble dans la carte.
-      const groupe = document.createElement('div');
-      groupe.append(etiquette, retenir);
-      corps(carte).appendChild(groupe);
-      ajouter(carte);
+      ajouter(carteRetenir(section, rang));
     }
   });
 
@@ -741,7 +849,11 @@ function afficherFiche(fiche, type) {
   suivant.className = 'principal';
   suivant.id = 'bouton-apres-fiche';
   suivant.textContent = type === 'ciblee' ? 'Me retester sur ces notions' : 'Passer au contrôle blanc';
-  suivant.onclick = () => lancerControle(type === 'ciblee');
+  suivant.onclick = () => lancerControle(type === 'ciblee' ? notionsFragiles() : []);
+  finale.dataset.titreParDefaut = titreFin.textContent;
+  finale.dataset.motParDefaut = motFin.textContent;
+  finale.dataset.boutonParDefaut = suivant.textContent;
+  finale.dataset.cible = type === 'ciblee' ? 'oui' : 'non';
 
   const plusTard = document.createElement('button');
   plusTard.type = 'button';
@@ -756,8 +868,13 @@ function afficherFiche(fiche, type) {
 
   dessinerRubans(groupes);
   soignerTypographie(paquet);
+  const titreFiche = fiche.titre || 'fiche';
+  proposerReprise(titreFiche);
+  paquet.dataset.fiche = titreFiche;
   paquet.scrollLeft = 0;
   suivreCartes();
+  majRubansMarques();
+  majCarteFin();
   montrer('ecran-fiche');
 }
 
@@ -770,7 +887,8 @@ function dessinerRubans(titres) {
     ruban.type = 'button';
     ruban.className = 'ruban';
     ruban.setAttribute('role', 'tab');
-    ruban.setAttribute('aria-label', 'Carte ' + (index + 1) + ' — ' + titre);
+    ruban.dataset.titre = titre;
+    ruban.setAttribute('aria-label', 'Notion ' + (index + 1) + ' — ' + titre);
     ruban.onclick = () => {
       const premiere = Array.from($('paquet').children)
         .findIndex((c) => Number(c.dataset.ruban) === index);
@@ -785,6 +903,33 @@ function allerACarte(index) {
   if (carte) carte.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
 }
 
+/* L’élève revient sur plusieurs jours : on retient où il s’est arrêté et on
+ * le lui propose, sans l’y renvoyer d’office — retomber au milieu d’une fiche
+ * sans l’avoir demandé est déroutant. */
+function proposerReprise(titreFiche) {
+  const reprise = $('reprise-lecture');
+  const memoire = etat.lectureFiche || {};
+  const carte = memoire.titre === titreFiche ? memoire.carte : 0;
+  const notion = memoire.titre === titreFiche ? memoire.notion : '';
+
+  if (!carte || carte < 2) { reprise.hidden = true; return; }
+  reprise.hidden = false;
+  reprise.textContent = 'Reprendre à « ' + notion + ' »';
+  reprise.onclick = () => { allerACarte(carte); reprise.hidden = true; };
+}
+
+function retenirPosition(titreFiche, carte) {
+  // Reprendre à la carte de fin n’aurait aucun intérêt : on ne la retient pas.
+  if (carte.classList.contains('carte-fin')) return;
+  const ruban = $('rubans').children[Number(carte.dataset.ruban)];
+  etat.lectureFiche = {
+    titre: titreFiche,
+    carte: Number(carte.dataset.index),
+    notion: ruban ? ruban.dataset.titre : '',
+  };
+  sauver();
+}
+
 function suivreCartes() {
   if (observateurCartes) observateurCartes.disconnect();
   const paquet = $('paquet');
@@ -797,6 +942,8 @@ function suivreCartes() {
       Array.from(rubans.children).forEach((ruban, i) => {
         ruban.dataset.etat = i < groupe ? 'passe' : (i === groupe ? 'ici' : 'a-venir');
       });
+      majRubansMarques();
+      retenirPosition(paquet.dataset.fiche, entree.target);
     });
   }, { root: paquet, threshold: 0.6 });
 
@@ -816,8 +963,8 @@ function suivreCartes() {
 
 /* --------------------------------------------- étape 4 : contrôle blanc -- */
 
-async function lancerControle(cible = false) {
-  const notions = cible ? etat.notionsFragiles.map((n) => n.notion) : [];
+async function lancerControle(notionsCiblees = []) {
+  const notions = notionsCiblees;
   const dejaPoses = [];
   etat.controles.forEach((c) => (c.questions || []).forEach((q) => dejaPoses.push(q.enonce)));
 
@@ -952,6 +1099,10 @@ const LIBELLES_STATUT = {
   partiel: 'Presque',
   a_revoir: 'À revoir',
 };
+
+function notionsFragiles() {
+  return (etat.notionsFragiles || []).map((n) => n.notion);
+}
 
 function afficherCorrection(correction) {
   $('mot-de-fin').textContent = correction.mot_de_fin || '';
@@ -1147,10 +1298,10 @@ function dessinerReprise() {
   const bouton = $('bouton-continuer-session');
   if (etat.notionsFragiles.length) {
     bouton.textContent = 'Me retester sur mes notions fragiles';
-    bouton.onclick = () => lancerControle(true);
+    bouton.onclick = () => lancerControle(notionsFragiles());
   } else if (etat.chapitres.length) {
     bouton.textContent = 'Passer un contrôle blanc';
-    bouton.onclick = () => lancerControle(false);
+    bouton.onclick = () => lancerControle();
   } else {
     bouton.textContent = 'Photographier mon cours';
     bouton.onclick = () => montrer('ecran-photos');
@@ -1216,7 +1367,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   $('bouton-fiche-ciblee').onclick = demanderFicheCiblee;
-  $('bouton-second-controle').onclick = () => lancerControle(true);
+  $('bouton-second-controle').onclick = () => lancerControle(notionsFragiles());
 
   $('bouton-tout-afficher').onclick = () => {
     const paquet = $('paquet');

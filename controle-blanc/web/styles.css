@@ -579,6 +579,7 @@ select {
   --accent: #9a6410;
   --accent-doux: #f7edda;
   --surligneur: rgba(255, 196, 60, .5);
+  --alerte-fiche: #a33a2c;
 
   --t0: #fbeed2;  /* miel */
   --t1: #fbe3d2;  /* abricot */
@@ -599,6 +600,7 @@ select {
     --accent: #d9a94a;
     --accent-doux: #2a2013;
     --surligneur: rgba(224, 173, 66, .3);
+    --alerte-fiche: #e08a76;
 
     --t0: #2c2313;
     --t1: #2e2118;
@@ -619,6 +621,7 @@ select {
   --accent: #d9a94a;
   --accent-doux: #2a2013;
   --surligneur: rgba(224, 173, 66, .3);
+  --alerte-fiche: #e08a76;
 
   --t0: #2c2313;
   --t1: #2e2118;
@@ -682,6 +685,9 @@ select {
 
 .ruban[data-etat="passe"] { background: var(--trait-fort); }
 .ruban[data-etat="ici"] { background: var(--accent); }
+
+/* Une notion mise de côté se voit d’un coup d’œil dans la barre du haut. */
+.ruban[data-revoir="oui"] { background: var(--alerte-fiche); }
 
 /* Le paquet déborde de la colonne de lecture : les cartes viennent lécher
    les bords de l’écran, et celle d’après se devine. */
@@ -815,6 +821,95 @@ select {
 .points li:last-child { margin-bottom: 0; }
 
 .carte-retenir .carte-tete { display: none; }
+
+.bloc-retenir { width: 100%; text-align: center; }
+
+/* Masquée, la phrase laisse ses traits de surligneur : on voit qu’il y a
+   quelque chose, et combien, sans pouvoir le lire. C’est ce qui donne envie
+   d’essayer de s’en souvenir. */
+.retenir[data-masque="oui"] mark {
+  color: transparent;
+  user-select: none;
+}
+
+.retenir mark { transition: color .28s ease; }
+
+@media (prefers-reduced-motion: reduce) {
+  .retenir mark { transition: none; }
+}
+
+.reveler {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  margin-top: 28px;
+  padding: 12px;
+  min-height: 52px;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+}
+
+.reveler-question {
+  font-family: var(--titre);
+  font-size: 1.02rem;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--encre) 78%, transparent);
+}
+
+.reveler-geste {
+  font-family: var(--mono);
+  font-size: .68rem;
+  letter-spacing: .1em;
+  color: color-mix(in srgb, var(--encre) 45%, transparent);
+}
+
+/* Reprendre où on s’est arrêté, si on le demande. */
+.reprise-lecture {
+  align-self: flex-start;
+  max-width: 100%;
+  margin: 0 0 14px;
+  padding: 8px 14px;
+  min-height: 40px;
+  border: 1px solid var(--trait-fort);
+  border-radius: 999px;
+  background: var(--carte);
+  font-family: var(--texte);
+  font-size: .85rem;
+  color: var(--encre);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.marques {
+  display: flex;
+  gap: 10px;
+  margin-top: 26px;
+}
+
+/* Attention au nom : « .marque » désigne déjà la signature de la page
+   d’accueil, en capitales. Ces boutons-là portent un autre nom. */
+.bouton-marque {
+  flex: 1;
+  min-height: 46px;
+  padding: 12px 10px;
+  border: 1px solid color-mix(in srgb, var(--encre) 18%, transparent);
+  border-radius: 12px;
+  background: none;
+  font-family: var(--texte);
+  font-size: .92rem;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--encre) 72%, transparent);
+  transition: background .15s ease, border-color .15s ease, color .15s ease;
+}
+
+.bouton-marque[data-choisi="oui"] {
+  background: color-mix(in srgb, var(--encre) 88%, transparent);
+  border-color: transparent;
+  color: var(--papier);
+}
 
 .carte-retenir .carte-corps {
   display: flex;
