@@ -45,12 +45,56 @@
       </div>
     </figure>
 
-    <button type="button" class="principal" id="bouton-commencer">Commencer</button>
-    <button type="button" class="discret" id="bouton-reprendre" hidden>Reprendre où j’en étais</button>
-    <button type="button" class="discret" id="bouton-mon-annee" hidden>Voir mon année</button>
+    <div class="hero-actions">
+      <button type="button" class="principal" id="bouton-commencer">Commencer</button>
+      <button type="button" class="discret" id="bouton-reprendre" hidden>Reprendre où j’en étais</button>
+    </div>
     <p class="mention">Sans compte, sans mot de passe. Tout reste dans ton téléphone.</p>
     <p class="mention alerte-demo" id="mention-demo" hidden>Mode démonstration : contenus d’exemple, rien n’est analysé.</p>
   </div>
+
+  <!-- La porte vers l'espace personnel. Elle n'apparaît que s'il y a quelque
+       chose derrière, et dit alors ce qu'elle contient. -->
+  <button type="button" class="porte" id="bouton-mon-annee" hidden>
+    <span class="porte-eyebrow">Ton espace</span>
+    <span class="porte-titre" id="porte-titre">Mon année</span>
+    <span class="porte-detail" id="porte-detail"></span>
+    <span class="porte-fleche" aria-hidden="true">→</span>
+  </button>
+
+  <!-- Ce que le produit fabrique, en vrai et manipulable. Le décrire ne suffit
+       pas : un paquet de cartes qu'on fait glisser se comprend en une seconde. -->
+  <section class="bloc bloc-apercu a-reveler">
+    <p class="titre-bloc">Ta fiche, en vrai</p>
+    <div class="apercu">
+      <p class="apercu-invite">Fais glisser →</p>
+      <div class="paquet-apercu">
+        <article class="carte-apercu" data-teinte="0">
+          <span class="apercu-chiffre" aria-hidden="true">1</span>
+          <h3>Une guerre d’un type nouveau</h3>
+          <ul>
+            <li>Trois phases : mouvement, position, puis mouvement à nouveau.</li>
+            <li>Guerre totale : toutes les ressources du pays sont mobilisées.</li>
+          </ul>
+          <span class="apercu-cahier"><i aria-hidden="true"></i>ton cahier · page 1</span>
+        </article>
+        <article class="carte-apercu carte-apercu-retenir" data-teinte="1">
+          <p class="apercu-etiquette">Notion 1 · à retenir</p>
+          <p class="apercu-retenir"><mark>Guerre totale : le pays entier travaille pour la guerre, pas seulement les soldats.</mark></p>
+          <span class="apercu-cahier"><i aria-hidden="true"></i>ton cahier · page 1</span>
+        </article>
+        <article class="carte-apercu" data-teinte="3">
+          <span class="apercu-chiffre" aria-hidden="true">2</span>
+          <h3>La violence de masse</h3>
+          <ul>
+            <li>Verdun, 1916 : la bataille emblématique de la guerre de position.</li>
+            <li>Génocide des Arméniens, 1915-1916.</li>
+          </ul>
+          <span class="apercu-cahier"><i aria-hidden="true"></i>ton cahier · pages 1 et 2</span>
+        </article>
+      </div>
+    </div>
+  </section>
 
   <section class="bloc a-reveler">
     <p class="titre-bloc">Comment ça marche</p>
@@ -79,7 +123,7 @@
     </ol>
   </section>
 
-  <section class="bloc a-reveler">
+  <section class="bloc bande a-reveler">
     <p class="titre-bloc">Pourquoi ça marche mieux qu’une fiche</p>
     <div class="arguments">
       <div class="argument">
@@ -95,6 +139,15 @@
         <p>Jamais de « tu aurais 12 ». Juste les trois notions sur lesquelles tu es fragile, et où les retravailler.</p>
       </div>
     </div>
+  </section>
+
+  <!-- Qui lit jusqu'ici doit avoir où cliquer : une page qui se termine sur un
+       pied de page renvoie son lecteur nulle part. -->
+  <section class="fin a-reveler">
+    <p class="fin-titre">Ton prochain contrôle, c’est quand ?</p>
+    <p class="fin-texte">Prends ton cours en photo. Dix minutes, et tu sais ce qui te manque.</p>
+    <button type="button" class="principal" id="bouton-commencer-bas">Commencer</button>
+    <p class="mention">Sans compte. Rien ne sort de ton téléphone.</p>
   </section>
 
   <footer class="pied a-reveler">
@@ -114,7 +167,7 @@
     <div class="face carte-eleve seyes" id="face-recto">
       <button type="button" id="bouton-retourner" class="retourner" aria-label="Voir le dos de la carte">↻</button>
       <div class="carte-eleve-haut">
-        <button type="button" id="embleme" class="embleme" aria-label="Changer d’emblème">✏️</button>
+        <button type="button" id="embleme" class="embleme" aria-label="Changer d’emblème et de couleur" aria-expanded="false" aria-controls="atelier">✏️</button>
         <div class="carte-eleve-identite">
           <label for="champ-prenom" class="masque">Ton prénom</label>
           <input type="text" id="champ-prenom" class="champ-prenom" maxlength="24"
@@ -135,6 +188,15 @@
       </div>
       <p class="carte-eleve-mention">Tout ça reste dans ce téléphone. Aucun compte, rien d’envoyé.</p>
     </div>
+  </div>
+
+  <!-- Choisir son emblème et la couleur de sa carte. C'est tout ce qu'il y a
+       à personnaliser, et ça suffit : la carte devient la sienne. -->
+  <div class="atelier" id="atelier" hidden>
+    <p class="atelier-titre">Ton emblème</p>
+    <div class="atelier-choix" id="choix-emblemes"></div>
+    <p class="atelier-titre">La couleur de ta carte</p>
+    <div class="atelier-choix" id="choix-teintes"></div>
   </div>
 
   <!-- Les intercalaires du classeur : une seule pile ouverte à la fois. -->

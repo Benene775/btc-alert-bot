@@ -408,21 +408,20 @@ h3 {
 
 .deroule li { display: flex; gap: 16px; align-items: flex-start; }
 
+/* Le chiffre de l'étape est écrit gros, dans la même fonte que les cartes de
+   fiche : c'est le même objet, le lecteur doit le reconnaître. */
 .deroule-numero {
-  flex: 0 0 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: var(--accent-doux);
-  color: var(--accent);
-  font-family: var(--mono);
-  font-size: .84rem;
-  display: grid;
-  place-items: center;
+  flex: 0 0 auto;
+  font-family: var(--titre);
+  font-weight: 600;
+  font-size: 2.6rem;
+  line-height: .9;
+  letter-spacing: -.04em;
+  color: color-mix(in srgb, var(--accent) 32%, transparent);
+  min-width: 44px;
 }
 
 .deroule p { margin: 0; color: var(--encre-douce); font-size: .94rem; }
-
-.arguments { display: flex; flex-direction: column; gap: 20px; }
 
 .argument {
   padding-left: 16px;
@@ -1743,10 +1742,13 @@ dialog menu button { margin-top: 0; }
  * page publique et la copie corrigée — l'outil, lui, est ce qu'on écrit
  * dessus, et reste sur du papier uni.
  */
+/* Une page de présentation se parcourt : sa longueur est son propos, à la
+   différence des écrans de l'outil, qui doivent tenir. On la garde néanmoins
+   sous trois écrans et demi, chaque section devant gagner sa place. */
 .ecran-accueil {
   display: flex;
   flex-direction: column;
-  gap: var(--e6);
+  gap: var(--e5);
 }
 
 /* La réglure ne court pas sous toute la page : du texte posé sur des lignes se
@@ -1771,7 +1773,9 @@ dialog menu button { margin-top: 0; }
   gap: var(--e3);
 }
 
-.hero .principal { margin-top: var(--e2); }
+.hero-actions { display: flex; flex-direction: column; gap: 4px; }
+.hero-actions .principal { margin-top: var(--e2); }
+.hero-actions .discret { margin-top: 0; }
 .hero .chapeau { margin: 0; max-width: 34ch; }
 
 /* Le titre porte l'axe optique de Fraunces : à cette taille, un dessin plus
@@ -1798,6 +1802,222 @@ h1 {
   border-radius: inherit;
 }
 
+/* --- La porte vers l'espace personnel ------------------------------------
+ *
+ * C'était un lien discret sous le bouton principal : personne ne le voyait.
+ * C'est maintenant un objet à part entière, qui dit ce qu'il y a derrière —
+ * on n'ouvre pas une porte sans savoir sur quoi elle donne.
+ */
+.porte {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 4px var(--e3);
+  width: 100%;
+  text-align: left;
+  padding: var(--e3) var(--e4);
+  border: 0;
+  border-radius: var(--rayon-carte);
+  background: var(--t4);
+  box-shadow: var(--ombre-carte);
+  color: var(--encre);
+  overflow: hidden;
+}
+
+.porte-eyebrow {
+  grid-column: 1;
+  font-family: var(--mono);
+  font-size: .62rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--encre) 58%, transparent);
+}
+
+.porte-titre {
+  grid-column: 1;
+  font-family: var(--titre);
+  font-weight: 600;
+  font-size: 1.35rem;
+  letter-spacing: -.015em;
+}
+
+.porte-detail {
+  grid-column: 1;
+  font-size: .86rem;
+  color: color-mix(in srgb, var(--encre) 66%, transparent);
+}
+
+.porte-fleche {
+  grid-column: 2;
+  grid-row: 1 / 4;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--carte) 80%, transparent);
+  font-size: 1.1rem;
+  transition: transform .25s cubic-bezier(.2, .7, .3, 1);
+}
+
+.porte:active { transform: scale(.99); }
+.porte:active .porte-fleche { transform: translateX(4px); }
+
+/* --- L'aperçu de la fiche -------------------------------------------------
+ *
+ * Le meilleur argument du produit, c'est ce qu'il fabrique. On le montre donc
+ * au lieu de le décrire : un vrai paquet de cartes, qu'on fait glisser du
+ * doigt, avec ses teintes, son surligneur et le renvoi au cahier.
+ */
+.bloc-apercu { gap: var(--e3); }
+
+.apercu { position: relative; }
+
+.apercu-invite {
+  font-family: var(--mono);
+  font-size: .62rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--encre-douce);
+  margin: 0 0 var(--e2);
+}
+
+.paquet-apercu {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  margin-inline: calc(-1 * var(--gouttiere));
+  padding: 4px var(--gouttiere) 18px;
+}
+
+.paquet-apercu::-webkit-scrollbar { display: none; }
+
+.carte-apercu {
+  position: relative;
+  flex: 0 0 min(78vw, 330px);
+  scroll-snap-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 232px;
+  padding: 20px 22px;
+  border-radius: var(--rayon-carte);
+  background: var(--t0);
+  box-shadow: var(--ombre-carte);
+  overflow: hidden;
+}
+
+.carte-apercu[data-teinte="1"] { background: var(--t1); }
+.carte-apercu[data-teinte="3"] { background: var(--t3); }
+
+.apercu-chiffre {
+  position: absolute;
+  top: -10px;
+  right: 10px;
+  font-family: var(--titre);
+  font-weight: 600;
+  font-size: 5.5rem;
+  line-height: 1;
+  letter-spacing: -.05em;
+  color: color-mix(in srgb, var(--encre) 10%, transparent);
+  pointer-events: none;
+}
+
+.carte-apercu h3 {
+  font-family: var(--titre);
+  font-weight: 600;
+  font-size: 1.15rem;
+  line-height: 1.16;
+  letter-spacing: -.015em;
+  margin: 0;
+  padding-right: 44px;
+}
+
+.carte-apercu ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+
+.carte-apercu li {
+  position: relative;
+  padding-left: 16px;
+  font-size: .92rem;
+  line-height: 1.45;
+  color: color-mix(in srgb, var(--encre) 80%, transparent);
+}
+
+.carte-apercu li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: .62em;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--encre) 30%, transparent);
+}
+
+.apercu-etiquette {
+  font-family: var(--mono);
+  font-size: .62rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--encre) 55%, transparent);
+  margin: 0;
+}
+
+.carte-apercu-retenir { justify-content: center; }
+
+.apercu-retenir {
+  font-family: var(--titre);
+  font-weight: 600;
+  font-size: 1.28rem;
+  line-height: 1.5;
+  margin: 0;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+/* Le trait de surligneur, comme dans la fiche : c'est le geste que l'élève
+   fait déjà sur son cahier. */
+.apercu-retenir mark {
+  background: linear-gradient(to bottom,
+    transparent 8%, var(--surligneur) 8%, var(--surligneur) 88%, transparent 88%);
+  color: inherit;
+  padding: .1em .3em;
+  border-radius: .18em;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+.apercu-cahier {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: .62rem;
+  letter-spacing: .08em;
+  color: color-mix(in srgb, var(--encre) 55%, transparent);
+  padding: 5px 7px;
+  margin: 0 -6px -6px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--encre) 5%, transparent);
+}
+
+/* La vignette du cahier, suggérée : une page réglée en miniature. */
+.apercu-cahier i {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+  border-radius: 5px;
+  background:
+    repeating-linear-gradient(to bottom, transparent 0 4px, var(--seyes-fort) 4px 5px),
+    var(--carte);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--encre) 20%, transparent);
+}
+
 /* --- Les blocs ------------------------------------------------------------ */
 
 .bloc { display: flex; flex-direction: column; gap: var(--e4); }
@@ -1811,7 +2031,28 @@ h1 {
 
 .deroule { gap: var(--e4); }
 
-.arguments { gap: var(--e3); }
+/* Empilés, les trois arguments coûtaient un écran et demi sur un téléphone.
+   Ils défilent latéralement, comme les cartes de fiche et les rangées de
+   « Mon année » : c'est le geste que le produit emploie partout. */
+.arguments {
+  display: flex;
+  /* Explicitement en ligne : une règle plus haut posait la colonne, et sans
+     cette déclaration les trois cartes s'empilaient malgré le défilement. */
+  flex-direction: row;
+  gap: var(--e2);
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  margin-inline: calc(-1 * var(--e3));
+  padding: 2px var(--e3) var(--e2);
+}
+
+.arguments::-webkit-scrollbar { display: none; }
+
+.argument {
+  flex: 0 0 min(74vw, 300px);
+  scroll-snap-align: start;
+}
 
 /* Chaque argument devient une carte teintée : la page publique annonce déjà
    la matière de l'outil, on reconnaît le produit avant d'être entré dedans. */
@@ -1967,6 +2208,18 @@ h1 {
   /* « background-color » et non le raccourci : celui-ci effacerait la réglure
      que « .seyes » pose en background-image. */
   background-color: var(--carte);
+}
+
+/* La teinte choisie dans l'atelier. Elle est posée sur le pivot, qui porte les
+   deux faces : le recto et le verso d'une même carte ont la même couleur. */
+.pivot[data-teinte="0"] .carte-eleve { background-color: color-mix(in srgb, var(--t0) 55%, var(--carte)); }
+.pivot[data-teinte="1"] .carte-eleve { background-color: color-mix(in srgb, var(--t1) 55%, var(--carte)); }
+.pivot[data-teinte="2"] .carte-eleve { background-color: color-mix(in srgb, var(--t2) 55%, var(--carte)); }
+.pivot[data-teinte="3"] .carte-eleve { background-color: color-mix(in srgb, var(--t3) 55%, var(--carte)); }
+.pivot[data-teinte="4"] .carte-eleve { background-color: color-mix(in srgb, var(--t4) 55%, var(--carte)); }
+.pivot[data-teinte="5"] .carte-eleve { background-color: color-mix(in srgb, var(--t5) 55%, var(--carte)); }
+
+.carte-eleve {
   border-radius: var(--rayon-carte);
   box-shadow: var(--ombre-carte);
   padding: var(--e3);
@@ -2176,6 +2429,71 @@ h1 {
 
 .case-frise[data-travaille="oui"] { background: var(--accent); }
 .case-frise[data-aujourdhui="oui"] { box-shadow: 0 0 0 2px var(--carte), 0 0 0 3px var(--trait-fort); }
+
+/* --- L'atelier ------------------------------------------------------------ */
+
+.atelier {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--e3);
+  border-radius: var(--rayon-carte);
+  background: var(--carte);
+  box-shadow: var(--ombre-carte);
+  animation: deplie .28s cubic-bezier(.2, .8, .3, 1) both;
+}
+
+@keyframes deplie { from { opacity: 0; transform: translateY(-8px); } }
+
+@media (prefers-reduced-motion: reduce) { .atelier { animation: none; } }
+
+.atelier-titre {
+  font-family: var(--mono);
+  font-size: .6rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--encre-douce);
+  margin: 0;
+}
+
+.atelier-choix { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: var(--e2); }
+.atelier-choix:last-child { margin-bottom: 0; }
+
+.choix-embleme {
+  width: 42px;
+  height: 42px;
+  min-height: 0;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: var(--papier);
+  font-size: 1.15rem;
+  line-height: 1;
+  transition: transform .16s cubic-bezier(.2, .7, .3, 1), border-color .16s ease;
+}
+
+.choix-embleme:active { transform: scale(.9); }
+.choix-embleme[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-doux); transform: scale(1.06); }
+
+.choix-teinte {
+  width: 42px;
+  height: 42px;
+  min-height: 0;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  background: var(--t0);
+  transition: transform .16s cubic-bezier(.2, .7, .3, 1), border-color .16s ease;
+}
+
+.choix-teinte[data-teinte="1"] { background: var(--t1); }
+.choix-teinte[data-teinte="2"] { background: var(--t2); }
+.choix-teinte[data-teinte="3"] { background: var(--t3); }
+.choix-teinte[data-teinte="4"] { background: var(--t4); }
+.choix-teinte[data-teinte="5"] { background: var(--t5); }
+
+.choix-teinte:active { transform: scale(.9); }
+.choix-teinte[aria-pressed="true"] { border-color: var(--encre); transform: scale(1.1); }
 
 /* --- Les intercalaires --------------------------------------------------- */
 
@@ -2603,6 +2921,52 @@ h1 {
   }
 }
 
+/* --- Une bande, pour respirer -------------------------------------------
+ *
+ * Sans rupture, quatre sections sur le même fond se lisent comme une liste.
+ * La bande donne un temps fort au milieu de la page.
+ */
+.bande {
+  background: var(--t5);
+  border-radius: var(--rayon-carte);
+  padding: var(--e5) var(--e4);
+  margin-inline: calc(-1 * var(--e2));
+}
+
+.bande .titre-bloc { border-bottom-color: color-mix(in srgb, var(--encre) 12%, transparent); }
+.bande .argument { background: color-mix(in srgb, var(--carte) 72%, transparent); }
+.bande .arguments .argument:nth-child(2),
+.bande .arguments .argument:nth-child(3) { background: color-mix(in srgb, var(--carte) 72%, transparent); }
+
+/* --- La fin de la page --------------------------------------------------- */
+
+.fin {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--e2);
+  padding: var(--e5) var(--e3);
+  border-radius: var(--rayon-carte);
+  background: var(--t0);
+  box-shadow: var(--ombre-carte);
+}
+
+.fin-titre {
+  font-family: var(--titre);
+  font-weight: 600;
+  font-size: clamp(1.5rem, 6vw, 2rem);
+  line-height: 1.1;
+  letter-spacing: -.02em;
+  text-wrap: balance;
+  margin: 0;
+  max-width: 18ch;
+}
+
+.fin-texte { color: color-mix(in srgb, var(--encre) 68%, transparent); margin: 0; max-width: 34ch; }
+.fin .principal { max-width: 300px; }
+.fin .mention { margin-top: 0; }
+
 /* --- À la souris ---------------------------------------------------------
  *
  * Le produit est fait pour le téléphone, mais un élève l'ouvre aussi sur
@@ -2747,11 +3111,13 @@ h1 {
 @media (min-width: 700px) {
   #scene { padding-top: var(--e5); }
   .carrefour { grid-template-columns: 1fr 1fr; }
-  .arguments { flex-direction: row; }
-  .argument { flex: 1; }
+  /* À partir de 700 px les trois tiennent côte à côte : plus besoin de défiler. */
+  .arguments { overflow-x: visible; margin-inline: 0; padding-inline: 0; }
+  .argument { flex: 1 1 0; }
   .deroule { flex-direction: row; gap: var(--e4); }
   .deroule li { flex: 1; flex-direction: column; gap: var(--e2); align-items: flex-start; }
-  .deroule-numero { flex: 0 0 auto; width: 32px; }
+  .deroule-numero { flex: 0 0 auto; }
+  .bande { padding: var(--e6) var(--e5); margin-inline: calc(-1 * var(--e4)); }
   .copie-reponse { font-size: 1.7rem; }
   .pied { font-size: .9rem; }
 }
@@ -2780,8 +3146,9 @@ h1 {
   .hero h1        { grid-area: titre; }
   .hero .chapeau  { grid-area: chapeau; }
   .hero .copie    { grid-area: copie; align-self: center; }
-  .hero .principal { grid-area: action; justify-self: start; width: auto; min-width: 260px; }
-  .hero #bouton-reprendre { grid-area: action; justify-self: start; width: auto; margin-top: 76px; }
+  .hero-actions { grid-area: action; align-items: flex-start; }
+  .hero-actions .principal { width: auto; min-width: 260px; }
+  .hero-actions .discret { width: auto; }
   .hero .mention  { grid-area: mention; text-align: left; margin: 0; }
   .hero #mention-demo { grid-area: demo; }
 

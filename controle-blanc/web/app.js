@@ -197,7 +197,7 @@ function carte() {
     const brut = localStorage.getItem(CLE_CARTE);
     if (brut) return JSON.parse(brut);
   } catch (e) { /* carte illisible : on repart d'une neuve */ }
-  return { prenom: '', embleme: EMBLEMES[0] };
+  return { prenom: '', embleme: EMBLEMES[0], teinte: 0 };
 }
 
 function garderCarte(valeurs) {
@@ -251,12 +251,45 @@ function dessinerEspace() {
   soignerTypographie($('ecran-espace'));
 }
 
+/* La porte vers l'espace personnel, sur l'accueil. Elle ne s'affiche que s'il
+ * y a quelque chose derrière, et dit alors ce qu'on y trouvera : une porte sans
+ * indice sur ce qu'elle cache ne s'ouvre pas. */
+function dessinerPorte() {
+  const porte = $('bouton-mon-annee');
+  const sessions = toutesLesSessions();
+  const echeances = prochainesEcheances(sessions);
+  if (!sessions.length && !echeances.length && !rendezVous().length) {
+    porte.hidden = true;
+    return;
+  }
+  porte.hidden = false;
+
+  const mienne = carte();
+  $('porte-titre').textContent = mienne.prenom ? 'L’année de ' + mienne.prenom : 'Mon année';
+
+  const morceaux = [];
+  if (echeances.length) {
+    const jours = joursAvant(echeances[0].date);
+    morceaux.push(nomMatiere(echeances[0].matiere)
+      + (jours === 0 ? ' aujourd’hui' : jours === 1 ? ' demain' : ' dans ' + jours + ' jours'));
+  }
+  const fiches = toutesLesFiches(sessions).length;
+  if (fiches) morceaux.push(fiches + (fiches > 1 ? ' fiches' : ' fiche'));
+  const aRevoir = notionsQuiReviennent(sessions).length;
+  if (aRevoir) morceaux.push(aRevoir + ' à revoir');
+  $('porte-detail').textContent = morceaux.length
+    ? morceaux.join(' · ')
+    : 'Ton agenda, tes fiches, tes contrôles.';
+}
+
 /* --- La carte, deux faces ------------------------------------------------ */
 
 function dessinerCarteEleve(sessions) {
   const mienne = carte();
   $('embleme').textContent = mienne.embleme || EMBLEMES[0];
   $('champ-prenom').value = mienne.prenom || '';
+  $('pivot-carte').dataset.teinte = String(mienne.teinte || 0);
+  if (!$('atelier').hidden) dessinerAtelier();
 
   const niveaux = [...new Set(sessions.map((s) => s.niveau).filter(Boolean))];
   const matieres = [...new Set(sessions.map((s) => s.matiere).filter(Boolean))];
@@ -570,6 +603,55 @@ function formulaireRendezVous() {
 
   forme.append(etiquette, choix, valider);
   return forme;
+}
+
+/* --- L'atelier : choisir son emblème et sa couleur -----------------------
+ *
+ * L'emblème changeait en tournant à chaque appui : personne ne pouvait deviner
+ * qu'il y en avait douze, ni revenir à celui d'avant. Un choix se montre.
+ *
+ * C'est la seule personnalisation du produit, et c'est assez : sans compte ni
+ * photo, choisir son emblème et la couleur de sa carte suffit à ce qu'elle
+ * devienne la sienne.
+ */
+const TEINTES_CARTE = ['miel', 'abricot', 'rose', 'sauge', 'ciel', 'lilas'];
+
+function dessinerAtelier() {
+  const mienne = carte();
+
+  const emblemes = $('choix-emblemes');
+  emblemes.innerHTML = '';
+  EMBLEMES.forEach((signe) => {
+    const bouton = document.createElement('button');
+    bouton.type = 'button';
+    bouton.className = 'choix-embleme';
+    bouton.textContent = signe;
+    bouton.setAttribute('aria-label', 'Emblème ' + signe);
+    bouton.setAttribute('aria-pressed', signe === mienne.embleme ? 'true' : 'false');
+    bouton.onclick = () => { garderCarte({ ...carte(), embleme: signe }); dessinerEspace(); };
+    emblemes.appendChild(bouton);
+  });
+
+  const teintes = $('choix-teintes');
+  teintes.innerHTML = '';
+  TEINTES_CARTE.forEach((nom, rang) => {
+    const bouton = document.createElement('button');
+    bouton.type = 'button';
+    bouton.className = 'choix-teinte';
+    bouton.dataset.teinte = String(rang);
+    bouton.setAttribute('aria-label', 'Carte ' + nom);
+    bouton.setAttribute('aria-pressed', rang === (mienne.teinte || 0) ? 'true' : 'false');
+    bouton.onclick = () => { garderCarte({ ...carte(), teinte: rang }); dessinerEspace(); };
+    teintes.appendChild(bouton);
+  });
+}
+
+function basculerAtelier() {
+  const atelier = $('atelier');
+  const ouvert = atelier.hidden;
+  atelier.hidden = !ouvert;
+  $('embleme').setAttribute('aria-expanded', ouvert ? 'true' : 'false');
+  if (ouvert) dessinerAtelier();
 }
 
 /* --- Les intercalaires ---------------------------------------------------- */
@@ -1056,7 +1138,7 @@ async function initialiser() {
   if (derniere && charger(derniere)) {
     $('bouton-reprendre').hidden = false;
   }
-  $('bouton-mon-annee').hidden = toutesLesSessions().length === 0;
+  dessinerPorte();
   montrer('ecran-accueil');
   armerRevelations();
   armerCopie();
@@ -2584,6 +2666,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('champ-date').min = new Date().toISOString().slice(0, 10);
 
   $('bouton-commencer').onclick = () => demarrerSession();
+  $('bouton-commencer-bas').onclick = () => demarrerSession();
   $('bouton-mon-annee').onclick = () => ouvrirEspace();
   $('bouton-espace').onclick = () => {
     if (document.getElementById('ecran-espace').hidden) return ouvrirEspace();
@@ -2610,12 +2693,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('champ-prenom').oninput = (evenement) => {
     garderCarte({ ...carte(), prenom: evenement.target.value.trim() });
   };
-  $('embleme').onclick = () => {
-    const actuel = carte();
-    const suivant = EMBLEMES[(EMBLEMES.indexOf(actuel.embleme) + 1) % EMBLEMES.length];
-    garderCarte({ ...actuel, embleme: suivant });
-    $('embleme').textContent = suivant;
-  };
+  $('embleme').onclick = basculerAtelier;
   $('bouton-reprendre').onclick = () => {
     const derniere = localStorage.getItem(CLE_DERNIERE);
     const trouve = derniere && charger(derniere);
