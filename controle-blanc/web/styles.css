@@ -34,6 +34,12 @@
      sépare du rouge du prof. Sans lui, sa copie et l'annotation se confondent. */
   --stylo-eleve: #28518f;
   --stylo-eleve-doux: #e6edf9;
+  /* Le réglage Seyès : le bleu-violet des lignes d'un cahier français, et le
+     rouge du filet de marge. C'est ce que l'élève a sous les yeux tous les
+     jours — l'identité vient de là, pas d'un beige de plus. */
+  --seyes: rgba(40, 81, 143, .055);
+  --seyes-fort: rgba(40, 81, 143, .11);
+  --marge: rgba(163, 58, 44, .3);
 
   /* Le stylo du prof. Sémantique, jamais décoratif. */
   --rouge: #a33a2c;
@@ -64,8 +70,19 @@
 
   --rayon: 16px;
   --rayon-carte: 22px;
-  --marge: 20px;
+  --gouttiere: 20px;
   --colonne: 620px;
+  --large: 1120px;
+
+  /* Une échelle, pas des valeurs au hasard : chaque pas vaut 1,5 fois le
+     précédent, ce qui donne un rythme vertical qu'on lit sans le voir. */
+  --e1: 8px;
+  --e2: 12px;
+  --e3: 18px;
+  --e4: 28px;
+  --e5: 42px;
+  --e6: 64px;
+  --e7: 96px;
 }
 
 /* Trois états chez le lecteur : choix explicite clair, choix explicite sombre,
@@ -84,6 +101,9 @@
     --surligneur: rgba(224, 173, 66, .3);
     --stylo-eleve: #9dbcf2;
     --stylo-eleve-doux: #1b2436;
+    --seyes: rgba(157, 188, 242, .05);
+    --seyes-fort: rgba(157, 188, 242, .09);
+    --marge: rgba(224, 138, 118, .28);
     --rouge: #e08a76;
     --rouge-doux: #2e1a19;
     --acquis: #55bd90;
@@ -101,7 +121,7 @@
 }
 
 :root[data-theme="dark"] {
-    --papier: #17130e;
+  --papier: #17130e;
   --carte: #211b14;
   --encre: #f4ede3;
   --encre-douce: #a89887;
@@ -113,6 +133,9 @@
   --surligneur: rgba(224, 173, 66, .3);
   --stylo-eleve: #9dbcf2;
   --stylo-eleve-doux: #1b2436;
+  --seyes: rgba(157, 188, 242, .05);
+  --seyes-fort: rgba(157, 188, 242, .09);
+  --marge: rgba(224, 138, 118, .28);
   --rouge: #e08a76;
   --rouge-doux: #2e1a19;
   --acquis: #55bd90;
@@ -158,10 +181,21 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: max(10px, env(safe-area-inset-top)) var(--marge) 10px;
+  padding: max(10px, env(safe-area-inset-top)) var(--gouttiere) 10px;
   background: color-mix(in srgb, var(--papier) 88%, transparent);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--trait);
+}
+
+/* Le bandeau tient toute la largeur, mais son contenu se cale sur la colonne
+   de lecture : sinon, sur un écran d'ordinateur, le titre part se coller au
+   bord gauche pendant que le texte est au milieu. */
+#bandeau > * { position: relative; }
+
+@media (min-width: 660px) {
+  #bandeau {
+    padding-inline: max(var(--gouttiere), calc((100vw - var(--colonne)) / 2));
+  }
 }
 
 .lien-bandeau {
@@ -190,13 +224,20 @@ body {
 
 /* --- Trame -------------------------------------------------------------- */
 
+/* La scène ne centre plus : chaque écran décide de sa largeur. L'outil garde
+   sa colonne de lecture ; la page publique, elle, doit occuper l'écran d'un
+   ordinateur autrement qu'en bande de 620 px au milieu du vide. */
 #scene {
-  padding: 28px var(--marge) calc(56px + env(safe-area-inset-bottom));
-  max-width: var(--colonne);
-  margin: 0 auto;
+  padding: var(--e4) var(--gouttiere) calc(var(--e6) + env(safe-area-inset-bottom));
 }
 
-.ecran { animation: entree .26s ease both; }
+.ecran {
+  max-width: var(--colonne);
+  margin-inline: auto;
+  animation: entree .26s ease both;
+}
+
+.ecran-accueil { max-width: var(--large); }
 
 @keyframes entree { from { opacity: 0; transform: translateY(8px); } }
 
@@ -298,7 +339,8 @@ h3 {
   margin: 6px 0 0;
   background: var(--carte);
   border: 0;
-  border-radius: var(--rayon-carte);
+  /* Une feuille n'a pas les coins ronds d'une carte d'interface. */
+  border-radius: 3px;
   overflow: hidden;
   box-shadow: var(--ombre-carte);
 }
@@ -318,7 +360,12 @@ h3 {
   color: var(--rouge);
 }
 
-.copie-corps { padding: 18px; flex: 1; min-width: 0; }
+.copie-corps {
+  padding: var(--e3);
+  flex: 1;
+  min-width: 0;
+  background-position: 0 6px;
+}
 
 .copie-question {
   font-size: .84rem;
@@ -882,8 +929,8 @@ select {
   overscroll-behavior-x: contain;
   scroll-snap-type: x mandatory;
   scroll-behavior: smooth;
-  margin-inline: calc(-1 * var(--marge));
-  padding: 4px var(--marge) 22px;
+  margin-inline: calc(-1 * var(--gouttiere));
+  padding: 4px var(--gouttiere) 22px;
   scrollbar-width: none;
 }
 
@@ -1560,7 +1607,7 @@ details.detail-reponse p { font-size: .92rem; margin: 0 0 10px; }
   z-index: 50;
   display: grid;
   place-items: center;
-  padding: var(--marge);
+  padding: var(--gouttiere);
   background: color-mix(in srgb, var(--papier) 93%, transparent);
   backdrop-filter: blur(3px);
 }
@@ -1596,7 +1643,7 @@ details.detail-reponse p { font-size: .92rem; margin: 0 0 10px; }
   bottom: calc(20px + env(safe-area-inset-bottom));
   transform: translateX(-50%);
   z-index: 60;
-  width: calc(100% - 2 * var(--marge));
+  width: calc(100% - 2 * var(--gouttiere));
   max-width: 440px;
   background: var(--encre);
   color: var(--papier);
@@ -1628,12 +1675,285 @@ dialog textarea { min-height: 90px; margin-top: 12px; }
 dialog menu { display: flex; gap: 10px; padding: 0; margin: 16px 0 0; }
 dialog menu button { margin-top: 0; }
 
-/* --- Écrans larges : on reste sur une colonne, on ne s'étale pas --------- */
+/* --- La page publique : une feuille de cahier ---------------------------- */
+
+/*
+ * D'où vient la forme : d'un cahier Seyès. Les lignes tous les 7 px, la
+ * quatrième plus marquée, et le filet rouge de la marge à gauche — c'est
+ * le papier que l'élève a sous les yeux tous les jours, et personne d'autre
+ * n'a exactement ce papier-là.
+ *
+ * Le réglage reste sous la barre du perceptible : il donne une matière à la
+ * page, il ne se met jamais entre l'oeil et le texte. Il n'habille que la
+ * page publique et la copie corrigée — l'outil, lui, est ce qu'on écrit
+ * dessus, et reste sur du papier uni.
+ */
+.ecran-accueil {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e6);
+}
+
+/* La réglure ne court pas sous toute la page : du texte posé sur des lignes se
+   lit moins bien, et une page entièrement rayée fait décor, pas cahier. Elle
+   n'habille que la copie — le seul endroit où elle est vraie. */
+.seyes {
+  --reglure: 26px;
+  background-image:
+    repeating-linear-gradient(to bottom,
+      transparent 0 calc(var(--reglure) / 4 - 1px),
+      var(--seyes) calc(var(--reglure) / 4 - 1px) calc(var(--reglure) / 4)),
+    repeating-linear-gradient(to bottom,
+      transparent 0 calc(var(--reglure) - 1px),
+      var(--seyes-fort) calc(var(--reglure) - 1px) var(--reglure));
+}
+
+/* --- Le héros ------------------------------------------------------------ */
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e3);
+}
+
+.hero .principal { margin-top: var(--e2); }
+.hero .chapeau { margin: 0; max-width: 34ch; }
+
+/* Le titre porte l'axe optique de Fraunces : à cette taille, un dessin plus
+   contrasté et plus serré, comme une fonte de titrage l'a toujours été. */
+h1 {
+  font-variation-settings: "opsz" 120;
+}
+
+/* La copie corrigée : la thèse du produit en un objet. Elle est posée sur la
+   table, très légèrement de travers — une feuille ne tombe jamais droite. */
+.copie {
+  position: relative;
+  transform: rotate(-.5deg);
+}
+
+.copie::after {
+  /* le pli d'une feuille qu'on a pliée en deux dans son sac */
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(to right,
+    transparent 48%, color-mix(in srgb, var(--encre) 5%, transparent) 50%, transparent 52%);
+  border-radius: inherit;
+}
+
+/* --- Les blocs ------------------------------------------------------------ */
+
+.bloc { display: flex; flex-direction: column; gap: var(--e4); }
+
+.titre-bloc {
+  color: var(--encre-douce);
+  margin: 0;
+  padding-bottom: var(--e2);
+  border-bottom: 1px solid var(--trait);
+}
+
+.deroule { gap: var(--e4); }
+
+.arguments { gap: var(--e3); }
+
+/* Chaque argument devient une carte teintée : la page publique annonce déjà
+   la matière de l'outil, on reconnaît le produit avant d'être entré dedans. */
+.argument {
+  padding: var(--e4);
+  border: 0;
+  border-radius: var(--rayon-carte);
+  background: var(--t0);
+  box-shadow: var(--ombre-carte);
+}
+
+.arguments .argument:nth-child(2) { background: var(--t3); }
+.arguments .argument:nth-child(3) { background: var(--t4); }
+
+.argument h3 { font-size: 1.06rem; margin-bottom: var(--e1); }
+
+.pied {
+  border-top: 1px solid var(--trait);
+  padding-top: var(--e3);
+  color: var(--encre-douce);
+  font-size: .85rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e2) var(--e4);
+  justify-content: space-between;
+}
+
+.pied-marque {
+  font-family: var(--mono);
+  font-size: .7rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+/* --- Arrivée sur la page : on écrit, on ne fait pas apparaître ----------- */
+
+/* Les éléments du héros montent l'un après l'autre, dans l'ordre où on les
+   lit. Un seul mouvement orchestré vaut mieux que dix effets dispersés. */
+.hero > * { animation: monte .5s cubic-bezier(.2, .7, .3, 1) both; }
+.hero > *:nth-child(1) { animation-delay: .02s; }
+.hero > *:nth-child(2) { animation-delay: .08s; }
+.hero > *:nth-child(3) { animation-delay: .14s; }
+.hero > *:nth-child(4) { animation-delay: .22s; }
+.hero > *:nth-child(5) { animation-delay: .30s; }
+.hero > *:nth-child(6) { animation-delay: .34s; }
+.hero > *:nth-child(7) { animation-delay: .38s; }
+
+@keyframes monte {
+  from { opacity: 0; transform: translateY(14px); }
+}
+
+/* Les blocs suivants n'arrivent qu'au moment où on descend les chercher.
+ *
+ * L'état caché est posé par le script, jamais par la feuille de style : si le
+ * script ne tourne pas — vieux navigateur, erreur, blocage — la page reste
+ * entièrement lisible au lieu de se vider. Du contenu que seul JavaScript
+ * peut faire réapparaître est du contenu qu'on peut perdre. */
+:root[data-revelations="oui"] .a-reveler {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity .55s ease, transform .55s cubic-bezier(.2, .7, .3, 1);
+}
+
+:root[data-revelations="oui"] .a-reveler[data-vu="oui"] { opacity: 1; transform: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .hero > *, .copie { animation: none; transform: none; }
+  .a-reveler { opacity: 1; transform: none; transition: none; }
+}
+
+/* --- À la souris ---------------------------------------------------------
+ *
+ * Le produit est fait pour le téléphone, mais un élève l'ouvre aussi sur
+ * l'ordinateur du CDI. Une interface qui ne répond pas au survol y paraît
+ * morte. Rien de tout ça n'existe au doigt, où le survol n'a pas de sens et
+ * laisse des états collés.
+ */
+@media (hover: hover) and (pointer: fine) {
+  .principal:hover {
+    background: color-mix(in srgb, var(--accent) 88%, var(--encre));
+    transform: translateY(-1px);
+  }
+
+  .secondaire:hover, .case-carrefour:hover, .argument:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 4px color-mix(in srgb, var(--encre) 9%, transparent),
+                0 22px 44px -22px color-mix(in srgb, var(--encre) 38%, transparent);
+  }
+
+  .case-carrefour, .argument {
+    transition: transform .18s ease, box-shadow .18s ease;
+  }
+
+  .discret:hover, .signalement:hover { color: var(--encre); }
+
+  .provenance:hover { background: color-mix(in srgb, var(--encre) 9%, transparent); }
+
+  .bouton-marque:hover { border-color: var(--accent); }
+
+  /* La copie se redresse quand on la regarde de près. */
+  .copie { transition: transform .35s cubic-bezier(.2, .7, .3, 1); }
+  .copie:hover { transform: rotate(0deg); }
+}
+
+/* --- Écrans larges ------------------------------------------------------
+ *
+ * L'outil garde sa colonne de lecture : un contrôle se passe dans une largeur
+ * de texte, pas sur trois colonnes. La page publique, elle, se déplie — sans
+ * ça, un élève qui ouvre le site sur l'ordinateur du CDI voit une application
+ * de téléphone posée au milieu d'un écran vide, et n'y croit pas.
+ */
 
 @media (min-width: 700px) {
-  #scene { padding-top: 48px; }
+  #scene { padding-top: var(--e5); }
   .carrefour { grid-template-columns: 1fr 1fr; }
-  .arguments { flex-direction: row; gap: 24px; }
+  .arguments { flex-direction: row; }
   .argument { flex: 1; }
+  .deroule { flex-direction: row; gap: var(--e4); }
+  .deroule li { flex: 1; flex-direction: column; gap: var(--e2); align-items: flex-start; }
+  .deroule-numero { flex: 0 0 auto; width: 32px; }
   .copie-reponse { font-size: 1.7rem; }
+  .pied { font-size: .9rem; }
+}
+
+@media (min-width: 900px) {
+  /* Le héros se lit en deux temps : la thèse à gauche, la preuve à droite.
+     La copie corrigée cesse d'être une illustration sous le texte et devient
+     ce qu'on regarde en premier. */
+  .hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+    grid-template-areas:
+      "marque copie"
+      "titre  copie"
+      "chapeau copie"
+      "action copie"
+      "mention copie"
+      "demo   copie";
+    align-content: start;
+    column-gap: var(--e6);
+    row-gap: var(--e3);
+    align-items: start;
+  }
+
+  .hero .marque   { grid-area: marque; }
+  .hero h1        { grid-area: titre; }
+  .hero .chapeau  { grid-area: chapeau; }
+  .hero .copie    { grid-area: copie; align-self: center; }
+  .hero .principal { grid-area: action; justify-self: start; width: auto; min-width: 260px; }
+  .hero #bouton-reprendre { grid-area: action; justify-self: start; width: auto; margin-top: 76px; }
+  .hero .mention  { grid-area: mention; text-align: left; margin: 0; }
+  .hero #mention-demo { grid-area: demo; }
+
+  h1 { font-size: clamp(3rem, 4.4vw, 4rem); }
+
+  .copie { transform: rotate(-1.2deg); box-shadow: 0 2px 4px color-mix(in srgb, var(--encre) 8%, transparent),
+             0 30px 60px -30px color-mix(in srgb, var(--encre) 45%, transparent); }
+  .copie-corps { padding: var(--e4); }
+  .copie-question { font-size: .92rem; }
+
+  /* La page prend la marge d'un cahier : le filet rouge à gauche, et les
+     intitulés de section posés dedans, là où un professeur écrit. */
+  .bloc {
+    position: relative;
+    display: grid;
+    grid-template-columns: 210px minmax(0, 1fr);
+    column-gap: var(--e5);
+    align-items: start;
+  }
+
+  /* Le filet de marge, sur toute la hauteur du bloc : dans un cahier il ne
+     s'arrête pas à la fin du titre. L'intitulé se pose dedans, à gauche,
+     là où un professeur écrit. */
+  .bloc::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: calc(210px + var(--e5) / 2 - 1px);
+    width: 2px;
+    background: var(--marge);
+  }
+
+  .titre-bloc {
+    border-bottom: 0;
+    padding: 4px 0 0;
+    position: sticky;
+    top: var(--e5);
+  }
+
+  .arguments, .deroule { grid-column: 2; }
+  .titre-bloc { grid-column: 1; grid-row: 1; }
+
+  .pied { padding-top: var(--e4); }
+}
+
+@media (min-width: 1160px) {
+  #scene { padding-inline: var(--e5); }
 }

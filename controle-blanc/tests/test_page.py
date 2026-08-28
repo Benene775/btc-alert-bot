@@ -95,3 +95,37 @@ def test_seule_la_poignee_bloque_le_defilement():
     assert "top: auto" in poignee.group(0), "la poignée recouvrirait la croix « retirer »"
     grille = re.search(r"\.vignettes \{[^}]*\}", STYLE)
     assert "touch-action" not in grille.group(0), "la grille ne doit pas bloquer le défilement"
+
+
+def test_la_page_reste_lisible_sans_javascript():
+    """Les révélations au défilement ne doivent jamais pouvoir effacer la page.
+
+    L'état caché est posé par le script (« data-revelations »), pas par la
+    feuille de style : si le script ne tourne pas, tout reste visible. Une
+    règle « .a-reveler { opacity: 0 } » sans garde rendrait la moitié de la
+    page publique invisible chez qui bloque JavaScript.
+    """
+    import re
+
+    for regle in re.findall(r"([^{}]*\.a-reveler[^{}]*)\{([^}]*)\}", STYLE):
+        selecteur, corps = regle
+        if "opacity: 0" in corps or "opacity:0" in corps:
+            assert 'data-revelations' in selecteur, (
+                f"« {selecteur.strip()} » cache du contenu sans garde JavaScript"
+            )
+    assert "dataset.revelations = 'oui'" in SCRIPT, "le script ne prend jamais la main"
+
+
+def test_le_seuil_de_revelation_reste_atteignable():
+    """Une marge en pourcentage a déjà rendu le pied de page inatteignable.
+
+    Sur un grand écran, la page ne défile pas d'assez pour lui faire franchir
+    la ligne de déclenchement : le pied restait invisible pour toujours.
+    """
+    import re
+
+    marge = re.search(r"rootMargin:\s*'([^']+)'", SCRIPT)
+    assert marge, "aucune rootMargin trouvée"
+    assert "%" not in marge.group(1), (
+        f"rootMargin en pourcentage ({marge.group(1)}) : le bas de page peut devenir inatteignable"
+    )

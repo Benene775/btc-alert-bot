@@ -72,18 +72,29 @@ def test_tout_ce_qui_porte_du_texte_reste_lisible():
     assert not faibles, "contraste insuffisant — " + " ; ".join(faibles)
 
 
-def test_les_deux_themes_definissent_les_memes_jetons():
-    """Un jeton défini en clair mais oublié en sombre disparaît sans erreur."""
-    couleurs = {j for j in CLAIR if not j.startswith(("--titre", "--texte", "--mono", "--manuscrit"))}
-    couleurs -= {"--rayon", "--rayon-carte", "--marge", "--colonne", "--ombre-carte"}
-    manquants = sorted(couleurs - set(SOMBRE))
-    assert not manquants, f"absents du thème sombre : {manquants}"
+def _est_couleur(valeur: str) -> bool:
+    return valeur.strip().startswith(("#", "rgb", "hsl", "color-mix"))
+
+
+def test_les_deux_themes_definissent_les_memes_couleurs():
+    """Une couleur définie en clair mais oubliée en sombre disparaît sans erreur.
+
+    Le tri se fait sur la valeur, pas sur une liste de noms à tenir à jour :
+    une longueur ou une famille typographique n'a rien à faire dans un thème.
+    """
+    couleurs = {j for j, v in CLAIR.items() if _est_couleur(v)}
+    manquantes = sorted(couleurs - set(SOMBRE))
+    assert not manquantes, f"absentes du thème sombre : {manquantes}"
 
 
 def test_aucun_jeton_utilise_n_est_indefini():
     """« --alerte-fiche » a vécu dans la surcouche de la fiche ; en la retirant
-    on aurait pu laisser derrière soi des « var() » qui ne valent plus rien."""
-    definis = set(CLAIR) | set(SOMBRE) | set(_jetons(_bloc(':root:not([data-theme="light"]) {')))
+    on aurait pu laisser derrière soi des « var() » qui ne valent plus rien.
+
+    Les définitions sont relevées dans toute la feuille, pas seulement dans
+    « :root » : « --reglure » est défini sur « .seyes », là où il sert.
+    """
+    definis = set(re.findall(r"(--[a-z0-9-]+)\s*:", STYLE))
     utilises = set(re.findall(r"var\((--[a-z0-9-]+)", STYLE))
     assert not utilises - definis, f"jetons utilisés mais jamais définis : {sorted(utilises - definis)}"
 

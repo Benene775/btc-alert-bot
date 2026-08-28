@@ -68,6 +68,10 @@ def main() -> int:
     corps = corps.replace("Mode démonstration : contenus d'exemple, rien n'est analysé.", MENTION)
 
     page = (
+        # Sans cette balise, un serveur statique qui n'annonce pas de jeu de
+        # caractères fait rendre « contrôle » en « contrÃ´le ». La plateforme
+        # d'artefacts fournit le sien, pas un hébergement quelconque.
+        '<meta charset="utf-8">\n'
         "<title>Contrôle blanc</title>\n"
         '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n'
         f"<style>\n{polices}\n{styles}\n</style>\n\n{corps}\n\n"

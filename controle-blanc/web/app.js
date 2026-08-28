@@ -269,6 +269,7 @@ async function initialiser() {
     $('bouton-reprendre').hidden = false;
   }
   montrer('ecran-accueil');
+  armerRevelations();
 }
 
 function remplirSelecteur(selecteur, valeurs, defaut) {
@@ -434,6 +435,32 @@ function dessinerPhotos() {
   $('bouton-analyser').textContent = total > 1
     ? 'Analyser mes ' + total + ' pages'
     : 'Analyser mon cours';
+}
+
+/* Les blocs de la page publique n'arrivent qu'au moment où on descend les
+ * chercher. Un IntersectionObserver plutôt qu'un écouteur de défilement : le
+ * navigateur fait le calcul, pas nous, et rien ne rame sur un vieux téléphone.
+ */
+function armerRevelations() {
+  const blocs = document.querySelectorAll('.a-reveler');
+  if (!blocs.length) return;
+  const bouge = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!bouge || !('IntersectionObserver' in window)) return;
+
+  // On ne cache qu'à partir d'ici : avant, la page était déjà lisible.
+  document.documentElement.dataset.revelations = 'oui';
+  const guetteur = new IntersectionObserver((entrees) => {
+    entrees.forEach((entree) => {
+      if (!entree.isIntersecting) return;
+      entree.target.dataset.vu = 'oui';
+      guetteur.unobserve(entree.target);
+    });
+  // Une marge en pourcentage rendait le bas de page inatteignable : sur un
+  // grand écran, la page ne défile pas d'assez pour faire franchir la ligne de
+  // déclenchement au pied, qui restait invisible pour toujours. Une marge fixe
+  // et courte ne peut pas dépasser la hauteur de défilement disponible.
+  }, { rootMargin: '0px 0px -40px 0px' });
+  blocs.forEach((b) => guetteur.observe(b));
 }
 
 function annoncerPhotos(texte) {
