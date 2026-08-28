@@ -17,7 +17,10 @@
   <button type="button" id="bouton-accueil" class="lien-bandeau" aria-label="Revenir à ma session">
     <span id="bandeau-matiere">Mon contrôle</span>
   </button>
-  <span id="bandeau-compte" class="compte-a-rebours"></span>
+  <div class="bandeau-droite">
+    <span id="bandeau-compte" class="compte-a-rebours"></span>
+    <button type="button" id="bouton-espace" class="bouton-espace" aria-label="Ouvrir mon année">Mon année</button>
+  </div>
 </header>
 
 <main id="scene">
@@ -44,6 +47,7 @@
 
     <button type="button" class="principal" id="bouton-commencer">Commencer</button>
     <button type="button" class="discret" id="bouton-reprendre" hidden>Reprendre où j’en étais</button>
+    <button type="button" class="discret" id="bouton-mon-annee" hidden>Voir mon année</button>
     <p class="mention">Sans compte, sans mot de passe. Tout reste dans ton téléphone.</p>
     <p class="mention alerte-demo" id="mention-demo" hidden>Mode démonstration : contenus d’exemple, rien n’est analysé.</p>
   </div>
@@ -99,6 +103,55 @@
     <p>Tes photos et ton cours restent dans ton téléphone.</p>
   </footer>
 
+</section>
+
+<!-- MON ANNÉE — tout ce que l’élève a déjà fait, relu depuis son téléphone -->
+<section id="ecran-espace" class="ecran ecran-espace" hidden>
+
+  <!-- La carte d’élève : une carte de cantine, pas un profil public. -->
+  <div class="carte-eleve seyes">
+    <div class="carte-eleve-haut">
+      <button type="button" id="embleme" class="embleme" aria-label="Changer d’emblème">✏️</button>
+      <div class="carte-eleve-identite">
+        <label for="champ-prenom" class="masque">Ton prénom</label>
+        <input type="text" id="champ-prenom" class="champ-prenom" maxlength="24"
+               placeholder="Ton prénom" autocomplete="off" spellcheck="false">
+        <p class="carte-eleve-classe" id="carte-classe"></p>
+      </div>
+    </div>
+    <dl class="carte-eleve-chiffres" id="carte-chiffres"></dl>
+    <p class="carte-eleve-mention">Cette carte reste dans ce téléphone. Aucun compte, rien d’envoyé.</p>
+  </div>
+
+  <section class="bloc-espace" id="bloc-agenda">
+    <h2 class="titre-espace">Ton agenda</h2>
+    <ul class="agenda" id="liste-agenda"></ul>
+  </section>
+
+  <section class="bloc-espace" id="bloc-reviennent" hidden>
+    <h2 class="titre-espace">Ce qui ne tient pas encore</h2>
+    <p class="aide-espace">Une notion qui revient deux fois, c’est elle qu’il faut travailler — pas tout le chapitre.</p>
+    <ul class="reviennent" id="liste-reviennent"></ul>
+  </section>
+
+  <section class="bloc-espace" id="bloc-mes-fiches" hidden>
+    <h2 class="titre-espace">Tes fiches</h2>
+    <ul class="rangee-cartes" id="liste-mes-fiches"></ul>
+  </section>
+
+  <section class="bloc-espace" id="bloc-mes-controles" hidden>
+    <h2 class="titre-espace">Tes contrôles blancs</h2>
+    <ul class="rangee-cartes" id="liste-mes-controles"></ul>
+  </section>
+
+  <section class="bloc-espace" id="bloc-regularite" hidden>
+    <h2 class="titre-espace">Ta régularité</h2>
+    <p class="aide-espace" id="texte-regularite"></p>
+    <div class="frise" id="frise-regularite" aria-hidden="true"></div>
+  </section>
+
+  <button type="button" class="principal" id="bouton-nouveau-cours">Photographier un nouveau cours</button>
+  <button type="button" class="discret" id="bouton-quitter-espace">Revenir</button>
 </section>
 
 <!-- ÉTAPE 1a — le contexte -->

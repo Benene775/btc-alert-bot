@@ -70,6 +70,413 @@ function charger(sessionId) {
   }
 }
 
+/* ---------------------------------------------------------- mon année --- */
+
+/*
+ * « Mon année » rassemble tout ce que l'élève a fait : son agenda, ses fiches,
+ * ses contrôles blancs, et surtout ce qui ne tient pas encore.
+ *
+ * Ce n'est pas un profil de réseau social : pas de compte, pas de public, rien
+ * à montrer à personne. Tout est relu depuis ce téléphone, et rien n'en sort.
+ *
+ * L'inventaire se reconstruit en parcourant les sessions déjà écrites, sans
+ * index séparé : un index se désynchronise, et une séance supprimée y laisserait
+ * une ligne fantôme. La source de vérité reste les sessions elles-mêmes.
+ */
+const CLE_CARTE = 'cb.carte';
+
+function toutesLesSessions() {
+  const sessions = [];
+  let cles;
+  try { cles = Object.keys(localStorage); } catch (e) { return sessions; }
+  cles.forEach((cle) => {
+    if (cle.indexOf(CLE_ETAT) !== 0) return;
+    const session = charger(cle.slice(CLE_ETAT.length));
+    if (session) sessions.push(session);
+  });
+  // La plus récemment commencée d'abord.
+  return sessions.sort((a, b) => String(b.creeLe).localeCompare(String(a.creeLe)));
+}
+
+function nomMatiere(cle) {
+  const trouvee = (config.matieres || []).find((m) => m.cle === cle);
+  return trouvee ? trouvee.nom : (cle || 'Matière à préciser');
+}
+
+function joursAvant(dateISO) {
+  if (!dateISO) return null;
+  const jour = 24 * 60 * 60 * 1000;
+  const cible = new Date(dateISO + 'T00:00:00');
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.round((cible - today) / jour);
+}
+
+/* L'agenda : les contrôles à venir, le plus proche d'abord. Ceux qui sont
+ * passés descendent dans les séances terminées, ils n'ont plus rien à dire. */
+function agenda(sessions) {
+  return sessions
+    .filter((s) => s.dateControle && joursAvant(s.dateControle) >= 0)
+    .sort((a, b) => a.dateControle.localeCompare(b.dateControle));
+}
+
+/* Ce qui ne tient pas encore.
+ *
+ * Une notion signalée fragile une fois, c'est un accident. Deux fois, dans deux
+ * contrôles, c'est le vrai signal — et c'est la seule chose que ce produit peut
+ * dire qu'un cahier ne dit pas. On compte donc les répétitions, sans jamais en
+ * faire une note.
+ */
+function notionsQuiReviennent(sessions) {
+  const par = new Map();
+  sessions.forEach((session) => {
+    (session.controles || []).forEach((controle) => {
+      const fragiles = (controle.correction && controle.correction.notions_fragiles) || [];
+      fragiles.forEach((n) => {
+        const cle = (session.matiere || '') + ' — ' + n.notion;
+        const deja = par.get(cle);
+        if (deja) {
+          deja.fois += 1;
+          if (String(controle.le) > String(deja.le)) { deja.le = controle.le; deja.pourquoi = n.pourquoi; }
+        } else {
+          par.set(cle, { notion: n.notion, pourquoi: n.pourquoi || '', matiere: session.matiere,
+                         sessionId: session.sessionId, fois: 1, le: controle.le });
+        }
+      });
+    });
+  });
+  return Array.from(par.values())
+    .sort((a, b) => (b.fois - a.fois) || String(b.le).localeCompare(String(a.le)));
+}
+
+function toutesLesFiches(sessions) {
+  const fiches = [];
+  sessions.forEach((session) => {
+    (session.fiches || []).forEach((fiche, rang) => {
+      fiches.push({ session, rang, type: fiche.type, le: fiche.le,
+                    titre: (fiche.contenu && fiche.contenu.titre) || 'Fiche' });
+    });
+  });
+  return fiches.sort((a, b) => String(b.le).localeCompare(String(a.le)));
+}
+
+function tousLesControles(sessions) {
+  const controles = [];
+  sessions.forEach((session) => {
+    (session.controles || []).forEach((controle, rang) => {
+      controles.push({ session, rang, le: controle.le,
+                       titre: controle.titre || 'Contrôle blanc',
+                       questions: (controle.questions || []).length,
+                       fragiles: ((controle.correction && controle.correction.notions_fragiles) || []).length });
+    });
+  });
+  return controles.sort((a, b) => String(b.le).localeCompare(String(a.le)));
+}
+
+/* Les jours travaillés, pour la frise de régularité. Un jour compte dès qu'on y
+ * a fait quelque chose : commencé un cours, lu une fiche, passé un contrôle.
+ * On ne compte pas de série et on n'en fait pas un score — voir un mois qui se
+ * remplit suffit, et rater trois jours ne doit rien casser. */
+function joursTravailles(sessions) {
+  const jours = new Set();
+  sessions.forEach((session) => {
+    const marquer = (quand) => { if (quand) jours.add(String(quand).slice(0, 10)); };
+    marquer(session.creeLe);
+    (session.fiches || []).forEach((f) => marquer(f.le));
+    (session.controles || []).forEach((c) => marquer(c.le));
+  });
+  return jours;
+}
+
+/* La carte d'élève : un emblème et un prénom, choisis ici et gardés ici.
+ * Aucun compte, aucun envoi — c'est une carte de cantine, pas un profil. */
+const EMBLEMES = ['✏️', '📚', '🧭', '🔭', '🧪', '🎒', '🗺️', '🎧', '⚗️', '🪐', '🎨', '🧩'];
+
+function carte() {
+  try {
+    const brut = localStorage.getItem(CLE_CARTE);
+    if (brut) return JSON.parse(brut);
+  } catch (e) { /* carte illisible : on repart d'une neuve */ }
+  return { prenom: '', embleme: EMBLEMES[0] };
+}
+
+function garderCarte(valeurs) {
+  try { localStorage.setItem(CLE_CARTE, JSON.stringify(valeurs)); } catch (e) { /* quota plein */ }
+}
+
+/* --- Le rendu de « Mon année » ------------------------------------------ */
+
+function dateCourte(iso) {
+  if (!iso) return '';
+  const d = new Date(iso.length > 10 ? iso : iso + 'T00:00:00');
+  return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
+}
+
+function ligneJours(jours) {
+  if (jours === null) return '';
+  if (jours === 0) return "c'est aujourd'hui";
+  if (jours === 1) return "c'est demain";
+  return 'dans ' + jours + ' jours';
+}
+
+function dessinerEspace() {
+  const sessions = toutesLesSessions();
+  dessinerCarteEleve(sessions);
+  dessinerAgenda(sessions);
+  dessinerReviennent(sessions);
+  dessinerMesFiches(sessions);
+  dessinerMesControles(sessions);
+  dessinerRegularite(sessions);
+  soignerTypographie($('ecran-espace'));
+}
+
+function dessinerCarteEleve(sessions) {
+  const mienne = carte();
+  $('embleme').textContent = mienne.embleme || EMBLEMES[0];
+  $('champ-prenom').value = mienne.prenom || '';
+
+  const niveaux = [...new Set(sessions.map((s) => s.niveau).filter(Boolean))];
+  const matieres = [...new Set(sessions.map((s) => s.matiere).filter(Boolean))];
+  $('carte-classe').textContent = niveaux.length
+    ? niveaux.join(' · ') + ' — ' + matieres.length + (matieres.length > 1 ? ' matières' : ' matière')
+    : 'Ta première séance t’attend';
+
+  const chiffres = [
+    ['Cours', sessions.length],
+    ['Fiches', toutesLesFiches(sessions).length],
+    ['Contrôles blancs', tousLesControles(sessions).length],
+  ];
+  const boite = $('carte-chiffres');
+  boite.innerHTML = '';
+  chiffres.forEach(([libelle, valeur]) => {
+    const groupe = document.createElement('div');
+    groupe.className = 'carte-eleve-chiffre';
+    const dd = document.createElement('dd');
+    dd.textContent = String(valeur);
+    const dt = document.createElement('dt');
+    dt.textContent = libelle;
+    groupe.append(dd, dt);
+    boite.appendChild(groupe);
+  });
+}
+
+/* L'agenda passe avant tout le reste : ce qui compte, c'est le prochain
+ * contrôle, pas ce qui est déjà fait. */
+function dessinerAgenda(sessions) {
+  const prochains = agenda(sessions);
+  const liste = $('liste-agenda');
+  liste.innerHTML = '';
+
+  if (!prochains.length) {
+    const li = document.createElement('li');
+    li.className = 'agenda-vide';
+    li.textContent = sessions.length
+      ? 'Aucun contrôle à venir. Prends un cours en photo quand la prochaine date tombe.'
+      : 'Rien encore. Photographie ton premier cours et sa date apparaîtra ici.';
+    liste.appendChild(li);
+    return;
+  }
+
+  prochains.forEach((session, rang) => {
+    const jours = joursAvant(session.dateControle);
+    const li = document.createElement('li');
+    li.className = 'agenda-ligne';
+    li.dataset.urgence = jours <= 1 ? 'haute' : (jours <= 3 ? 'moyenne' : 'basse');
+    if (rang === 0) li.dataset.premier = 'oui';
+
+    const compte = document.createElement('span');
+    compte.className = 'agenda-compte';
+    compte.textContent = jours === 0 ? 'Jour J' : 'J−' + jours;
+
+    const corps = document.createElement('div');
+    const titre = document.createElement('p');
+    titre.className = 'agenda-matiere';
+    titre.textContent = nomMatiere(session.matiere);
+    const detail = document.createElement('p');
+    detail.className = 'agenda-detail';
+    const chapitres = (session.chapitres || []).length;
+    detail.textContent = dateCourte(session.dateControle) + ' · ' + ligneJours(jours)
+      + (chapitres ? ' · ' + chapitres + (chapitres > 1 ? ' chapitres' : ' chapitre') : '');
+    corps.append(titre, detail);
+
+    const aller = document.createElement('button');
+    aller.type = 'button';
+    aller.className = 'agenda-aller';
+    aller.textContent = 'Ouvrir';
+    aller.onclick = () => ouvrirSession(session.sessionId);
+
+    li.append(compte, corps, aller);
+    liste.appendChild(li);
+  });
+}
+
+function dessinerReviennent(sessions) {
+  const notions = notionsQuiReviennent(sessions);
+  $('bloc-reviennent').hidden = notions.length === 0;
+  const liste = $('liste-reviennent');
+  liste.innerHTML = '';
+  notions.slice(0, 8).forEach((n) => {
+    const li = document.createElement('li');
+    li.className = 'revient';
+    li.dataset.insistante = n.fois > 1 ? 'oui' : 'non';
+
+    const entete = document.createElement('div');
+    entete.className = 'revient-entete';
+    const titre = document.createElement('b');
+    titre.textContent = n.notion;
+    const compte = document.createElement('span');
+    compte.className = 'revient-fois';
+    compte.textContent = n.fois > 1 ? n.fois + ' fois' : '1 fois';
+    entete.append(titre, compte);
+
+    const matiere = document.createElement('p');
+    matiere.className = 'revient-matiere';
+    matiere.textContent = nomMatiere(n.matiere);
+
+    li.append(entete, matiere);
+    if (n.pourquoi) {
+      const pourquoi = document.createElement('p');
+      pourquoi.className = 'revient-pourquoi';
+      pourquoi.textContent = n.pourquoi;
+      li.appendChild(pourquoi);
+    }
+
+    const retester = document.createElement('button');
+    retester.type = 'button';
+    retester.className = 'revient-action';
+    retester.textContent = 'Me retester là-dessus';
+    retester.onclick = () => ouvrirSession(n.sessionId, () => lancerControle([n.notion]));
+    li.appendChild(retester);
+
+    liste.appendChild(li);
+  });
+}
+
+function dessinerMesFiches(sessions) {
+  const fiches = toutesLesFiches(sessions);
+  $('bloc-mes-fiches').hidden = fiches.length === 0;
+  const liste = $('liste-mes-fiches');
+  liste.innerHTML = '';
+  fiches.forEach((f, rang) => {
+    const li = carteRangee(rang, f.titre,
+      nomMatiere(f.session.matiere) + ' · ' + dateCourte(f.le),
+      f.type === 'ciblee' ? 'Fiche ciblée' : 'Fiche générale');
+    li.querySelector('button').onclick = () => ouvrirFicheGardee(f.session.sessionId, f.rang);
+    liste.appendChild(li);
+  });
+}
+
+function dessinerMesControles(sessions) {
+  const controles = tousLesControles(sessions);
+  $('bloc-mes-controles').hidden = controles.length === 0;
+  const liste = $('liste-mes-controles');
+  liste.innerHTML = '';
+  controles.forEach((c, rang) => {
+    const detail = c.questions + (c.questions > 1 ? ' questions' : ' question')
+      + (c.fragiles ? ' · ' + c.fragiles + ' à revoir' : '');
+    const li = carteRangee(rang, c.titre,
+      nomMatiere(c.session.matiere) + ' · ' + dateCourte(c.le), detail);
+    li.querySelector('button').onclick = () => ouvrirControleGarde(c.session.sessionId, c.rang);
+    liste.appendChild(li);
+  });
+}
+
+/* Une carte de rangée, reprise telle quelle par les fiches et les contrôles :
+ * ce sont deux listes du même objet, elles doivent se ressembler. */
+function carteRangee(rang, titre, dessous, etiquette) {
+  const li = document.createElement('li');
+  const bouton = document.createElement('button');
+  bouton.type = 'button';
+  bouton.className = 'carte-rangee';
+  bouton.dataset.teinte = String(rang % 6);
+
+  const marque = document.createElement('span');
+  marque.className = 'carte-rangee-etiquette';
+  marque.textContent = etiquette;
+
+  const nom = document.createElement('p');
+  nom.className = 'carte-rangee-titre';
+  nom.textContent = titre;
+
+  const bas = document.createElement('p');
+  bas.className = 'carte-rangee-bas';
+  bas.textContent = dessous;
+
+  bouton.append(marque, nom, bas);
+  li.appendChild(bouton);
+  return li;
+}
+
+/* La frise : huit semaines, un carré par jour. Pas de série, pas de score —
+ * on regarde un mois se remplir, et rater trois jours ne casse rien. */
+const SEMAINES_FRISE = 8;
+
+function dessinerRegularite(sessions) {
+  const jours = joursTravailles(sessions);
+  $('bloc-regularite').hidden = jours.size === 0;
+  if (!jours.size) return;
+
+  const frise = $('frise-regularite');
+  frise.innerHTML = '';
+  const aujourdhui = new Date();
+  aujourdhui.setHours(0, 0, 0, 0);
+
+  // Chaque colonne est une semaine : on remonte jusqu'au lundi qui précède,
+  // sinon les colonnes coupent les semaines n'importe où et ne veulent rien dire.
+  const depuisLundi = (aujourdhui.getDay() + 6) % 7;
+  const premier = new Date(aujourdhui.getTime() - (depuisLundi + (SEMAINES_FRISE - 1) * 7) * 86400000);
+  const cases = Math.round((aujourdhui - premier) / 86400000) + 1;
+
+  let comptes = 0;
+  for (let i = cases - 1; i >= 0; i--) {
+    const jour = new Date(aujourdhui.getTime() - i * 86400000);
+    const cle = jour.toISOString().slice(0, 10);
+    const case_ = document.createElement('i');
+    case_.className = 'case-frise';
+    if (jours.has(cle)) { case_.dataset.travaille = 'oui'; comptes += 1; }
+    if (i === 0) case_.dataset.aujourdhui = 'oui';
+    frise.appendChild(case_);
+  }
+  $('texte-regularite').textContent = comptes > 1
+    ? comptes + ' jours travaillés ces deux derniers mois.'
+    : 'Premier jour travaillé. Le reste se construit comme ça.';
+}
+
+/* --- Rouvrir ce qu'on retrouve ------------------------------------------ */
+
+/* Ouvrir depuis « Mon année » change de séance : l'état courant devient celui
+ * qu'on rouvre, pages du cahier comprises — sans quoi les vignettes d'une
+ * fiche pointeraient vers les photos d'un autre cours. */
+async function ouvrirSession(sessionId, ensuite) {
+  const trouve = charger(sessionId);
+  if (!trouve) return message("Cette séance n’est plus sur ce téléphone.", 'alerte');
+  etat = trouve;
+  sauver();
+  photosDuCours = await lirePages(sessionId);
+  if (ensuite) return ensuite();
+  reprendre();
+}
+
+async function ouvrirFicheGardee(sessionId, rang) {
+  await ouvrirSession(sessionId, () => {});
+  const gardee = (etat.fiches || [])[rang];
+  if (!gardee) return message("Cette fiche n’est plus disponible.", 'alerte');
+  afficherFiche(gardee.contenu, gardee.type);
+}
+
+async function ouvrirControleGarde(sessionId, rang) {
+  await ouvrirSession(sessionId, () => {});
+  const garde = (etat.controles || [])[rang];
+  if (!garde || !garde.correction) return message("Cette correction n’est plus disponible.", 'alerte');
+  afficherCorrection(garde.correction);
+}
+
+function ouvrirEspace() {
+  dessinerEspace();
+  montrer('ecran-espace');
+  tracer('espace', {});
+}
+
 /* ------------------------------------------------------- pages du cahier --- */
 
 /* La photo du cahier est ce que le produit a de plus précieux : c’est elle qui
@@ -178,12 +585,17 @@ function montrer(id) {
 
 function majBandeau(idEcran) {
   const bandeau = $('bandeau');
-  if (!etat || idEcran === 'ecran-accueil') { bandeau.hidden = true; return; }
+  // « Mon année » se consulte même sans séance en cours : elle relit l'historique.
+  const dansEspace = idEcran === 'ecran-espace';
+  if (idEcran === 'ecran-accueil' || (!etat && !dansEspace)) { bandeau.hidden = true; return; }
   bandeau.hidden = false;
-  const matiere = (config.matieres.find((m) => m.cle === etat.matiere) || {}).nom;
-  $('bandeau-matiere').textContent = matiere || 'Mon contrôle';
-  $('bandeau-compte').textContent = texteCompteARebours();
-  $('bandeau-compte').hidden = !etat.dateControle;
+  const matiere = etat && (config.matieres.find((m) => m.cle === etat.matiere) || {}).nom;
+  $('bandeau-matiere').textContent = dansEspace ? 'Contrôle blanc' : (matiere || 'Mon contrôle');
+  $('bandeau-compte').textContent = etat ? texteCompteARebours() : '';
+  $('bandeau-compte').hidden = dansEspace || !etat || !etat.dateControle;
+  // Depuis « Mon année », le bouton du bandeau ramène à la séance en cours.
+  $('bouton-espace').textContent = dansEspace ? 'Ma séance' : 'Mon année';
+  $('bouton-espace').hidden = dansEspace && !etat;
 }
 
 function joursAvantControle() {
@@ -268,6 +680,7 @@ async function initialiser() {
   if (derniere && charger(derniere)) {
     $('bouton-reprendre').hidden = false;
   }
+  $('bouton-mon-annee').hidden = toutesLesSessions().length === 0;
   montrer('ecran-accueil');
   armerRevelations();
   armerCopie();
@@ -1768,6 +2181,27 @@ document.addEventListener('DOMContentLoaded', () => {
   $('champ-date').min = new Date().toISOString().slice(0, 10);
 
   $('bouton-commencer').onclick = () => demarrerSession();
+  $('bouton-mon-annee').onclick = () => ouvrirEspace();
+  $('bouton-espace').onclick = () => {
+    if (document.getElementById('ecran-espace').hidden) return ouvrirEspace();
+    if (etat) reprendre();
+  };
+  $('bouton-quitter-espace').onclick = () => {
+    if (etat) return reprendre();
+    montrer('ecran-accueil');
+  };
+  $('bouton-nouveau-cours').onclick = () => demarrerSession();
+
+  // La carte d'élève : deux réglages, gardés ici et nulle part ailleurs.
+  $('champ-prenom').oninput = (evenement) => {
+    garderCarte({ ...carte(), prenom: evenement.target.value.trim() });
+  };
+  $('embleme').onclick = () => {
+    const actuel = carte();
+    const suivant = EMBLEMES[(EMBLEMES.indexOf(actuel.embleme) + 1) % EMBLEMES.length];
+    garderCarte({ ...actuel, embleme: suivant });
+    $('embleme').textContent = suivant;
+  };
   $('bouton-reprendre').onclick = () => {
     const derniere = localStorage.getItem(CLE_DERNIERE);
     const trouve = derniere && charger(derniere);
