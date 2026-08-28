@@ -369,26 +369,134 @@ function reduirePhoto(fichier) {
   });
 }
 
+/* L'ordre des pages n'est pas décidé ici : c'est celui dans lequel le téléphone
+ * a livré les fichiers, et la spécification HTML ne le garantit pas — selon
+ * l'appareil et l'application photos, c'est l'ordre de sélection, celui de la
+ * galerie, ou la date de prise de vue.
+ *
+ * Tant que les photos ne servaient qu'à produire du texte, ça se voyait peu :
+ * le modèle recollait le cours au sens. Depuis que chaque partie de la fiche
+ * renvoie à une page précise, une page mal placée ouvre la mauvaise feuille,
+ * sans rien dire. L'élève doit pouvoir corriger — d'où le numéro visible et la
+ * poignée ci-dessous.
+ */
 function dessinerPhotos() {
   const liste = $('liste-photos');
+  const total = photosEnAttente.length;
   liste.innerHTML = '';
   photosEnAttente.forEach((photo, index) => {
     const element = document.createElement('li');
+    element.dataset.rang = String(index);
+    element.tabIndex = 0;
+    element.setAttribute('aria-label', 'Page ' + (index + 1) + ' sur ' + total);
+
     const image = document.createElement('img');
     image.src = photo.apercu;
-    image.alt = 'Page ' + (index + 1);
+    image.alt = '';
+
+    const numero = document.createElement('span');
+    numero.className = 'numero-page';
+    numero.textContent = String(index + 1);
+    numero.setAttribute('aria-hidden', 'true');
+
     const retirer = document.createElement('button');
     retirer.type = 'button';
     retirer.textContent = '×';
     retirer.setAttribute('aria-label', 'Retirer la page ' + (index + 1));
     retirer.onclick = () => { photosEnAttente.splice(index, 1); dessinerPhotos(); };
-    element.append(image, retirer);
+
+    element.append(image, numero, retirer);
+
+    if (total > 1) {
+      const poignee = document.createElement('button');
+      poignee.type = 'button';
+      poignee.className = 'poignee';
+      poignee.textContent = '⇅';
+      poignee.setAttribute('aria-label', 'Déplacer la page ' + (index + 1));
+      element.appendChild(poignee);
+      armerGlissement(element, poignee, index);
+      // Au clavier, les flèches font le même travail que la poignée.
+      element.onkeydown = (evenement) => {
+        const pas = { ArrowLeft: -1, ArrowUp: -1, ArrowRight: 1, ArrowDown: 1 }[evenement.key];
+        if (!pas) return;
+        evenement.preventDefault();
+        if (deplacerPage(index, index + pas)) {
+          const arrivee = liste.children[index + pas];
+          if (arrivee) arrivee.focus();
+        }
+      };
+    }
+
     liste.appendChild(element);
   });
-  $('bouton-analyser').disabled = photosEnAttente.length === 0;
-  $('bouton-analyser').textContent = photosEnAttente.length > 1
-    ? 'Analyser mes ' + photosEnAttente.length + ' pages'
+  $('aide-ordre').hidden = total < 2;
+  $('bouton-analyser').disabled = total === 0;
+  $('bouton-analyser').textContent = total > 1
+    ? 'Analyser mes ' + total + ' pages'
     : 'Analyser mon cours';
+}
+
+function annoncerPhotos(texte) {
+  const zone = $('annonce-photos');
+  if (zone) zone.textContent = texte;
+}
+
+function deplacerPage(depuis, vers) {
+  if (vers < 0 || vers >= photosEnAttente.length || vers === depuis) return false;
+  const [photo] = photosEnAttente.splice(depuis, 1);
+  photosEnAttente.splice(vers, 0, photo);
+  dessinerPhotos();
+  annoncerPhotos('Page déplacée en position ' + (vers + 1) + ' sur ' + photosEnAttente.length + '.');
+  return true;
+}
+
+let glisse = null;
+
+function armerGlissement(element, poignee, rang) {
+  poignee.onpointerdown = (evenement) => {
+    evenement.preventDefault();
+    const liste = $('liste-photos');
+    glisse = {
+      element,
+      rang,
+      cible: rang,
+      x0: evenement.clientX,
+      y0: evenement.clientY,
+      // Les rectangles sont figés au départ : rien ne bouge dans la grille
+      // pendant le déplacement, seule la vignette tirée suit le doigt.
+      rects: Array.from(liste.children).map((el) => el.getBoundingClientRect()),
+    };
+    element.dataset.deplace = 'oui';
+    liste.dataset.glisse = 'oui';
+    poignee.setPointerCapture(evenement.pointerId);
+  };
+
+  poignee.onpointermove = (evenement) => {
+    if (!glisse) return;
+    const dx = evenement.clientX - glisse.x0;
+    const dy = evenement.clientY - glisse.y0;
+    glisse.element.style.transform = 'translate(' + dx + 'px,' + dy + 'px) scale(1.06)';
+    const cible = glisse.rects.findIndex((r) => evenement.clientX >= r.left
+      && evenement.clientX <= r.right && evenement.clientY >= r.top && evenement.clientY <= r.bottom);
+    if (cible === -1 || cible === glisse.cible) return;
+    glisse.cible = cible;
+    Array.from($('liste-photos').children).forEach((el, i) => {
+      el.dataset.cible = i === cible && i !== glisse.rang ? 'oui' : 'non';
+    });
+  };
+
+  const finir = () => {
+    if (!glisse) return;
+    const { rang: depuis, cible } = glisse;
+    glisse.element.style.transform = '';
+    glisse.element.dataset.deplace = 'non';
+    $('liste-photos').dataset.glisse = 'non';
+    glisse = null;
+    if (cible !== depuis) deplacerPage(depuis, cible);
+    else dessinerPhotos();
+  };
+  poignee.onpointerup = finir;
+  poignee.onpointercancel = finir;
 }
 
 async function analyser() {

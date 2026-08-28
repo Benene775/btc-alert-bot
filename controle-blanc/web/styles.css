@@ -485,6 +485,72 @@ select {
 
 .vignettes li[data-illisible="oui"] img { border: 2px solid var(--rouge); }
 
+/* --- Remettre les pages dans l'ordre ------------------------------------ */
+
+/* Le numéro n'est pas décoratif : c'est celui qu'on retrouvera plus tard sous
+   chaque partie de la fiche (« ton cahier · page 3 »). Il doit être lisible
+   avant l'analyse, sinon l'élève ne peut pas voir qu'il est faux. */
+.numero-page {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 12px;
+  background: rgba(22, 32, 58, .85);
+  color: #fff;
+  font-family: var(--mono);
+  font-size: .72rem;
+  display: grid;
+  place-items: center;
+}
+
+/* Une poignée plutôt qu'un appui long sur toute la vignette : « touch-action:
+   none » y bloque le défilement, et on ne veut le bloquer que sur 30 px, pas
+   sur une grille qui remplit l'écran. */
+/* « .vignettes button » est plus spécifique que « .poignee » : sans le sélecteur
+   complet, la poignée héritait de « top: 5px » et venait recouvrir la croix
+   « retirer », qui devenait intouchable. */
+.vignettes .poignee {
+  position: absolute;
+  top: auto;
+  bottom: 5px;
+  right: 5px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 0;
+  background: rgba(22, 32, 58, .85);
+  color: #fff;
+  font-size: .9rem;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  touch-action: none;
+  cursor: grab;
+}
+
+.vignettes li:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 10px;
+}
+
+.vignettes li[data-deplace="oui"] {
+  z-index: 5;
+  opacity: .92;
+  filter: drop-shadow(0 12px 20px rgba(0, 0, 0, .3));
+}
+
+.vignettes li[data-cible="oui"] img {
+  border: 2px dashed var(--accent);
+  opacity: .55;
+}
+
+/* Pendant le déplacement, la croix « retirer » ne doit pas capter le doigt. */
+.vignettes[data-glisse="oui"] button:not(.poignee) { pointer-events: none; }
+
 /* --- Chapitres ---------------------------------------------------------- */
 
 .chapitres { list-style: none; padding: 0; margin: 0 0 12px; }

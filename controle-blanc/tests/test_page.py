@@ -67,3 +67,31 @@ def test_le_cours_transmis_au_modele_porte_les_frontieres_de_page():
     assert "[[page N]]" in bloc, "rien n'explique la marque au modèle qui la lit"
     assert "[[page N]]" in prompts.ANALYSE_SYSTEME, "l'analyse ne produit pas les marques"
     assert "[[page N]]" in prompts.FICHE_GENERALE_CONSIGNE, "la fiche ne s'appuie pas dessus"
+
+
+def test_l_ordre_des_pages_est_visible_et_corrigeable():
+    """L'ordre vient du téléphone, pas du produit : l'élève doit pouvoir le corriger.
+
+    Depuis que chaque partie de la fiche renvoie à une page précise, une page
+    mal placée ouvre la mauvaise feuille sans rien dire.
+    """
+    assert 'id="aide-ordre"' in PAGE, "rien ne dit à l'élève que l'ordre compte"
+    assert 'id="annonce-photos"' in PAGE, "aucune annonce pour les lecteurs d'écran"
+    assert "numero-page" in SCRIPT and ".numero-page" in STYLE, "le numéro de page n'est pas affiché"
+    assert "function deplacerPage" in SCRIPT, "aucun déplacement de page"
+    assert "setPointerCapture" in SCRIPT, "le glissement ne suit pas le doigt"
+    assert "ArrowLeft" in SCRIPT and "ArrowRight" in SCRIPT, "pas de déplacement au clavier"
+
+
+def test_seule_la_poignee_bloque_le_defilement():
+    """« touch-action: none » sur la grille entière rendrait la page impossible à faire défiler."""
+    import re
+
+    poignee = re.search(r"\.vignettes \.poignee \{[^}]*\}", STYLE)
+    assert poignee, "la poignée doit être stylée via « .vignettes .poignee »"
+    assert "touch-action: none" in poignee.group(0)
+    # « .vignettes button » est plus spécifique : sans « top: auto », la poignée
+    # se replaçait en haut à droite et recouvrait la croix « retirer ».
+    assert "top: auto" in poignee.group(0), "la poignée recouvrirait la croix « retirer »"
+    grille = re.search(r"\.vignettes \{[^}]*\}", STYLE)
+    assert "touch-action" not in grille.group(0), "la grille ne doit pas bloquer le défilement"
