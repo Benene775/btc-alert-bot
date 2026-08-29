@@ -11,6 +11,11 @@ Trois pannes réelles sont derrière ces tests.
 3. La politique de sécurité de `netlify.toml` interdisait `blob:` aux images :
    la page marchait, mais les vignettes du cahier disparaissaient — la promesse
    du produit, cassée en silence.
+4. La publication lance `site.py _site` depuis la racine du dépôt. Ce chemin
+   relatif était interprété depuis `controle-blanc/`, et la fabrication mourait
+   sur un `FileNotFoundError`. En local on passait toujours un chemin absolu :
+   invisible ici, fatal sur la machine de GitHub. D'où un test qui appelle
+   l'outil exactement comme la publication le fait.
 """
 
 from __future__ import annotations
@@ -102,3 +107,30 @@ def test_le_deploiement_ne_publie_que_les_demonstrations():
     netlify = (DEPOT / "netlify.toml").read_text(encoding="utf-8")
     assert 'publish = "_site"' in netlify
     assert "ANTHROPIC_API_KEY" not in netlify
+
+
+def test_la_fabrication_marche_comme_la_publication_l_appelle(tmp_path, monkeypatch):
+    """`python controle-blanc/outils/site.py _site`, depuis la racine du dépôt,
+    avec un chemin de sortie relatif. C'est la commande exacte du workflow — et
+    c'est celle qui échouait pendant que tous les tests passaient, parce qu'ils
+    passaient tous un chemin absolu."""
+    monkeypatch.chdir(tmp_path)
+    # On recrée la situation : la racine du dépôt est ailleurs, la sortie est
+    # relative au dossier courant.
+    fait = subprocess.run(
+        [sys.executable, str(RACINE / "outils" / "site.py"), "_site"],
+        capture_output=True, text=True, cwd=tmp_path)
+    assert fait.returncode == 0, fait.stderr
+
+    produit = tmp_path / "_site"
+    assert produit.is_dir(), "le dossier de sortie n'est pas là où on l'a demandé"
+    for page in ("index.html", "espagnol.html", "histoire.html"):
+        assert (produit / page).exists(), f"{page} manque"
+        assert (produit / page).stat().st_size > 1000
+
+
+def test_le_workflow_appelle_l_outil_comme_le_test_le_verifie():
+    """Si la commande du workflow change, le test ci-dessus ne vérifie plus rien.
+    On s'assure que les deux parlent bien de la même chose."""
+    workflow = (DEPOT / ".github" / "workflows" / "demos.yml").read_text(encoding="utf-8")
+    assert "python controle-blanc/outils/site.py _site" in workflow

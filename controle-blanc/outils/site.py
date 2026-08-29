@@ -151,7 +151,12 @@ def main() -> int:
     analyseur = argparse.ArgumentParser(description="Fabrique le site des démonstrations.")
     analyseur.add_argument("sortie", nargs="?", default=str(RACINE / "_site"))
     arguments = analyseur.parse_args()
-    sortie = Path(arguments.sortie)
+    # « .resolve() » n'est pas cosmétique : artefact.py est lancé avec cwd=RACINE,
+    # donc un chemin relatif donné depuis la racine du dépôt (« _site », ce que
+    # fait la publication) serait interprété depuis controle-blanc/ et pointerait
+    # sur un dossier qui n'existe pas. En local on passait toujours un chemin
+    # absolu — d'où un bug invisible ici et fatal sur la machine de GitHub.
+    sortie = Path(arguments.sortie).resolve()
     sortie.mkdir(parents=True, exist_ok=True)
 
     for cle, *_ in DEMOS:
