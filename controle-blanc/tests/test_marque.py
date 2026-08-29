@@ -118,8 +118,13 @@ def test_l_ancien_nom_ne_traine_plus_comme_nom_de_produit():
         assert debut.startswith(premiere_ligne), f"{fichier.name} s'ouvre sur « {debut} »"
     api = (RACINE / "app" / "main.py").read_text(encoding="utf-8")
     assert 'FastAPI(title="Repère"' in api
+    # Le titre est calculé, pas écrit en dur : on regarde donc de quoi il est
+    # fait, pas la ligne qui l'assemble. Un test collé au texte source cassait
+    # dès qu'on touchait à la mise en forme, sans que le produit change.
     fabrique = (RACINE / "outils" / "artefact.py").read_text(encoding="utf-8")
-    assert "<title>Repère — " in fabrique
+    assert 'titre = "Repère"' in fabrique
+    assert 'f"Repère — {TITRES' in fabrique
+    assert "Contrôle blanc" not in fabrique.replace("controle-blanc", "")
 
 
 def test_la_demonstration_autonome_porte_la_marque_et_ne_demande_rien():

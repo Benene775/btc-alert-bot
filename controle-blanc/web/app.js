@@ -1329,6 +1329,10 @@ function dessinerRegularite(sessions) {
   const jours = joursTravailles(sessions);
   const frise = $('frise-regularite');
   frise.innerHTML = '';
+  // Rien à montrer : on retire le bloc au lieu d'en garder le cadre. Sur la
+  // page d'un compte tout neuf — le premier écran que voit un élève — c'était
+  // 95 px de papier réglé vide sous trois zéros.
+  $('bloc-frise').hidden = !jours.size;
   if (!jours.size) {
     $('texte-regularite').textContent = 'Ta frise se remplira à chaque séance.';
     $('frise-legende').textContent = '';
@@ -1717,9 +1721,13 @@ async function ouvrirLaPorte(reponse) {
   menageSessions();
   const suite = apresEntree;
   apresEntree = null;
-  if (suite === 'espace') return ouvrirEspace();
+  // Une date posée dans l'agenda dit déjà quoi et quand : on ne redemande pas.
   if (suite && suite.agenda) return demarrerSession(suite.agenda);
-  return demarrerSession();
+  // Partout ailleurs, on arrive chez soi. Aller droit au questionnaire mettait
+  // l'élève au travail avant de lui montrer où il est — et créait au passage
+  // une séance vide, avant même qu'on ait demandé la matière. Sa page porte le
+  // bouton pour commencer ; elle est le point de départ, pas un détour.
+  return ouvrirEspace();
 }
 
 /* Le prénom et la classe donnés à l’inscription servent tout de suite : la carte

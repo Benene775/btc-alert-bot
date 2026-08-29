@@ -84,6 +84,8 @@ def main() -> int:
     # Lu par faux-serveur.js au moment de l'inscription : avec ce drapeau, aucun
     # classeur factice n'est semé et l'élève arrive sur une page perso vide.
     vierge = "const DEMO_VIERGE = true;\n\n" if arguments.vierge else ""
+    titre = "Repère" if arguments.vierge else (
+        f"Repère — {TITRES.get(arguments.contenu, arguments.contenu.capitalize())}")
 
     corps = html.split("<body>", 1)[1].split("</body>", 1)[0]
     corps = corps.replace('<script src="/app.js"></script>', "").strip()
@@ -96,8 +98,10 @@ def main() -> int:
         '<meta charset="utf-8">\n'
         # Les deux démonstrations portaient le même titre : dans une galerie
         # d'artefacts, elles apparaissaient comme deux entrées identiques et
-        # rien ne disait laquelle contenait quel cours.
-        f"<title>Repère — {TITRES.get(arguments.contenu, arguments.contenu.capitalize())}</title>\n"
+        # rien ne disait laquelle contenait quel cours. Le site public, lui, est
+        # seul et vierge : y accrocher « — Histoire » annoncerait dans l'onglet
+        # un cours que la page ne contient pas.
+        f"<title>{titre}</title>\n"
         '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n'
         f"{icone.group(0)}\n"
         f"<style>\n{polices}\n{styles}\n</style>\n\n{corps}\n\n"
