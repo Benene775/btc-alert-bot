@@ -16,6 +16,45 @@ blanc » reste le nom de l'épreuve, pas celui du site.
 
 ---
 
+## Mettre en ligne
+
+Deux choses très différentes, à ne pas confondre.
+
+### Les démonstrations : oui, tout de suite
+
+`python3 outils/site.py _site` fabrique trois fichiers HTML autonomes — une page de
+choix et les deux démonstrations. Aucun serveur, aucune clé d'API, aucune donnée
+d'élève, aucune requête sortante. Ça se pose n'importe où.
+
+* **GitHub Pages** — `.github/workflows/demos.yml` s'en charge. À activer une fois :
+  *Settings → Pages → Source : GitHub Actions*. Le site sort ensuite sur
+  `https://<compte>.github.io/<dépôt>/` à chaque poussée sur `main`.
+* **Netlify** — `netlify.toml` à la racine. *Add new site → Import an existing project*,
+  choisir le dépôt : Netlify lit le fichier, il n'y a rien à régler.
+
+Le workflow fait tourner les tests avant de publier : on ne met pas en ligne une
+démonstration fabriquée à partir d'un code cassé.
+
+### Le produit : ni sur Pages, ni sur Netlify
+
+Repère a un serveur Python qui garde les comptes, appelle le modèle, tient les quotas
+et garde le corrigé hors de portée du navigateur. GitHub Pages ne sert que des
+fichiers. Netlify ne fait tourner que des fonctions courtes, sans disque persistant —
+donc sans SQLite.
+
+Il lui faut un hébergement qui exécute du Python avec un disque : Railway, Render,
+Fly.io, Scaleway, ou une petite machine virtuelle. Et, avant d'ouvrir à de vrais
+élèves :
+
+| | |
+|---|---|
+| `ANTHROPIC_API_KEY` | Sans elle, `CB_DEMO_MODE` reste à 1 et rien n'est analysé pour de bon |
+| Le coût réel par élève | Jamais mesuré : `outils/essai.py` n'a pas pu tourner faute de clé |
+| `CB_SMTP_HOTE` | Sinon « mot de passe oublié » ne fonctionne pas |
+| Un vrai domaine en HTTPS | Le cookie de connexion ne passe en `Secure` qu'en HTTPS |
+| Le consentement parental | Voir plus haut : ce n'est pas une option pour des collégiens |
+
+
 ## Le parcours, tel qu'il est codé
 
 | # | Étape | Où c'est |

@@ -1,0 +1,68 @@
+# Publie les démonstrations de Repère sur GitHub Pages.
+#
+# Ce qui est publié : trois fichiers HTML autonomes (une page de choix et les
+# deux démonstrations). Aucun serveur, aucune clé d'API, aucune donnée d'élève.
+#
+# Ce qui n'est PAS publié : le produit. Repère a un serveur Python — comptes,
+# lecture des photos, correction, quotas — qui ne peut pas tourner sur un
+# hébergement de fichiers. Voir controle-blanc/README.md.
+#
+# Pour activer : Settings → Pages → Source : « GitHub Actions ». Le site sort
+# ensuite sur https://<compte>.github.io/<dépôt>/ à chaque poussée sur main.
+
+name: Démonstrations
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'controle-blanc/web/**'
+      - 'controle-blanc/outils/**'
+      - '.github/workflows/demos.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Une seule publication à la fois ; on ne coupe pas celle qui est en cours.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  fabriquer:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # Rien à installer : artefact.py et site.py ne tapent que dans la
+      # bibliothèque standard. Le jour où ça change, ça se verra ici.
+      # On ne publie pas une démonstration fabriquée à partir d'un code cassé.
+      - name: Vérifier que les tests passent
+        run: |
+          python -m pip install --quiet -r controle-blanc/requirements.txt \
+                                        -r controle-blanc/requirements-dev.txt
+          cd controle-blanc && python -m pytest tests/ -q
+
+      - name: Fabriquer le site
+        run: python controle-blanc/outils/site.py _site
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  publier:
+    needs: fabriquer
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.pages.outputs.page_url }}
+    steps:
+      - id: pages
+        uses: actions/deploy-pages@v4
