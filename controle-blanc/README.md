@@ -111,10 +111,14 @@ Ce que ça demande, dans l'ordre où ça se construit.
 fiches, contrôles et corrections) tient dans quelques dizaines de kilo-octets, soit moins
 d'un mégaoctet pour une année entière. Le stocker est gratuit à l'échelle d'un test.
 
-Les **photos du cahier** sont une autre affaire : au format que le produit fabrique
-(1568 px de côté, JPEG qualité 0.82), une page tourne autour de 200 à 400 Ko — cent fois
-le reste. Quatre pages par cours, dix cours par trimestre, c'est ~10 Mo par élève et par
-trimestre. Ce n'est pas le coût qui décide, c'est ce que ça change : voir plus bas.
+Les **photos du cahier** montent aussi — décidé. Au format que le produit fabrique
+(1568 px de côté, JPEG qualité 0.82), une page tourne autour de 200 à 400 Ko, cent fois le
+reste : quatre pages par cours, dix cours par trimestre, ~10 Mo par élève et par
+trimestre. Le coût n'est pas le sujet ; ce que ça engage l'est (point 4).
+
+C'est aussi ce qui rend la promesse tenable : sans les photos, un élève qui change de
+téléphone retrouve ses fiches mais plus le fragment de cahier qui les justifie — or c'est
+exactement ce qui distingue ce produit d'un générateur de fiches.
 
 **2. Le modèle de synchronisation.** Une séance entière, écrasée par la plus récente
 (`maj_le` en UTC). Pas de fusion champ par champ : c'est un élève, sur un ou deux
@@ -132,15 +136,24 @@ doit pas avoir à comprendre qu'il s'est passé quelque chose.
 
 **4. Ce que ça change côté données personnelles — le vrai sujet.** Aujourd'hui le serveur
 détient une adresse, un prénom, une classe. Après, il détiendra **le cours d'un enfant,
-ses réponses, et éventuellement des photos de son cahier** — parfois avec son nom écrit
-dessus, et l'écriture d'un mineur identifiable. Ce n'est pas la même ligne au registre des
-traitements, et le consentement parental cesse d'être une précaution pour devenir la
-condition d'ouverture. À prévoir avec : un contrat de sous-traitance avec l'hébergeur, une
-durée de conservation écrite (l'année scolaire, puis effacement), et le chiffrement au
-repos.
+ses réponses, et les photos de son cahier** — parfois avec son nom écrit dessus, et
+l'écriture d'un mineur identifiable. Ce n'est pas la même ligne au registre des
+traitements.
 
-C'est pour ça que les photos sont une décision à part : le texte d'un cours d'histoire est
-anodin, une photo de cahier ne l'est pas.
+Ce qui devient obligatoire, et non plus recommandé :
+
+- le **consentement d'un titulaire de l'autorité parentale** avant l'ouverture du compte,
+  et non plus « à prévoir un jour » ;
+- un **contrat de sous-traitance** avec l'hébergeur (article 28 du RGPD), et un hébergement
+  dans l'Union ;
+- le **chiffrement au repos** des photos, et un accès qui passe par le compte — pas une URL
+  devinable ;
+- une **durée de conservation écrite** : l'année scolaire, puis effacement automatique ;
+- l'**export** de son classeur par l'élève, en plus de l'effacement qui existe déjà.
+
+Aucun de ces cinq points n'est du code compliqué. Ils sont simplement plus difficiles à
+ajouter après coup qu'à poser en même temps que le stockage — d'où cette liste ici, avant
+la première ligne.
 
 **5. Ce qui ne change pas.** Les quotas restent côté serveur, le corrigé du contrôle en
 cours reste hors de portée du navigateur, et il n'y a toujours aucune note.
