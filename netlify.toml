@@ -1,7 +1,8 @@
-# Publie les démonstrations de Repère sur Netlify.
+# Publie le site de Repère sur Netlify.
 #
-# Ce qui est publié : trois fichiers HTML autonomes (une page de choix et les
-# deux démonstrations). Aucun serveur, aucune clé d'API, aucune donnée d'élève.
+# Ce qui est publié : une page HTML autonome — la page d'accueil de Repère, où
+# le contrôle éclair se joue sans compte, et où l'on peut s'inscrire pour voir
+# la suite. Aucun serveur, aucune clé d'API, aucune donnée d'élève.
 #
 # Ce qui n'est PAS publié : le produit. Repère a un serveur Python — comptes,
 # lecture des photos, correction, quotas — que Netlify ne peut pas héberger

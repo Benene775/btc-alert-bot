@@ -1972,7 +1972,7 @@ async function initialiser() {
     montrer(depuisLien ? 'ecran-connexion' : 'ecran-accueil');
     if (depuisLien) exigerEntree(null);
     armerRevelations();
-    armerCopie();
+    armerEclair();
     return;
   }
 
@@ -2007,7 +2007,7 @@ async function initialiser() {
   dessinerRonds();
   montrer('ecran-accueil');
   armerRevelations();
-  armerCopie();
+  armerEclair();
 }
 
 function remplirSelecteur(selecteur, valeurs, defaut) {
@@ -2209,34 +2209,189 @@ function armerRevelations() {
   blocs.forEach((b) => guetteur.observe(b));
 }
 
-/* La copie corrigée de l'accueil : l'annotation du prof s'écrit, et la feuille
- * prend la lumière du curseur.
+/* Le contrôle éclair de la page d'accueil : le produit, jouable avant même de
+ * s'inscrire.
  *
- * Tout part d'ici et pas de la feuille de style, pour la même raison que les
- * révélations : si le script ne tourne pas, l'annotation est simplement là.
+ * Ce qu'il fait : on prête un extrait de cours, on pose trois questions dessus,
+ * et on rend ce que Repère rend vraiment — à l'endroit exact où n'importe quel
+ * quiz afficherait « 2/3 », on nomme les notions fragiles et l'endroit du cours
+ * où les relire. La règle du produit se démontre au lieu de s'annoncer.
+ *
+ * Tout est écrit dans la page : aucune requête, aucun modèle appelé, donc rien
+ * à payer par visiteur — et ça marche hors ligne.
+ *
+ * L'état masqué est posé ici, jamais dans la feuille de style. L'application
+ * entière demande JavaScript, donc ce n'est pas pour les navigateurs qui le
+ * bloquent : c'est pour que cette fonction, si elle échoue ou n'est jamais
+ * appelée, laisse une carte qui se lit — l'extrait et les trois questions —
+ * plutôt qu'un cadre vide au milieu de la page d'accueil.
  */
-function armerCopie() {
-  const copie = document.querySelector('.copie');
-  if (!copie) return;
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+function armerEclair() {
+  const eclair = $('eclair');
+  if (!eclair) return;
+  const questions = [...eclair.querySelectorAll('.eclair-q')];
+  if (questions.length !== 3) return;
 
-  const ecrire = () => {
-    copie.dataset.ecrit = 'non';
-    // Deux trames : la première pose l'état caché, la seconde le relâche —
-    // sans quoi le navigateur regroupe les deux et ne transitionne pas.
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      copie.dataset.ecrit = 'oui';
-    }));
+  const jauge = [...$('eclair-jauge').children];
+  const verdict = $('eclair-verdict');
+  const rouvrir = $('eclair-rouvrir');
+  const cours = $('eclair-cours');
+  // Au large, l'extrait ne se replie pas : il n'a pas à céder la place.
+  const auLarge = () => window.matchMedia('(min-width: 900px)').matches;
+  const glisse = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ? 'auto' : 'smooth';
+
+  // À partir d'ici seulement la page cache : avant, tout était lisible.
+  questions.forEach((q) => { q.hidden = true; });
+
+  const ratees = [];
+  let rang = -1;
+
+  /* Le bouton qui fait avancer. Il porte le geste suivant, jamais « suivant ». */
+  function bouton(texte, principal, suite) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = principal ? 'principal eclair-suite' : 'secondaire eclair-suite';
+    b.textContent = texte;
+    b.onclick = suite;
+    return b;
+  }
+
+  function poserQuestion() {
+    // La question qu'on quitte se replie sur une ligne. Trois questions
+    // corrigées dépliées faisaient une carte de 4 000 px : on scrollait dans
+    // ses propres réponses pour trouver le verdict. C'est le geste de l'écran
+    // de correction du produit, où une question repliée tient en une ligne.
+    if (rang >= 0 && questions[rang]) questions[rang].dataset.replie = 'oui';
+    rang += 1;
+    if (rang >= questions.length) return direCeQuiManque();
+
+    // La jauge n'apparaît qu'avec la première question : trois traits vides
+    // au-dessus d'un cours qu'on est en train de lire ne mesurent rien.
+    $('eclair-jauge').hidden = false;
+    if (rang === 0 && !auLarge()) {
+      // L'extrait se replie, mais reste à un doigt : retourner à son cours est
+      // exactement le geste que le produit demande partout ailleurs.
+      cours.hidden = true;
+      rouvrir.hidden = false;
+    }
+    questions[rang].hidden = false;
+    jauge[rang].dataset.etat = 'courante';
+    // On ne saute au questionnaire que si l'élève a déjà répondu une fois :
+    // au premier passage il vient de cliquer, il sait où il est.
+    if (rang > 0) questions[rang].scrollIntoView({ block: 'nearest', behavior: glisse });
+  }
+
+  function repondre(question, choisi) {
+    const choix = [...question.querySelectorAll('.eclair-choix button')];
+    if (choix.some((b) => b.dataset.etat)) return;   // déjà répondu
+    const juste = choisi.dataset.juste === 'oui';
+
+    choix.forEach((b) => {
+      if (b === choisi) b.dataset.etat = juste ? 'juste' : 'faux';
+      else if (b.dataset.juste === 'oui') b.dataset.etat = 'ratee';
+      else b.dataset.etat = 'ecartee';
+      b.disabled = true;
+    });
+
+    jauge[rang].dataset.etat = juste ? 'juste' : 'faux';
+    question.dataset.juste = juste ? 'oui' : 'non';
+    if (!juste) ratees.push(question);
+
+    // L'annotation du prof s'écrit de gauche à droite, comme une main qui
+    // passe. Deux trames : la première pose l'état caché, la seconde le
+    // relâche — sans quoi le navigateur regroupe les deux et ne transitionne
+    // pas du tout.
+    const note = document.createElement('p');
+    note.className = 'eclair-note';
+    note.dataset.juste = juste ? 'oui' : 'non';
+    note.dataset.ecrit = 'non';
+    note.textContent = choisi.dataset.note;
+    question.appendChild(note);
+    requestAnimationFrame(() => requestAnimationFrame(() => { note.dataset.ecrit = 'oui'; }));
+
+    const dernière = rang === questions.length - 1;
+    question.appendChild(bouton(
+      dernière ? 'Voir ce qui me manque' : 'Question suivante', dernière, poserQuestion));
+  }
+
+  function direCeQuiManque() {
+    verdict.hidden = false;
+    verdict.innerHTML = '';
+
+    const titre = document.createElement('p');
+    titre.className = 'eclair-verdict-titre';
+    verdict.appendChild(titre);
+
+    if (ratees.length) {
+      titre.textContent = ratees.length === 1
+        ? 'Une notion à revoir avant le contrôle'
+        : ratees.length + ' notions à revoir avant le contrôle';
+      const liste = document.createElement('ul');
+      liste.className = 'eclair-liste';
+      ratees.forEach((q) => {
+        const li = document.createElement('li');
+        li.className = 'eclair-manque';
+        const nom = document.createElement('b');
+        nom.textContent = q.dataset.notion;
+        const ou = document.createElement('span');
+        ou.textContent = '→ à relire : ' + q.dataset.ou;
+        li.append(nom, ou);
+        liste.appendChild(li);
+      });
+      verdict.appendChild(liste);
+
+      const acquises = questions.length - ratees.length;
+      if (acquises) {
+        const bon = document.createElement('p');
+        bon.className = 'eclair-acquis';
+        bon.textContent = acquises === 1
+          ? '✓ Une notion est acquise, on n’y revient pas.'
+          : '✓ ' + acquises + ' notions sont acquises, on n’y revient pas.';
+        verdict.appendChild(bon);
+      }
+    } else {
+      titre.textContent = 'Les trois notions sont acquises.';
+      const bon = document.createElement('p');
+      bon.className = 'eclair-acquis';
+      bon.textContent = '✓ Rien à revoir sur cet extrait.';
+      verdict.appendChild(bon);
+    }
+
+    // La règle du produit, écrite là où elle compte le plus : à la place exacte
+    // où un quiz aurait mis une note.
+    const regle = document.createElement('p');
+    regle.className = 'eclair-sans-note';
+    regle.innerHTML = ratees.length
+      ? '<b>Pas de note</b> — ni ici, ni ailleurs. Repère te dit ce qu’il te reste '
+        + 'à revoir et où le relire, pas ce que tu vaudrais.'
+      : '<b>Pas de note</b> — ni ici, ni ailleurs. Sur ton cours à toi, les questions '
+        + 'seront plus dures : elles sortent de tes pages, pas d’un extrait choisi.';
+    verdict.appendChild(regle);
+
+    verdict.appendChild(bouton('Faire pareil avec mon cours', true, () => demarrerSession()));
+    verdict.scrollIntoView({ block: 'nearest', behavior: glisse });
+  }
+
+  questions.forEach((question) => {
+    question.querySelectorAll('.eclair-choix button').forEach((b) => {
+      b.onclick = () => repondre(question, b);
+    });
+  });
+
+  rouvrir.onclick = () => {
+    const replie = cours.hidden;
+    cours.hidden = !replie;
+    $('eclair-fleche').textContent = replie ? '↓' : '↑';
+    $('eclair-rouvrir-mot').textContent = replie ? 'Replier le cours' : 'Relire le cours';
   };
 
-  // On cache tout de suite, on écrit après : attendre pour cacher ferait
-  // apparaître l'annotation, disparaître, puis se réécrire.
-  copie.dataset.ecrit = 'non';
-  // La phrase du prof est la chute du héros : elle arrive après lui.
-  setTimeout(() => { copie.dataset.ecrit = 'oui'; }, 900);
-
-  if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
-  copie.addEventListener('mouseenter', ecrire);
+  // Le premier geste : lire l'extrait, puis se lancer. Il vit ici et pas dans
+  // la page parce que sans script il ne mènerait nulle part.
+  eclair.appendChild(bouton('Je me lance', true, function () {
+    this.remove();
+    poserQuestion();
+  }));
 }
 
 /* Les surfaces qui prennent la lumière du curseur.
@@ -2245,7 +2400,7 @@ function armerCopie() {
  * un test vérifie qu'elles ne divergent pas, faute de quoi on ajouterait une
  * carte d'un côté sans l'autre et elle resterait mate sans qu'on le voie.
  */
-const ECLAIRABLES = '.copie, .case-carrefour, .argument, .chapitres li,'
+const ECLAIRABLES = '.eclair-cours, .case-carrefour, .chapitres li,'
   + ' .carte-fiche, .tuile, .carte-correction, .fragiles, .document,'
   + ' .rappel, .lien-reprise, .zone-photos';
 

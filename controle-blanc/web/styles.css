@@ -349,61 +349,365 @@ h3 {
 
 .hero .principal { margin-top: 28px; }
 
-/* La copie corrigée : la thèse du produit en un seul objet.
-   Marge rouge à gauche, écriture bleue de l'élève, annotation du prof. */
-.copie {
-  display: flex;
-  margin: 6px 0 0;
+/* --- Le contrôle éclair -------------------------------------------------
+ *
+ * Le cœur de la page publique. Décrire ce que fait Repère demandait quatre
+ * blocs de texte ; le faire faire demande quarante secondes. On prête un
+ * extrait de cours, on pose trois questions dessus, et on rend ce que le
+ * produit rend vraiment — à l'endroit précis où n'importe quel quiz afficherait
+ * « 2/3 », on nomme les notions fragiles et l'endroit du cours où les relire.
+ *
+ * Toute la mécanique reprend le vocabulaire de l'application : la feuille
+ * réglée, le filet rouge de la marge, l'annotation du prof qui s'écrit. Ce
+ * n'est pas une page de vente qui imite le produit, c'est le produit.
+ */
+
+.bloc-eclair { scroll-margin-top: 76px; }
+
+.eclair {
   background: var(--carte);
-  border: 0;
-  /* Une feuille n'a pas les coins ronds d'une carte d'interface. */
-  border-radius: 3px;
-  overflow: hidden;
+  border-radius: var(--rayon-carte);
   box-shadow: var(--ombre-carte);
-}
-
-.copie-marge {
-  flex: 0 0 46px;
-  border-right: 1.5px solid color-mix(in srgb, var(--rouge) 45%, transparent);
-  background: color-mix(in srgb, var(--rouge-doux) 55%, var(--carte));
+  padding: var(--e4) var(--e3) var(--e3);
   display: flex;
-  justify-content: center;
-  padding-top: 18px;
+  flex-direction: column;
+  gap: var(--e3);
+  /* Les étapes se remplacent à hauteur variable : sans quoi la page saute d'un
+     coup sous le doigt à chaque réponse. */
+  transition: none;
 }
 
-.copie-numero {
+.eclair-tete { display: flex; flex-direction: column; gap: var(--e1); }
+
+.eclair-titre {
+  font-family: var(--titre);
+  font-weight: 600;
+  font-size: 1.32rem;
+  line-height: 1.15;
+  letter-spacing: -.015em;
+  margin: 0;
+}
+
+.eclair-annonce {
+  margin: 0;
+  color: var(--encre-douce);
+  font-size: .92rem;
+}
+
+/* Trois traits, pas trois chiffres : on montre l'avancement, jamais un score
+   en train de se construire. Le vert et l'ambre disent seulement ce qui est
+   déjà répondu. */
+.eclair-jauge {
+  list-style: none;
+  margin: var(--e1) 0 0;
+  padding: 0;
+  display: flex;
+  gap: 6px;
+}
+
+.eclair-jauge li {
+  height: 4px;
+  flex: 1;
+  border-radius: 2px;
+  background: var(--trait);
+  transition: background .4s ease;
+}
+
+.eclair-jauge li[data-etat="courante"] { background: var(--trait-fort); }
+.eclair-jauge li[data-etat="juste"] { background: var(--acquis); }
+.eclair-jauge li[data-etat="faux"] { background: var(--partiel); }
+
+/* L'extrait prêté. Une feuille posée sur la table, très légèrement de travers :
+   une feuille ne tombe jamais droite. */
+.eclair-cours {
+  margin: 0;
+  position: relative;
+  background: var(--papier);
+  border: 1px solid var(--trait);
+  border-radius: 4px;
+  overflow: hidden;
+  transform: rotate(-.35deg);
+}
+
+.eclair-etiquette {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--e2);
+  padding: 10px var(--e3) 8px;
+  border-bottom: 1px solid var(--trait);
+  background: color-mix(in srgb, var(--accent-doux) 45%, var(--carte));
+}
+
+.eclair-matiere {
   font-family: var(--mono);
+  font-size: .74rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.eclair-source {
+  font-size: .74rem;
+  color: var(--encre-douce);
+}
+
+/* Le filet rouge de la marge, comme sur une copie double. */
+.eclair-feuille {
+  padding: var(--e2) var(--e3) var(--e3) calc(var(--e3) + 14px);
+  border-left: 1.5px solid var(--marge);
+  margin-left: 22px;
+  background-position: 0 4px;
+}
+
+.eclair-feuille h3 {
+  font-family: var(--titre);
+  font-size: 1.02rem;
+  margin: 0 0 8px;
+}
+
+.eclair-feuille p {
+  margin: 0;
+  font-size: .93rem;
+  line-height: 1.62;
+}
+
+/* Pendant les questions, l'extrait se replie en une pastille : il reste à un
+   doigt, parce que retourner à son cours est exactement le geste du produit. */
+.eclair-rouvrir {
+  align-self: flex-start;
+  background: var(--accent-doux);
+  color: var(--accent);
+  border: 0;
+  border-radius: 999px;
+  padding: 8px 16px;
+  font: inherit;
+  font-size: .84rem;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 38px;
+}
+
+.eclair-rouvrir:hover { background: color-mix(in srgb, var(--accent) 18%, var(--carte)); }
+
+.eclair-questions {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--e2);
+}
+
+.eclair-q { display: flex; flex-direction: column; gap: var(--e2); }
+
+.eclair-enonce {
+  margin: 0;
+  font-family: var(--titre);
+  font-weight: 600;
+  font-size: 1.12rem;
+  line-height: 1.3;
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+}
+
+/* Le numéro de la question est écrit dans le rouge de la marge : c'est le
+   chiffre que le prof entoure. */
+.eclair-rang {
+  flex: 0 0 auto;
+  font-family: var(--mono);
+  font-weight: 400;
   font-size: .82rem;
   color: var(--rouge);
+  min-width: 14px;
 }
 
-.copie-corps {
-  padding: var(--e3);
-  flex: 1;
-  min-width: 0;
-  background-position: 0 6px;
+/* Repliée, une question se réduit à son énoncé et à la marque de ce qu'on a
+   répondu. On garde la trace sans garder la place — c'est ce que fait déjà
+   l'écran de correction du produit. */
+.eclair-q[data-replie="oui"] { gap: 0; }
+.eclair-q[data-replie="oui"] .eclair-choix,
+.eclair-q[data-replie="oui"] .eclair-note,
+.eclair-q[data-replie="oui"] .eclair-suite { display: none; }
+
+.eclair-q[data-replie="oui"] .eclair-enonce {
+  font-family: var(--texte);
+  font-weight: 400;
+  font-size: .92rem;
+  color: var(--encre-douce);
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--trait);
+  align-items: center;
 }
 
-.copie-question {
+.eclair-q[data-replie="oui"] .eclair-enonce::after {
+  margin-left: auto;
+  padding-left: 10px;
+  font-size: .95rem;
+}
+
+.eclair-q[data-replie="oui"][data-juste="oui"] .eclair-enonce::after {
+  content: "✓";
+  color: var(--acquis);
+}
+
+.eclair-q[data-replie="oui"][data-juste="non"] .eclair-enonce::after {
+  content: "✗";
+  color: var(--rouge);
+}
+
+.eclair-choix { display: flex; flex-direction: column; gap: 10px; }
+
+/* Des cibles au pouce : 3 réponses, une par ligne, jamais deux colonnes sur
+   un téléphone — un choix de travers se paie en confiance. */
+.eclair-choix button {
+  text-align: left;
+  font: inherit;
+  font-size: .95rem;
+  line-height: 1.4;
+  color: var(--encre);
+  background: var(--papier);
+  border: 1.5px solid var(--trait);
+  border-radius: var(--rayon);
+  padding: 13px 44px 13px 15px;
+  min-height: 52px;
+  cursor: pointer;
+  position: relative;
+  transition: border-color .18s ease, background .18s ease, transform .18s ease;
+}
+
+.eclair-choix button:hover:not([data-etat]) {
+  border-color: var(--trait-fort);
+  background: var(--carte);
+}
+
+.eclair-choix button:active:not([data-etat]) { transform: scale(.988); }
+
+/* Une fois répondu, les trois lignes disent quelque chose : celle qu'on a
+   prise, celle qu'il fallait prendre, et les autres qui s'effacent. */
+.eclair-choix button[data-etat] { cursor: default; }
+
+.eclair-choix button[data-etat="juste"] {
+  border-color: var(--acquis);
+  background: var(--acquis-doux);
+}
+
+.eclair-choix button[data-etat="faux"] {
+  border-color: var(--rouge);
+  background: var(--rouge-doux);
+}
+
+/* La bonne réponse, quand on ne l'a pas prise : elle se montre sans se
+   féliciter — trait plein, fond neutre. */
+.eclair-choix button[data-etat="ratee"] {
+  border-color: var(--acquis);
+  border-style: dashed;
+}
+
+.eclair-choix button[data-etat="ecartee"] { opacity: .45; }
+
+.eclair-choix button[data-etat]::after {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.eclair-choix button[data-etat="juste"]::after { content: "✓"; color: var(--acquis); }
+.eclair-choix button[data-etat="faux"]::after { content: "✗"; color: var(--rouge); }
+.eclair-choix button[data-etat="ratee"]::after { content: "✓"; color: var(--acquis); opacity: .55; }
+
+/* L'annotation du prof : elle s'écrit de gauche à droite, comme une main qui
+   passe, pas comme un bloc qui s'allume. */
+.eclair-note {
+  margin: 2px 0 0;
+  padding-left: 13px;
+  border-left: 2px solid color-mix(in srgb, var(--rouge) 40%, transparent);
+  color: var(--rouge);
+  font-size: .89rem;
+  line-height: 1.5;
+  transition: clip-path .8s cubic-bezier(.25, .8, .35, 1);
+}
+
+.eclair-note[data-juste="oui"] {
+  color: var(--acquis);
+  border-left-color: color-mix(in srgb, var(--acquis) 45%, transparent);
+}
+
+.eclair-note[data-ecrit="non"] { clip-path: inset(0 100% 0 0); }
+
+.eclair-suite { margin-top: 2px; }
+
+/* Le verdict. Pas un score : ce qu'il reste à revoir, et où. */
+.eclair-verdict { display: flex; flex-direction: column; gap: var(--e2); }
+
+.eclair-verdict-titre {
+  font-family: var(--titre);
+  font-weight: 600;
+  font-size: 1.24rem;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.eclair-liste { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+
+.eclair-manque {
+  background: var(--partiel-doux);
+  border-left: 3px solid var(--partiel);
+  border-radius: 0 var(--rayon) var(--rayon) 0;
+  padding: 11px 14px;
+}
+
+.eclair-manque b { font-weight: 600; font-size: .95rem; }
+
+.eclair-manque span {
+  display: block;
+  margin-top: 3px;
   font-size: .84rem;
   color: var(--encre-douce);
-  margin: 0 0 10px;
 }
 
-.copie-reponse {
-  font-family: var(--manuscrit);
-  font-size: 1.5rem;
-  line-height: 1.25;
-  color: var(--stylo-eleve);
-  margin: 0 0 14px;
-}
-
-.copie-note {
-  font-size: .85rem;
-  color: var(--rouge);
+.eclair-acquis {
+  font-size: .88rem;
+  color: var(--acquis);
   margin: 0;
-  padding-left: 12px;
-  border-left: 2px solid color-mix(in srgb, var(--rouge) 40%, transparent);
+}
+
+/* La règle du produit, écrite là où on l'attend le moins et où elle compte le
+   plus : à la place de la note. */
+.eclair-sans-note {
+  margin: var(--e1) 0 0;
+  padding-top: var(--e2);
+  border-top: 1px solid var(--trait);
+  font-size: .88rem;
+  color: var(--encre-douce);
+}
+
+.eclair-sans-note b { color: var(--encre); font-weight: 600; }
+
+.eclair-verdict .principal { margin-top: var(--e1); }
+
+@media (prefers-reduced-motion: reduce) {
+  .eclair-note { transition: none; }
+  .eclair-note[data-ecrit="non"] { clip-path: none; }
+  .eclair-jauge li { transition: none; }
+  .eclair-choix button { transition: none; }
+}
+
+/* Au large, l'extrait ne se replie jamais : il n'a pas à céder la place, donc
+   la pastille « relire » ne sert plus à rien. C'est le script qui en décide,
+   pas une règle qui viendrait contredire « hidden ». */
+@media (min-width: 900px) {
+  .eclair { padding: var(--e5) var(--e4) var(--e4); }
+  .eclair-titre { font-size: 1.5rem; }
+  .eclair-enonce { font-size: 1.2rem; }
+  .eclair-feuille p { font-size: .97rem; }
+  /* Au pouce, un bouton pleine largeur se vise sans regarder ; à la souris,
+     une barre de 800 px pour deux mots n'a plus de sens. */
+  .eclair-suite, .eclair-verdict .principal { width: auto; min-width: 240px; }
 }
 
 .bloc { display: flex; flex-direction: column; }
@@ -434,13 +738,6 @@ h3 {
 }
 
 .deroule p { margin: 0; color: var(--encre-douce); font-size: .94rem; }
-
-.argument {
-  padding-left: 16px;
-  border-left: 2px solid var(--trait-fort);
-}
-
-.argument p { margin: 0; color: var(--encre-douce); font-size: .94rem; }
 
 .pied {
   border-top: 1px solid var(--trait);
@@ -1799,15 +2096,10 @@ h1 {
   font-variation-settings: "opsz" 120;
 }
 
-/* La copie corrigée : la thèse du produit en un objet. Elle est posée sur la
-   table, très légèrement de travers — une feuille ne tombe jamais droite. */
-.copie {
-  position: relative;
-  transform: rotate(-.5deg);
-}
-
-.copie::before {
-  /* le pli d'une feuille qu'on a pliée en deux dans son sac */
+/* Le pli d'une feuille qu'on a pliée en deux dans son sac. Sur l'extrait
+   prêté par la page d'accueil, c'est ce qui le fait lire comme du papier et
+   non comme un encadré de site web. */
+.eclair-cours::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -2389,44 +2681,6 @@ h1 {
 
 .deroule { gap: var(--e4); }
 
-/* Empilés, les trois arguments coûtaient un écran et demi sur un téléphone.
-   Ils défilent latéralement, comme les cartes de fiche et les rangées de
-   « Ma page » : c'est le geste que le produit emploie partout. */
-.arguments {
-  display: flex;
-  /* Explicitement en ligne : une règle plus haut posait la colonne, et sans
-     cette déclaration les trois cartes s'empilaient malgré le défilement. */
-  flex-direction: row;
-  gap: var(--e2);
-  overflow-x: auto;
-  scroll-snap-type: x proximity;
-  scrollbar-width: none;
-  margin-inline: calc(-1 * var(--e3));
-  padding: 2px var(--e3) var(--e2);
-}
-
-.arguments::-webkit-scrollbar { display: none; }
-
-.argument {
-  flex: 0 0 min(74vw, 300px);
-  scroll-snap-align: start;
-}
-
-/* Chaque argument devient une carte teintée : la page publique annonce déjà
-   la matière de l'outil, on reconnaît le produit avant d'être entré dedans. */
-.argument {
-  padding: var(--e4);
-  border: 0;
-  border-radius: var(--rayon-carte);
-  background: var(--t0);
-  box-shadow: var(--ombre-carte);
-}
-
-.arguments .argument:nth-child(2) { background: var(--t3); }
-.arguments .argument:nth-child(3) { background: var(--t4); }
-
-.argument h3 { font-size: 1.06rem; margin-bottom: var(--e1); }
-
 .pied {
   border-top: 1px solid var(--trait);
   padding-top: var(--e3);
@@ -2481,30 +2735,8 @@ h1 {
 :root[data-revelations="oui"] .a-reveler[data-vu="oui"] { opacity: 1; transform: none; }
 
 @media (prefers-reduced-motion: reduce) {
-  .hero > *, .copie { animation: none; transform: none; }
+  .hero > *, .eclair-cours { animation: none; transform: none; }
   .a-reveler { opacity: 1; transform: none; transition: none; }
-}
-
-/* --- La copie : l'annotation s'écrit ------------------------------------
- *
- * C'est la thèse du produit en un geste : le prof passe derrière, souligne, et
- * renvoie au cours. Le trait rouge de la marge apparaît d'abord, le mot suit —
- * comme une main qui écrit, pas comme un bloc qui s'allume.
- *
- * Elle se joue une fois à l'arrivée, pour que l'élève au téléphone la voie
- * aussi, et se rejoue au survol pour qui a une souris.
- */
-.copie-note {
-  transition: clip-path .85s cubic-bezier(.25, .8, .35, 1);
-}
-
-.copie[data-ecrit="non"] .copie-note {
-  clip-path: inset(0 100% 0 0);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .copie-note { transition: none; }
-  .copie[data-ecrit="non"] .copie-note { clip-path: none; }
 }
 
 /* --- Ma page ----------------------------------------------------------
@@ -3507,12 +3739,12 @@ h1 {
  */
 
 /* liste-eclairables */
-.copie, .case-carrefour, .argument, .chapitres li, .carte-fiche, .tuile,
+.eclair-cours, .case-carrefour, .chapitres li, .carte-fiche, .tuile,
 .carte-correction, .fragiles, .document, .rappel, .lien-reprise, .zone-photos {
   position: relative;
 }
 
-.copie::after, .case-carrefour::after, .argument::after, .chapitres li::after,
+.eclair-cours::after, .case-carrefour::after, .chapitres li::after,
 .carte-fiche::after, .tuile::after, .carte-correction::after, .fragiles::after,
 .document::after, .rappel::after, .lien-reprise::after, .zone-photos::after {
   content: "";
@@ -3529,29 +3761,12 @@ h1 {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .copie::after, .case-carrefour::after, .argument::after, .chapitres li::after,
+  .eclair-cours::after, .case-carrefour::after, .chapitres li::after,
   .carte-fiche::after, .tuile::after, .carte-correction::after, .fragiles::after,
   .document::after, .rappel::after, .lien-reprise::after, .zone-photos::after {
     display: none;
   }
 }
-
-/* --- Une bande, pour respirer -------------------------------------------
- *
- * Sans rupture, quatre sections sur le même fond se lisent comme une liste.
- * La bande donne un temps fort au milieu de la page.
- */
-.bande {
-  background: var(--t5);
-  border-radius: var(--rayon-carte);
-  padding: var(--e5) var(--e4);
-  margin-inline: calc(-1 * var(--e2));
-}
-
-.bande .titre-bloc { border-bottom-color: color-mix(in srgb, var(--encre) 12%, transparent); }
-.bande .argument { background: color-mix(in srgb, var(--carte) 72%, transparent); }
-.bande .arguments .argument:nth-child(2),
-.bande .arguments .argument:nth-child(3) { background: color-mix(in srgb, var(--carte) 72%, transparent); }
 
 /* --- La fin de la page --------------------------------------------------- */
 
@@ -3595,13 +3810,13 @@ h1 {
     transform: translateY(-1px);
   }
 
-  .secondaire:hover, .case-carrefour:hover, .argument:hover {
+  .secondaire:hover, .case-carrefour:hover {
     transform: translateY(-2px);
     box-shadow: 0 2px 4px color-mix(in srgb, var(--encre) 9%, transparent),
                 0 22px 44px -22px color-mix(in srgb, var(--encre) 38%, transparent);
   }
 
-  .case-carrefour, .argument {
+  .case-carrefour {
     transition: transform .18s ease, box-shadow .18s ease;
   }
 
@@ -3611,19 +3826,19 @@ h1 {
 
   .bouton-marque:hover { border-color: var(--accent); }
 
-  /* La copie se redresse et s'éclaire quand on la regarde de près. */
-  .copie {
+  /* L'extrait se redresse et s'éclaire quand on le regarde de près. */
+  .eclair-cours {
     transition: transform .4s cubic-bezier(.2, .7, .3, 1),
                 box-shadow .4s ease;
   }
 
-  .copie:hover {
+  .eclair-cours:hover {
     transform: rotate(0deg) translateY(-3px);
     box-shadow: 0 3px 6px color-mix(in srgb, var(--encre) 9%, transparent),
                 0 36px 70px -34px color-mix(in srgb, var(--encre) 50%, transparent);
   }
 
-  .copie:hover::after, .case-carrefour:hover::after, .argument:hover::after,
+  .eclair-cours:hover::after, .case-carrefour:hover::after,
   .chapitres li:hover::after, .carte-fiche:hover::after, .tuile:hover::after,
   .carte-correction:hover::after, .fragiles:hover::after, .document:hover::after,
   .rappel:hover::after, .lien-reprise:hover::after, .zone-photos:hover::after {
@@ -3679,14 +3894,14 @@ h1 {
  * L'équivalent tactile, c'est l'appui : tout ce qu'on peut toucher doit
  * répondre sous le doigt, sinon l'interface paraît morte là où elle compte.
  */
-.case-carrefour:active, .argument:active, .chapitres li:active { transform: scale(.985); }
+.case-carrefour:active, .chapitres li:active { transform: scale(.985); }
 .provenance:active { transform: scale(.97); }
 .vignettes li:active { transform: scale(.97); }
 .deroule li:active .deroule-numero { transform: scale(.92); }
 .bouton-marque:active, .reveler:active { transform: scale(.96); }
 
 .provenance, .bouton-marque, .reveler, .chapitres li,
-.case-carrefour, .argument, .vignettes li, .deroule-numero {
+.case-carrefour, .vignettes li, .deroule-numero {
   transition: transform .12s ease, background .2s ease, border-color .2s ease;
 }
 
@@ -3695,7 +3910,7 @@ h1 {
  * Qui navigue au clavier doit voir la même chose que qui survole : sans ça,
  * l'interface s'anime pour les uns et reste plate pour les autres.
  */
-.case-carrefour:focus-visible, .argument:focus-visible {
+.case-carrefour:focus-visible {
   transform: translateY(-2px);
 }
 
@@ -3707,7 +3922,7 @@ h1 {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .case-carrefour, .argument, .chapitres li, .provenance, .vignettes li,
+  .case-carrefour, .chapitres li, .provenance, .vignettes li,
   .deroule li, .carte-fiche, .carte-chiffre, .provenance-vignette, .poignee,
   .bouton-marque, .reveler {
     transition: none !important;
@@ -3762,52 +3977,24 @@ h1 {
   #scene { padding-top: var(--e5); }
   .carrefour { grid-template-columns: 1fr 1fr; }
   /* À partir de 700 px les trois tiennent côte à côte : plus besoin de défiler. */
-  .arguments { overflow-x: visible; margin-inline: 0; padding-inline: 0; }
-  .argument { flex: 1 1 0; }
   .deroule { flex-direction: row; gap: var(--e4); }
   .deroule li { flex: 1; flex-direction: column; gap: var(--e2); align-items: flex-start; }
   .deroule-numero { flex: 0 0 auto; }
-  .bande { padding: var(--e6) var(--e5); margin-inline: calc(-1 * var(--e4)); }
-  .copie-reponse { font-size: 1.7rem; }
   .pied { font-size: .9rem; }
 }
 
 @media (min-width: 900px) {
-  /* Le héros se lit en deux temps : la thèse à gauche, la preuve à droite.
-     La copie corrigée cesse d'être une illustration sous le texte et devient
-     ce qu'on regarde en premier. */
-  .hero {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
-    grid-template-areas:
-      "marque copie"
-      "titre  copie"
-      "chapeau copie"
-      "action copie"
-      "mention copie"
-      "demo   copie";
-    align-content: start;
-    column-gap: var(--e6);
-    row-gap: var(--e3);
-    align-items: start;
-  }
-
-  .hero .marque   { grid-area: marque; }
-  .hero h1        { grid-area: titre; }
-  .hero .chapeau  { grid-area: chapeau; }
-  .hero .copie    { grid-area: copie; align-self: center; }
-  .hero-actions { grid-area: action; align-items: flex-start; }
+  /* Le héros tenait la thèse à gauche et la copie corrigée à droite. La preuve
+     n'est plus une image posée à côté du texte : c'est le contrôle éclair,
+     juste en dessous, et il se joue. Le héros redevient donc une colonne — le
+     chapeau reste borné, parce qu'une ligne de 1120 px ne se lit plus. */
+  .hero .chapeau { max-width: 54ch; }
   .hero-rangee .principal { width: auto; min-width: 260px; flex: 0 0 auto; }
+  .hero-actions { align-items: flex-start; }
   .hero-actions .discret { width: auto; }
-  .hero .mention  { grid-area: mention; text-align: left; margin: 0; }
-  .hero #mention-demo { grid-area: demo; }
+  .hero .mention { text-align: left; margin: 0; }
 
   h1 { font-size: clamp(3rem, 4.4vw, 4rem); }
-
-  .copie { transform: rotate(-1.2deg); box-shadow: 0 2px 4px color-mix(in srgb, var(--encre) 8%, transparent),
-             0 30px 60px -30px color-mix(in srgb, var(--encre) 45%, transparent); }
-  .copie-corps { padding: var(--e4); }
-  .copie-question { font-size: .92rem; }
 
   /* La page prend la marge d'un cahier : le filet rouge à gauche, et les
      intitulés de section posés dedans, là où un professeur écrit. */
@@ -3839,7 +4026,7 @@ h1 {
     top: var(--e5);
   }
 
-  .arguments, .deroule { grid-column: 2; }
+  .deroule, .eclair { grid-column: 2; }
   .titre-bloc { grid-column: 1; grid-row: 1; }
 
   .pied { padding-top: var(--e4); }
