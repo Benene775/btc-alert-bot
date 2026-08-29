@@ -344,10 +344,39 @@
 
     <dl class="annee-chiffres" id="carte-chiffres"></dl>
 
-    <div class="annee-frise" id="bloc-frise">
-      <div class="frise" id="frise-regularite" aria-hidden="true"></div>
-      <p class="frise-legende" id="frise-legende"></p>
+    <!-- La frise EST la porte de l'agenda. Les deux disent la même chose sous
+         deux échelles : une grille de semaines, une grille de jours. On clique
+         sur l'année, le mois se déplie dessous. L'invite reste écrite en clair
+         sous la frise — au doigt il n'y a pas de survol pour la découvrir. -->
+    <div class="annee-agenda" id="bloc-frise">
+      <button type="button" class="frise-porte" id="bouton-agenda"
+              aria-expanded="false" aria-controls="agenda-deplie">
+        <span class="frise" id="frise-regularite" aria-hidden="true"></span>
+        <span class="frise-pied">
+          <span class="frise-legende" id="frise-legende"></span>
+          <span class="frise-invite">
+            <span class="frise-invite-mot" id="frise-invite-mot">Ouvrir l’agenda</span>
+            <span class="pan-compte" id="compte-agenda"></span>
+            <span class="frise-chevron" aria-hidden="true">⌄</span>
+          </span>
+        </span>
+      </button>
       <p class="masque" id="texte-regularite"></p>
+
+      <div class="agenda-deplie" id="agenda-deplie" hidden>
+        <div class="agenda-dedans">
+          <div class="mois-barre">
+            <button type="button" id="mois-precedent" class="mois-fleche" aria-label="Mois précédent">‹</button>
+            <p class="mois-titre" id="mois-titre" aria-live="polite"></p>
+            <button type="button" id="mois-suivant" class="mois-fleche" aria-label="Mois suivant">›</button>
+          </div>
+          <div class="jours-semaine" aria-hidden="true">
+            <span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span>
+          </div>
+          <div class="mois" id="mois-grille"></div>
+          <div class="jour-detail" id="jour-detail"></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -383,26 +412,6 @@
     <p class="pan-vide" id="vide-matieres" hidden>Photographie ton premier cours : il s’installera ici.</p>
   </section>
 
-  <!-- L'agenda, replié : la prochaine échéance est déjà en haut de page. -->
-  <details class="pan pan-pliant" id="pan-agenda">
-    <summary class="pan-tete-pliante">
-      <h2 class="pan-titre">Ton agenda</h2>
-      <span class="pan-compte" id="compte-agenda"></span>
-      <span class="pan-chevron" aria-hidden="true">⌄</span>
-    </summary>
-    <div class="pan-corps">
-      <div class="mois-barre">
-        <button type="button" id="mois-precedent" class="mois-fleche" aria-label="Mois précédent">‹</button>
-        <p class="mois-titre" id="mois-titre" aria-live="polite"></p>
-        <button type="button" id="mois-suivant" class="mois-fleche" aria-label="Mois suivant">›</button>
-      </div>
-      <div class="jours-semaine" aria-hidden="true">
-        <span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span>
-      </div>
-      <div class="mois" id="mois-grille"></div>
-      <div class="jour-detail" id="jour-detail"></div>
-    </div>
-  </details>
 
   <button type="button" class="principal" id="bouton-espace-nouveau">Photographier un nouveau cours</button>
   <button type="button" class="discret" id="bouton-quitter-espace">Revenir</button>

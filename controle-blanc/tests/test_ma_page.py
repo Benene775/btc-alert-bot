@@ -161,12 +161,51 @@ def test_la_matiere_est_la_structure_de_la_page():
         assert attendu in tuile, f"la tuile ne montre pas « {attendu} »"
 
 
-def test_l_agenda_reste_atteignable_sans_encombrer():
-    """La prochaine échéance est déjà en haut de page : le calendrier complet
-    sert à planifier, pas à consulter. Il se replie, à un geste."""
-    assert 'id="pan-agenda"' in PAGE
-    agenda = PAGE[PAGE.index('id="pan-agenda"') - 60 : PAGE.index('id="mois-grille"')]
-    assert "<details" in agenda, "l'agenda est déplié en permanence"
+def test_l_agenda_s_ouvre_depuis_la_frise():
+    """L'agenda avait son panneau pliant en bas de page, après l'étagère. Il
+    vit maintenant dans la carte : la frise EST sa porte. Les deux objets
+    disent la même chose à deux échelles — une grille de semaines, une grille
+    de jours — et l'un se déplie depuis l'autre."""
+    assert 'id="pan-agenda"' not in PAGE, "le panneau pliant du bas est revenu"
+
+    # La porte est un vrai bouton : au clavier comme au doigt.
+    porte = PAGE[PAGE.index('id="bouton-agenda"') - 80 : PAGE.index('id="agenda-deplie"')]
+    assert "<button" in porte, "la frise n'est pas un bouton"
+    assert 'aria-expanded="false"' in porte
+    assert 'aria-controls="agenda-deplie"' in porte
+    assert 'id="frise-regularite"' in porte, "la frise n'est pas dans la porte"
+
+    # L'agenda est bien dans la carte, pas ailleurs sur la page.
+    carte = PAGE[PAGE.index('id="carte-annee"') : PAGE.index('espace-haut-droite')]
+    assert 'id="agenda-deplie"' in carte
+    assert 'id="mois-grille"' in carte
+
+
+def test_l_invite_de_l_agenda_se_lit_sans_survol():
+    """Une frise reste un dessin : personne ne pense à cliquer dessus. Le
+    survol le dit — mais au doigt il n'y a pas de survol, donc l'invite est
+    écrite en clair sous la frise, à tout moment."""
+    porte = PAGE[PAGE.index('id="bouton-agenda"') : PAGE.index('id="agenda-deplie"')]
+    assert 'id="frise-invite-mot"' in porte
+    assert "Ouvrir l’agenda" in porte, "l'invite n'est pas écrite dans la page"
+
+    # Et le survol ajoute son signal, sur trois plans à la fois.
+    for regle in (".frise-porte:hover",
+                  ".frise-porte:hover .frise-invite",
+                  '.frise-porte:hover .case-frise[data-travaille="oui"]'):
+        assert regle in STYLE, f"« {regle} » manque : le survol ne dit rien"
+
+
+def test_la_porte_de_l_agenda_survit_a_une_frise_vide():
+    """Un compte neuf n'a rien à mettre dans la frise — et c'est précisément
+    quand on vient poser la date de son premier contrôle. Cacher tout le bloc,
+    comme on le faisait pour éviter le papier réglé vide, emporterait la porte
+    avec lui."""
+    bloc = SCRIPT[SCRIPT.index("function dessinerRegularite"):]
+    bloc = bloc[: bloc.index("\n}\n")]
+    assert "frise.hidden = !jours.size;" in bloc, "la grille vide s'affiche encore"
+    assert "$('bloc-frise').hidden" not in bloc, \
+        "cacher le bloc entier emporte la porte de l'agenda"
 
 
 def test_une_fiche_remplace_celle_qu_elle_refait():

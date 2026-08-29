@@ -835,6 +835,8 @@ function dessinerMois(sessions) {
     const jour = document.createElement('button');
     jour.type = 'button';
     jour.className = 'jour';
+    // Le rang dans la grille : à l'ouverture, les jours arrivent en cascade.
+    jour.style.setProperty('--i', String(decalage + n - 1));
     jour.dataset.jour = cle;
     if (cle === aujourdhui) jour.dataset.aujourdhui = 'oui';
     if (cle === jourChoisi) jour.dataset.choisi = 'oui';
@@ -1003,6 +1005,45 @@ function dessinerAtelier() {
     bouton.onclick = () => { garderCarte({ ...carte(), teinte: rang }); dessinerEspace(); };
     teintes.appendChild(bouton);
   });
+}
+
+/* Ouvrir l'agenda depuis la frise.
+ *
+ * « hidden » et l'animation de hauteur ne peuvent pas cohabiter : un bloc
+ * display:none ne transitionne pas. On retire donc « hidden » d'abord, on
+ * laisse une trame passer, puis on pose l'état ouvert — c'est lui que la
+ * feuille de style anime (grid-template-rows: 0fr → 1fr). À la fermeture,
+ * l'inverse : on attend la fin de la transition pour remettre « hidden », afin
+ * que le bloc sorte vraiment de l'ordre de tabulation.
+ */
+function basculerAgenda() {
+  const bloc = $('agenda-deplie');
+  const porte = $('bouton-agenda');
+  const ouvre = bloc.dataset.ouvert !== 'oui';
+
+  porte.setAttribute('aria-expanded', ouvre ? 'true' : 'false');
+  $('frise-invite-mot').textContent = ouvre ? 'Replier l’agenda' : 'Ouvrir l’agenda';
+
+  if (ouvre) {
+    bloc.hidden = false;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      bloc.dataset.ouvert = 'oui';
+    }));
+    return;
+  }
+
+  delete bloc.dataset.ouvert;
+  const finir = (evenement) => {
+    if (evenement.target !== bloc) return;
+    bloc.removeEventListener('transitionend', finir);
+    if (bloc.dataset.ouvert !== 'oui') bloc.hidden = true;
+  };
+  bloc.addEventListener('transitionend', finir);
+  // Sans transition — mouvement réduit — « transitionend » ne vient jamais.
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    bloc.removeEventListener('transitionend', finir);
+    bloc.hidden = true;
+  }
 }
 
 function basculerAtelier() {
@@ -1329,10 +1370,12 @@ function dessinerRegularite(sessions) {
   const jours = joursTravailles(sessions);
   const frise = $('frise-regularite');
   frise.innerHTML = '';
-  // Rien à montrer : on retire le bloc au lieu d'en garder le cadre. Sur la
-  // page d'un compte tout neuf — le premier écran que voit un élève — c'était
-  // 95 px de papier réglé vide sous trois zéros.
-  $('bloc-frise').hidden = !jours.size;
+  // Rien à montrer : on retire la grille, pas le bloc. Sur la page d'un compte
+  // tout neuf c'était 95 px de papier réglé vide sous trois zéros — mais le
+  // bloc porte désormais la porte de l'agenda, et c'est justement à ce
+  // moment-là qu'un élève vient y poser la date de son premier contrôle.
+  frise.hidden = !jours.size;
+  $('frise-legende').hidden = !jours.size;
   if (!jours.size) {
     $('texte-regularite').textContent = 'Ta frise se remplira à chaque séance.';
     $('frise-legende').textContent = '';
@@ -1355,6 +1398,8 @@ function dessinerRegularite(sessions) {
     const cle = jour.toISOString().slice(0, 10);
     const case_ = document.createElement('i');
     case_.className = 'case-frise';
+    // Le rang sert au survol : les carrés s'allument de gauche à droite.
+    case_.style.setProperty('--i', String(cases - 1 - i));
     if (jours.has(cle)) { case_.dataset.travaille = 'oui'; comptes += 1; }
     if (i === 0) case_.dataset.aujourdhui = 'oui';
     frise.appendChild(case_);
@@ -3660,6 +3705,7 @@ document.addEventListener('DOMContentLoaded', () => {
     garderCarte({ ...carte(), prenom: evenement.target.value.trim() });
   };
   $('embleme').onclick = basculerAtelier;
+  $('bouton-agenda').onclick = basculerAgenda;
   $('bouton-reprendre').onclick = () => {
     const derniere = localStorage.getItem(CLE_DERNIERE);
     const trouve = derniere && charger(derniere);

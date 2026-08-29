@@ -2647,11 +2647,130 @@ h1 {
 }
 
 /* La frise vit devant, pas au dos : c'est la forme de l'année, la seule chose
-   de cette page qui se regarde plutôt qu'elle ne se lit. */
-.annee-frise { display: flex; flex-direction: column; gap: 7px; }
+   de cette page qui se regarde plutôt qu'elle ne se lit.
+
+   Elle est aussi la porte de l'agenda. Les deux objets disent la même chose à
+   deux échelles — une grille de semaines, une grille de jours — et l'un se
+   déplie depuis l'autre. L'agenda n'a donc plus de panneau à lui en bas de
+   page : il est là où l'on regarde déjà. */
+.annee-agenda { display: flex; flex-direction: column; }
+
+.frise-porte {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  width: 100%;
+  padding: 8px;
+  margin: -8px;
+  border: 0;
+  background: none;
+  border-radius: 12px;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition: background .22s ease, transform .22s cubic-bezier(.2, .7, .3, 1);
+}
+
+/* Le signal : au survol, la porte se soulève et l'invite prend l'ambre. Sans
+   ça, une frise reste un dessin et personne ne pense à cliquer dessus. */
+.frise-porte:hover { background: color-mix(in srgb, var(--accent) 7%, transparent); }
+.frise-porte:hover .frise-invite { color: var(--accent); }
+.frise-porte:hover .frise-chevron { transform: translateY(2px); }
+
+/* Et les carrés s'allument de gauche à droite, comme si l'année se rembobinait
+   sous le doigt. Le retard par carré est posé au dessin (« --i »). */
+.frise-porte:hover .case-frise[data-travaille="oui"] {
+  background: var(--accent);
+  transition-delay: calc(var(--i, 0) * 3ms);
+}
+
+/* Sur 390 px, la légende et l'invite ne tiennent pas toujours côte à côte. On
+   laisse alors l'invite passer à la ligne — mais jamais la légende se briser en
+   trois morceaux à côté d'elle, ce qui donnait un tas de mots illisible. */
+.frise-pied {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px var(--e2);
+}
+
+.frise-legende { white-space: nowrap; }
+
+.frise-invite {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: .58rem;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--encre) 52%, transparent);
+  transition: color .22s ease;
+  white-space: nowrap;
+}
+
+.frise-chevron {
+  font-size: .85rem;
+  line-height: 1;
+  transition: transform .28s cubic-bezier(.2, .7, .3, 1);
+}
+
+.frise-porte[aria-expanded="true"] .frise-chevron { transform: rotate(180deg); }
+.frise-porte[aria-expanded="true"] .frise-invite { color: var(--accent); }
+
+/* Le dépli. La hauteur s'anime par la grille (0fr → 1fr) : pas de mesure en
+   JavaScript, donc rien à recalculer quand le mois change de nombre de
+   semaines. */
+.agenda-deplie {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows .42s cubic-bezier(.2, .7, .3, 1);
+}
+
+.agenda-deplie[data-ouvert="oui"] { grid-template-rows: 1fr; }
+
+.agenda-dedans {
+  overflow: hidden;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--e2);
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity .3s ease .08s, transform .3s ease .08s;
+}
+
+.agenda-deplie[data-ouvert="oui"] .agenda-dedans {
+  opacity: 1;
+  transform: none;
+  padding-top: var(--e3);
+}
+
+/* Les jours arrivent en cascade : la grille du mois se construit case après
+   case, comme celle de la frise qu'on vient de quitter. */
+.agenda-deplie[data-ouvert="oui"] .jour {
+  animation: jour-arrive .34s cubic-bezier(.2, .7, .3, 1) backwards;
+  animation-delay: calc(var(--i, 0) * 7ms);
+}
+
+@keyframes jour-arrive {
+  from { opacity: 0; transform: scale(.72); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .frise-porte, .frise-chevron, .frise-invite,
+  .agenda-deplie, .agenda-dedans { transition: none; }
+  .agenda-deplie[data-ouvert="oui"] .jour { animation: none; }
+  .frise-porte:hover .case-frise[data-travaille="oui"] { transition-delay: 0s; }
+}
 
 .frise {
   display: grid;
+  /* « span » dans un bouton : sans cette déclaration explicite, la grille
+     retombe en ligne et la frise se met à couler comme du texte. */
   grid-template-rows: repeat(7, 10px);
   grid-auto-flow: column;
   /* Sans largeur explicite, les colonnes s'étirent et la frise se disloque. */
@@ -2669,6 +2788,7 @@ h1 {
   height: 10px;
   border-radius: 2px;
   background: color-mix(in srgb, var(--encre) 8%, transparent);
+  transition: background .3s ease;
 }
 
 .case-frise[data-travaille="oui"] { background: color-mix(in srgb, var(--accent) 78%, transparent); }
