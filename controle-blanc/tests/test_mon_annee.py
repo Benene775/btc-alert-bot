@@ -135,7 +135,7 @@ def test_rien_dans_l_espace_ne_grandit_sans_fin():
     """Chaque liste est bornée, sinon la page s'allonge avec l'année."""
     assert ".slice(0, parPage())" in CODE_NU, "l'archive n'est pas coupée"
     assert ".slice(0, 3)" in CODE_NU, "les notions montrées en tête ne sont pas bornées"
-    assert "SEMAINES_FRISE" in CODE_NU, "la frise n'est pas bornée"
+    assert "SEMAINES_MAX" in CODE_NU, "la frise n'est pas bornée"
     # L'étagère est bornée par le nombre de matières du programme, pas par le
     # travail de l'élève : elle ne grandit pas avec l'année.
     assert "function matieres" in CODE_NU

@@ -164,6 +164,7 @@
   <!-- Une seule carte, rien de caché. Le retournement était un mécanisme en
        quête de contenu : la frise, qu'il fallait aller chercher au dos, est
        la plus belle chose de cette page — elle vit maintenant devant. -->
+  <div class="espace-haut">
   <div class="carte-annee seyes" id="carte-annee">
     <div class="annee-haut">
       <button type="button" id="embleme" class="embleme" aria-label="Changer d’emblème et de couleur"
@@ -185,8 +186,9 @@
     </div>
   </div>
 
-  <!-- La prochaine échéance : un objet à part, pas une boîte dans une boîte. -->
-  <div class="prochain" id="prochain"></div>
+  <div class="espace-haut-droite">
+    <!-- La prochaine échéance : un objet à part, pas une boîte dans une boîte. -->
+    <div class="prochain" id="prochain"></div>
 
   <!-- Choisir son emblème et la couleur de sa carte. C'est tout ce qu'il y a
        à personnaliser, et ça suffit : la carte devient la sienne. -->
@@ -203,6 +205,8 @@
     <h2 class="pan-titre">Ce qui ne tient pas encore</h2>
     <ul class="reviennent" id="liste-reviennent"></ul>
   </section>
+  </div>
+  </div>
 
   <!-- L'étagère : une année en un coup d'oeil, une tuile par matière. -->
   <section class="pan" id="pan-matieres">
@@ -252,6 +256,7 @@
     <button type="button" class="archive-plus" id="plus-revoir" hidden></button>
   </section>
 
+  <div class="matiere-listes">
   <section class="pan">
     <div class="archive">
       <label class="masque" for="recherche-fiches">Chercher une fiche</label>
@@ -277,6 +282,7 @@
       <p class="pan-vide" id="vide-controles" hidden>Aucun contrôle blanc encore.</p>
     </div>
   </section>
+  </div>
 </section>
 
 <!-- ÉTAPE 1a — le contexte -->

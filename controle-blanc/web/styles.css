@@ -242,7 +242,9 @@ body {
   animation: entree .26s ease both;
 }
 
-.ecran-accueil { max-width: var(--large); }
+/* La page publique et l'espace personnel se déplient ; l'outil garde sa colonne
+   de lecture — un contrôle se passe dans une largeur de texte. */
+.ecran-accueil, .ecran-espace, .ecran-matiere { max-width: var(--large); }
 
 @keyframes entree { from { opacity: 0; transform: translateY(8px); } }
 
@@ -3364,6 +3366,41 @@ h1 {
   .bouton-marque, .reveler {
     transition: none !important;
     transform: none !important;
+  }
+}
+
+/* --- L'espace personnel sur grand écran ---------------------------------
+ *
+ * En colonne de 620 px au milieu de 1280, la page paraissait vide sur les
+ * côtés. L'élargir sans la structurer aurait fait pire : une colonne étirée.
+ * Elle se déplie donc en vraie mise en page — l'identité et ce qui presse à
+ * gauche, l'étagère en dessous sur toute la largeur.
+ */
+@media (min-width: 860px) {
+  .espace-haut {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+    gap: var(--e4);
+    align-items: start;
+  }
+
+  .espace-haut-droite { display: flex; flex-direction: column; gap: var(--e4); }
+
+  /* La carte remplit sa colonne : sa frise a enfin la place de s'étaler. */
+  .carte-annee { height: 100%; }
+
+  /* Trois colonnes fixes plutôt qu'un remplissage automatique : six matières
+     font alors deux rangées pleines, là où quatre colonnes laissaient deux
+     tuiles orphelines à côté d'un vide. */
+  .etagere { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+  /* Dans une matière, les fiches et les contrôles se lisent côte à côte : ce
+     sont deux listes courtes, les empiler laissait la moitié de l'écran vide. */
+  .matiere-listes {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--e4);
+    align-items: start;
   }
 }
 

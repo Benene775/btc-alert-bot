@@ -1265,7 +1265,18 @@ function visiblesArchive(genre, elements) {
 /* La frise : huit semaines, un carré par jour. Pas de compte de jours
  * consécutifs — on regarde un mois se remplir, et rater trois jours ne casse
  * rien. Elle vit au dos de la carte, là où on va la chercher. */
-const SEMAINES_FRISE = 8;
+/* Huit semaines sur un téléphone, davantage quand la carte est large : la
+ * frise remplit la place qu'on lui donne au lieu de laisser un vide à sa
+ * droite. Bornée à un semestre — au-delà, les carrés deviennent illisibles. */
+const SEMAINES_MIN = 8;
+const SEMAINES_MAX = 26;
+
+function semainesFrise() {
+  const large = $('frise-regularite').clientWidth;
+  if (!large) return SEMAINES_MIN;
+  const colonne = 13;  // 10 px de carré + 3 px de gouttière
+  return Math.max(SEMAINES_MIN, Math.min(SEMAINES_MAX, Math.floor(large / colonne)));
+}
 
 function dessinerRegularite(sessions) {
   const jours = joursTravailles(sessions);
@@ -1282,8 +1293,9 @@ function dessinerRegularite(sessions) {
 
   // Chaque colonne est une semaine : on remonte jusqu'au lundi qui précède,
   // sinon les colonnes coupent les semaines n'importe où et ne veulent rien dire.
+  const semaines = semainesFrise();
   const depuisLundi = (aujourdhui.getDay() + 6) % 7;
-  const premier = new Date(aujourdhui.getTime() - (depuisLundi + (SEMAINES_FRISE - 1) * 7) * 86400000);
+  const premier = new Date(aujourdhui.getTime() - (depuisLundi + (semaines - 1) * 7) * 86400000);
   const cases = Math.round((aujourdhui - premier) / 86400000) + 1;
 
   let comptes = 0;
@@ -1297,7 +1309,7 @@ function dessinerRegularite(sessions) {
     frise.appendChild(case_);
   }
   $('texte-regularite').textContent = comptes > 1
-    ? comptes + ' jours travaillés ces deux derniers mois.'
+    ? comptes + ' jours travaillés en ' + Math.round(semaines / 4.3) + ' mois.'
     : 'Premier jour travaillé. Le reste se construit comme ça.';
   const mois = (d) => d.toLocaleDateString('fr-FR', { month: 'long' });
   const debut = mois(premier);
@@ -1336,8 +1348,10 @@ async function ouvrirControleGarde(sessionId, rang) {
 }
 
 function ouvrirEspace() {
-  dessinerEspace();
+  // Montrer AVANT de dessiner : un écran caché mesure zéro, et la frise, qui
+  // se règle sur la largeur disponible, retombait sur son minimum.
   montrer('ecran-espace');
+  dessinerEspace();
   tracer('espace', {});
 }
 
@@ -3124,7 +3138,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   $('bouton-espace-nouveau').onclick = () => demarrerSession();
   $('bouton-tout-voir').onclick = () => ouvrirMatiere(null);
-  $('retour-etagere').onclick = () => { dessinerEspace(); montrer('ecran-espace'); };
+  $('retour-etagere').onclick = () => { montrer('ecran-espace'); dessinerEspace(); };
 
   const changerMois = (pas) => {
     moisAffiche = new Date(moisAffiche.getFullYear(), moisAffiche.getMonth() + pas, 1);
