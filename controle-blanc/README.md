@@ -98,14 +98,52 @@ test énumère l'application pour attraper celle qu'on ajouterait sans le garde-
 **Le droit à l'effacement est un bouton**, en bas de sa page : l'adresse et les séances
 partent du serveur, et le classeur de ce navigateur part avec.
 
-### Ce que le compte ne fait pas (encore)
+### Ce que le compte ne fait pas encore : tout garder
 
-Il ne synchronise rien. Les cours, les fiches et les contrôles restent dans le navigateur
-où ils ont été faits ; se connecter sur un autre appareil donne un classeur vide. C'est le
-choix d'origine du cahier des charges — le serveur ne voit pas le contenu — mais **avec un
-compte, l'élève s'attend à l'inverse**. Tant que ce n'est pas vrai, aucune page ne le
-promet (un test le vérifie). Le rendre vrai veut dire stocker les cours côté serveur : un
-autre produit du point de vue des données personnelles, à décider explicitement.
+**Décidé : le classeur ira sur le serveur.** Aujourd'hui les cours, les fiches et les
+contrôles vivent dans le navigateur où ils ont été faits ; se connecter sur un autre
+appareil donne un classeur vide. Avec un compte, l'élève s'attend à l'inverse, et il a
+raison. Tant que ce n'est pas fait, aucune page ne le promet — un test l'empêche.
+
+Ce que ça demande, dans l'ordre où ça se construit.
+
+**1. Ce qui monte.** Le texte ne pèse rien : une séance complète (transcription du cours,
+fiches, contrôles et corrections) tient dans quelques dizaines de kilo-octets, soit moins
+d'un mégaoctet pour une année entière. Le stocker est gratuit à l'échelle d'un test.
+
+Les **photos du cahier** sont une autre affaire : au format que le produit fabrique
+(1568 px de côté, JPEG qualité 0.82), une page tourne autour de 200 à 400 Ko — cent fois
+le reste. Quatre pages par cours, dix cours par trimestre, c'est ~10 Mo par élève et par
+trimestre. Ce n'est pas le coût qui décide, c'est ce que ça change : voir plus bas.
+
+**2. Le modèle de synchronisation.** Une séance entière, écrasée par la plus récente
+(`maj_le` en UTC). Pas de fusion champ par champ : c'est un élève, sur un ou deux
+appareils, qui travaille rarement sur les deux en même temps. Une vraie fusion coûterait
+des semaines pour un cas qui arrive deux fois par an, et le prix se paierait en bugs
+silencieux — la pire monnaie quand ce qu'on perd est le travail de quelqu'un.
+
+Concrètement : `GET /api/classeur?depuis=<horodatage>` rend les séances modifiées depuis,
+`PUT /api/classeur/<seance>` en pousse une. Le navigateur garde tout en local et reste
+utilisable hors ligne ; le serveur est la copie de référence quand les deux divergent.
+
+**3. La reprise de l'existant.** À la première connexion après la bascule, ce qui est dans
+le navigateur monte tel quel. Un élève qui a travaillé avant ne doit rien perdre — et ne
+doit pas avoir à comprendre qu'il s'est passé quelque chose.
+
+**4. Ce que ça change côté données personnelles — le vrai sujet.** Aujourd'hui le serveur
+détient une adresse, un prénom, une classe. Après, il détiendra **le cours d'un enfant,
+ses réponses, et éventuellement des photos de son cahier** — parfois avec son nom écrit
+dessus, et l'écriture d'un mineur identifiable. Ce n'est pas la même ligne au registre des
+traitements, et le consentement parental cesse d'être une précaution pour devenir la
+condition d'ouverture. À prévoir avec : un contrat de sous-traitance avec l'hébergeur, une
+durée de conservation écrite (l'année scolaire, puis effacement), et le chiffrement au
+repos.
+
+C'est pour ça que les photos sont une décision à part : le texte d'un cours d'histoire est
+anodin, une photo de cahier ne l'est pas.
+
+**5. Ce qui ne change pas.** Les quotas restent côté serveur, le corrigé du contrôle en
+cours reste hors de portée du navigateur, et il n'y a toujours aucune note.
 
 ### Envoyer les codes de réinitialisation
 
