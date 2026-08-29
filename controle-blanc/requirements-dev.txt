@@ -1,3 +1,12 @@
 -r requirements.txt
 pytest>=8.0
 httpx>=0.27
+
+# --- Les outils ------------------------------------------------------------
+# outils/essai.py réduit les photos avant de les envoyer au modèle, comme le
+# fait le navigateur : sans Pillow, le coût mesuré ne serait pas celui des
+# élèves.
+Pillow>=10.0
+# outils/polices.py découpe les polices aux caractères utilisés. L'extra
+# « woff » apporte brotli, sans quoi fontTools ne sait pas écrire de woff2.
+fonttools[woff]>=4.50

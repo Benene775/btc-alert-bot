@@ -1,4 +1,8 @@
 fastapi>=0.115
 uvicorn[standard]>=0.30
 python-multipart>=0.0.9
+# Importé directement par app/schemas.py. FastAPI l'installe déjà, mais une
+# dépendance qu'on importe se déclare : on ne compte pas sur le hasard d'une
+# dépendance transitive.
+pydantic>=2.0
 anthropic>=1.0

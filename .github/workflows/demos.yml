@@ -13,12 +13,18 @@
 name: Démonstrations
 
 on:
+  # Sur toute poussée vers main, sans filtre de chemins.
+  #
+  # Le filtre initial ne réagissait qu'aux changements de web/ et outils/. Une
+  # correction de dépendances ne le déclenchait donc pas — et comme c'est
+  # exactement ce qui avait fait échouer la publication précédente, le correctif
+  # ne pouvait pas la relancer. Un déploiement qu'on doit penser à redémarrer à
+  # la main est un déploiement qui reste cassé.
+  #
+  # Le coût d'une exécution inutile, c'est deux minutes de machine. Le coût d'une
+  # publication qui ne repart pas, c'est un site faux en ligne.
   push:
     branches: [main]
-    paths:
-      - 'controle-blanc/web/**'
-      - 'controle-blanc/outils/**'
-      - '.github/workflows/demos.yml'
   workflow_dispatch:
 
 permissions:
