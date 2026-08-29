@@ -1459,15 +1459,13 @@ async function lirePages(sessionId) {
 /* ------------------------------------------------------------- entrée --- */
 
 /*
- * On entre avec son adresse mail et un code reçu dessus. Pas de mot de passe :
- * il n’y en a donc aucun à retenir, à réutiliser ailleurs, ni à se faire voler.
+ * Un vrai compte : adresse mail et mot de passe. Deux onglets, parce qu'il y a
+ * deux gestes différents — revenir chez soi, ou en ouvrir un.
  *
  * Le jeton de connexion est un cookie HttpOnly : ce script ne peut pas le lire,
- * et n’essaie pas. « Suis-je entré ? » est une question qu’on pose au serveur.
- *
- * Connexion et inscription sont le même geste. Une adresse inconnue crée le
- * compte, une adresse connue le retrouve — l’élève n’a pas à savoir dans quel
- * cas il est, et ne peut donc pas se tromper d’onglet.
+ * et n’essaie pas. « Suis-je connecté ? » est une question qu’on pose au
+ * serveur. Le mot de passe, lui, ne fait qu’un aller : il part dans la requête
+ * et n’est jamais gardé, ni en mémoire au-delà de l’appel, ni en localStorage.
  */
 
 // Ce que l’élève voulait faire quand on lui a demandé d’entrer. On l’y ramène
@@ -1478,67 +1476,174 @@ async function qui() {
   try { return await api('/api/auth/moi'); } catch (e) { return { connecte: false }; }
 }
 
+const VOLETS = ['volet-connexion', 'volet-inscription', 'volet-oubli', 'volet-code'];
+
+function montrerVolet(nom) {
+  VOLETS.forEach((v) => { $(v).hidden = v !== nom; });
+  cacherErreursEntree();
+  // Les onglets ne suivent que leurs deux volets : « oublié » est un détour,
+  // pas un troisième onglet.
+  const surInscription = nom === 'volet-inscription';
+  if (nom === 'volet-connexion' || surInscription) {
+    $('onglet-connexion').setAttribute('aria-selected', String(!surInscription));
+    $('onglet-inscription').setAttribute('aria-selected', String(surInscription));
+    $('onglet-connexion').parentElement.dataset.actif = surInscription ? 'inscription' : 'connexion';
+  }
+  $('onglet-connexion').parentElement.hidden = !(nom === 'volet-connexion' || surInscription);
+  const premier = $(nom).querySelector('input:not([type="hidden"])');
+  if (premier) setTimeout(() => premier.focus(), 60);
+}
+
 /* Demander l’entrée sans perdre le geste en cours. */
 function exigerEntree(suite) {
   apresEntree = suite || null;
-  $('volet-adresse').hidden = false;
-  $('volet-code').hidden = true;
-  cacherErreursEntree();
   montrer('ecran-connexion');
-  // Le focus va au champ : sur un téléphone, ça ouvre le clavier tout de suite.
-  setTimeout(() => $('champ-email').focus(), 60);
+  montrerVolet('volet-connexion');
 }
 
 function cacherErreursEntree() {
-  $('erreur-email').hidden = true;
-  $('erreur-code').hidden = true;
-  $('code-demonstration').hidden = true;
+  ['erreur-connexion', 'erreur-inscription', 'erreur-oubli', 'erreur-code']
+    .forEach((id) => { $(id).hidden = true; });
 }
 
-function direErreurEntree(champ, texte) {
-  const boite = $(champ === 'email' ? 'erreur-email' : 'erreur-code');
+function direErreur(id, texte) {
+  const boite = $(id);
   boite.textContent = texte;
   boite.hidden = false;
 }
+
+/* Pendant qu’une requête part, le bouton dit ce qui se passe et refuse d’être
+   cliqué deux fois — sinon on crée deux comptes avec la même adresse. */
+async function pendant(bouton, libelle, action) {
+  const avant = bouton.textContent;
+  bouton.disabled = true;
+  bouton.textContent = libelle;
+  try { return await action(); } finally {
+    bouton.disabled = false;
+    bouton.textContent = avant;
+  }
+}
+
+const MOTIF_EMAIL = /^[^@\s]+@[^@\s.]+(\.[^@\s.]+)+$/;
+
+/* Une validation côté navigateur, pour ne pas faire attendre un aller-retour
+   sur une faute de frappe. Le serveur revalide : lui seul décide. */
+function adresseValable(email) { return MOTIF_EMAIL.test((email || '').trim()); }
+
+/* --- Se connecter -------------------------------------------------------- */
+
+async function seConnecter() {
+  const email = $('champ-email').value.trim();
+  const mdp = $('champ-mdp').value;
+  if (!adresseValable(email)) {
+    return direErreur('erreur-connexion', 'Cette adresse ne ressemble pas à une adresse mail.');
+  }
+  if (!mdp) return direErreur('erreur-connexion', 'Il manque ton mot de passe.');
+  try {
+    const reponse = await pendant($('bouton-connexion'), 'On vérifie…',
+      () => envoyerJson('/api/auth/connexion', { email, mot_de_passe: mdp }));
+    $('champ-mdp').value = '';
+    await ouvrirLaPorte(reponse);
+  } catch (erreur) {
+    direErreur('erreur-connexion', erreur.message);
+    $('champ-mdp').select();
+  }
+}
+
+/* --- S’inscrire ---------------------------------------------------------- */
+
+async function sInscrire() {
+  const prenom = $('champ-prenom-inscription').value.trim();
+  const niveau = $('champ-classe-inscription').value;
+  const email = $('champ-email-inscription').value.trim();
+  const mdp = $('champ-mdp-inscription').value;
+  const confirmation = $('champ-mdp-confirmation').value;
+
+  if (!prenom) return direErreur('erreur-inscription', 'Dis-nous ton prénom.');
+  if (!adresseValable(email)) {
+    return direErreur('erreur-inscription', 'Cette adresse ne ressemble pas à une adresse mail.');
+  }
+  if (mdp.length < 8) {
+    return direErreur('erreur-inscription', 'Ton mot de passe doit faire au moins 8 caractères.');
+  }
+  // Vérifié ici et pas au serveur : la confirmation ne le regarde pas, et un
+  // aller-retour pour dire « les deux ne sont pas pareils » est un aller-retour
+  // de trop.
+  if (mdp !== confirmation) {
+    return direErreur('erreur-inscription', 'Les deux mots de passe ne sont pas les mêmes.');
+  }
+  try {
+    const reponse = await pendant($('bouton-inscription'), 'On crée ton compte…',
+      () => envoyerJson('/api/auth/inscription',
+        { email, mot_de_passe: mdp, prenom, niveau }));
+    $('champ-mdp-inscription').value = '';
+    $('champ-mdp-confirmation').value = '';
+    await ouvrirLaPorte(reponse);
+  } catch (erreur) {
+    direErreur('erreur-inscription', erreur.message);
+    // « Un compte existe déjà » : l’élève est au mauvais endroit, on l’emmène
+    // au bon avec son adresse déjà tapée.
+    if (erreur.genreAuth === 'existe') {
+      $('champ-email').value = email;
+      setTimeout(() => { montrerVolet('volet-connexion');
+                         direErreur('erreur-connexion', erreur.message); }, 900);
+    }
+  }
+}
+
+/* Trois barres, pas une note sur cent : « ça va » et « solide » suffisent à
+   guider, et personne ne sait ce que veut dire 62 %. */
+function forceMotDePasse(mdp) {
+  if (!mdp || mdp.length < 8) return mdp ? 1 : 0;
+  let points = 0;
+  if (mdp.length >= 12) points += 1;
+  if (mdp.length >= 16) points += 1;
+  // La variété compte moins que la longueur, mais elle compte.
+  const familles = [/[a-z]/, /[A-Z]/, /[0-9]/, /[^a-zA-Z0-9]/].filter((f) => f.test(mdp)).length;
+  if (familles >= 3) points += 1;
+  return Math.min(3, 1 + points);
+}
+
+function majJauge() {
+  const mdp = $('champ-mdp-inscription').value;
+  const force = forceMotDePasse(mdp);
+  $('jauge-mdp').dataset.force = String(force);
+  const dit = ['', 'Trop court pour l’instant.', 'Ça peut aller.', 'Solide.'][force];
+  $('note-mdp').textContent = mdp
+    ? dit + ' Trois mots collés valent mieux qu’un mot avec un chiffre au bout.'
+    : '8 caractères au minimum. Trois mots collés valent mieux qu’un mot avec un chiffre au bout.';
+}
+
+/* --- Mot de passe oublié ------------------------------------------------- */
 
 let emailEnCours = '';
 let minuteurRenvoi = null;
 
 async function demanderCode(email) {
   const propre = (email || '').trim();
-  // Une validation côté navigateur, pour ne pas faire attendre un aller-retour
-  // sur une faute de frappe. Le serveur revalide : lui seul décide.
-  if (!/^[^@\s]+@[^@\s.]+(\.[^@\s.]+)+$/.test(propre)) {
-    direErreurEntree('email', 'Cette adresse ne ressemble pas à une adresse mail.');
-    return false;
+  if (!adresseValable(propre)) {
+    return direErreur('erreur-oubli', 'Cette adresse ne ressemble pas à une adresse mail.');
   }
-  const bouton = $('bouton-envoyer-code');
-  bouton.disabled = true;
-  bouton.textContent = 'On envoie…';
+  const bouton = $('volet-oubli').hidden ? $('bouton-renvoyer') : $('bouton-envoyer-code');
   try {
-    const reponse = await envoyerJson('/api/auth/code', { email: propre });
+    const reponse = await pendant(bouton, 'On envoie…',
+      () => envoyerJson('/api/auth/oubli', { email: propre }));
     emailEnCours = propre;
     $('rappel-email').textContent = propre;
-    cacherErreursEntree();
-    $('volet-adresse').hidden = true;
-    $('volet-code').hidden = false;
+    montrerVolet('volet-code');
     $('champ-code').value = '';
-    setTimeout(() => $('champ-code').focus(), 60);
     // En démonstration, le code s’affiche : il n’y a pas de serveur de courrier.
     if (reponse.code_demonstration) {
       $('code-demonstration').textContent =
         'Démonstration : aucun mail n’est envoyé. Ton code est ' + reponse.code_demonstration + '.';
       $('code-demonstration').hidden = false;
+    } else {
+      $('code-demonstration').hidden = true;
     }
     compteARebours(reponse.renvoi_dans_secondes || 60);
-    return true;
   } catch (erreur) {
-    direErreurEntree('email', erreur.message);
+    direErreur($('volet-oubli').hidden ? 'erreur-code' : 'erreur-oubli', erreur.message);
     if (erreur.attendre) compteARebours(erreur.attendre);
-    return false;
-  } finally {
-    bouton.disabled = false;
-    bouton.textContent = 'Recevoir mon code';
   }
 }
 
@@ -1563,33 +1668,35 @@ function compteARebours(secondes) {
   minuteurRenvoi = setInterval(afficher, 1000);
 }
 
-async function entrerAvecCode(code) {
-  const chiffres = (code || '').replace(/\D/g, '');
-  if (chiffres.length !== 6) {
-    direErreurEntree('code', 'Le code fait six chiffres.');
-    return;
+async function reinitialiser() {
+  const code = $('champ-code').value.replace(/\D/g, '');
+  const mdp = $('champ-mdp-nouveau').value;
+  if (code.length !== 6) return direErreur('erreur-code', 'Le code fait six chiffres.');
+  if (mdp.length < 8) {
+    return direErreur('erreur-code', 'Ton mot de passe doit faire au moins 8 caractères.');
   }
-  const bouton = $('bouton-entrer');
-  bouton.disabled = true;
-  bouton.textContent = 'On vérifie…';
   try {
-    const reponse = await envoyerJson('/api/auth/entrer', { email: emailEnCours, code: chiffres });
+    const reponse = await pendant($('bouton-reinitialiser'), 'On vérifie…',
+      () => envoyerJson('/api/auth/reinitialiser',
+        { email: emailEnCours, code, mot_de_passe: mdp }));
     clearInterval(minuteurRenvoi);
+    $('champ-mdp-nouveau').value = '';
+    message('Mot de passe changé. Tu es connecté.');
     await ouvrirLaPorte(reponse);
   } catch (erreur) {
-    direErreurEntree('code', erreur.message);
-    $('champ-code').select();
-  } finally {
-    bouton.disabled = false;
-    bouton.textContent = 'Entrer';
+    direErreur('erreur-code', erreur.message);
   }
 }
 
-/* Entré : on attache le navigateur au compte, on relit son classeur, et on le
-   ramène là où il allait. */
+/* --- Une fois dedans ----------------------------------------------------- */
+
+/* Connecté : on attache le navigateur au compte, on relit son classeur, et on
+   ramène l’élève là où il allait. */
 async function ouvrirLaPorte(reponse) {
-  compte = { id: reponse.compte, email: reponse.email };
+  compte = { id: reponse.compte, email: reponse.email,
+             prenom: reponse.prenom || '', niveau: reponse.niveau || '' };
   attacherAuCompte(compte.id);
+  adopterProfil();
   majCompte();
   menageSessions();
   const suite = apresEntree;
@@ -1597,6 +1704,22 @@ async function ouvrirLaPorte(reponse) {
   if (suite === 'espace') return ouvrirEspace();
   if (suite && suite.agenda) return demarrerSession(suite.agenda);
   return demarrerSession();
+}
+
+/* Le prénom et la classe donnés à l’inscription servent tout de suite : la carte
+   de sa page porte son prénom, et le sélecteur de niveau part sur sa classe. On
+   ne lui redemande pas ce qu’il vient d’écrire. */
+function adopterProfil() {
+  if (!compte) return;
+  if (compte.prenom) {
+    // garderCarte remplace la carte entière : sans le report, l'emblème et la
+    // couleur choisis par l'élève partiraient avec.
+    const mienne = carte();
+    if (!mienne.prenom) garderCarte(Object.assign({}, mienne, { prenom: compte.prenom }));
+  }
+  if (compte.niveau && $('champ-niveau').querySelector('option[value="' + compte.niveau + '"]')) {
+    $('champ-niveau').value = compte.niveau;
+  }
 }
 
 function majCompte() {
@@ -1643,7 +1766,7 @@ async function effacerLeCompte() {
 }
 
 /* Effacer côté serveur sans effacer ici laisserait tout le travail visible au
-   prochain qui entre avec la même adresse. */
+   prochain qui se connecte avec la même adresse. */
 function effacerLeNavigateur(identifiant) {
   const prefixe = 'cb.' + identifiant + '.';
   try {
@@ -1671,6 +1794,8 @@ async function api(chemin, options = {}) {
   if (reponse.status === 400 && corps.erreur === 'auth') {
     const erreur = new ErreurApi(corps.message || 'Ça n’a pas marché.', 'auth');
     erreur.attendre = corps.attendre || 0;
+    // Le genre dit ce qui n'allait pas : « existe » emmène au bon volet.
+    erreur.genreAuth = corps.genre || '';
     throw erreur;
   }
   if (reponse.status === 404 && corps.detail === 'session inconnue') {
@@ -1796,6 +1921,7 @@ async function initialiser() {
   $('mention-demo').hidden = !config.mode_demonstration;
 
   remplirSelecteur($('champ-niveau'), config.niveaux, '3e');
+  remplirSelecteur($('champ-classe-inscription'), config.niveaux, '3e');
   remplirSelecteur($('champ-matiere'), config.matieres,
                    config.matiere_par_defaut || 'histoire-geographie');
 
@@ -1804,8 +1930,10 @@ async function initialiser() {
   // lire celui de personne.
   const moi = await qui();
   if (moi.connecte) {
-    compte = { id: moi.compte, email: moi.email };
+    compte = { id: moi.compte, email: moi.email,
+               prenom: moi.prenom || '', niveau: moi.niveau || '' };
     attacherAuCompte(compte.id);
+    adopterProfil();
     majCompte();
   }
 
@@ -3407,39 +3535,68 @@ document.addEventListener('DOMContentLoaded', () => {
   $('bouton-ma-page').onclick = () => ouvrirEspace();
 
   // --- L'entrée -----------------------------------------------------------
-  // Deux <form> plutôt que deux boutons : « Entrée » valide, le clavier des
+  // Des <form> plutôt que des boutons : « Entrée » valide, le clavier des
   // téléphones affiche « envoyer », et un gestionnaire de mots de passe sait
-  // quoi remplir. Rien de tout ça ne s'obtient avec un div et un onclick.
-  $('volet-adresse').onsubmit = (evenement) => {
-    evenement.preventDefault();
-    demanderCode($('champ-email').value);
+  // quoi remplir et quoi proposer. Rien de tout ça ne s'obtient avec un div.
+  $('volet-connexion').onsubmit = (e) => { e.preventDefault(); seConnecter(); };
+  $('volet-inscription').onsubmit = (e) => { e.preventDefault(); sInscrire(); };
+  $('volet-oubli').onsubmit = (e) => { e.preventDefault(); demanderCode($('champ-email-oubli').value); };
+  $('volet-code').onsubmit = (e) => { e.preventDefault(); reinitialiser(); };
+
+  $('onglet-connexion').onclick = () => montrerVolet('volet-connexion');
+  $('onglet-inscription').onclick = () => montrerVolet('volet-inscription');
+  $('lien-vers-inscription').onclick = () => montrerVolet('volet-inscription');
+  $('lien-vers-connexion').onclick = () => montrerVolet('volet-connexion');
+  $('lien-retour-connexion').onclick = () => montrerVolet('volet-connexion');
+  $('bouton-oubli').onclick = () => {
+    // L'adresse déjà tapée suit : la retaper est le genre de détail qui fait
+    // abandonner à l'endroit précis où on est déjà énervé.
+    $('champ-email-oubli').value = $('champ-email').value.trim();
+    montrerVolet('volet-oubli');
   };
-  $('volet-code').onsubmit = (evenement) => {
-    evenement.preventDefault();
-    entrerAvecCode($('champ-code').value);
-  };
-  // Le code arrive souvent par copier-coller depuis la boîte mail, avec des
-  // espaces. On nettoie à la frappe plutôt que de refuser à la validation.
-  $('champ-code').addEventListener('input', (evenement) => {
-    const propre = evenement.target.value.replace(/\D/g, '').slice(0, 6);
-    if (propre !== evenement.target.value) evenement.target.value = propre;
-    $('erreur-code').hidden = true;
-    if (propre.length === 6) entrerAvecCode(propre);
-  });
-  $('champ-email').addEventListener('input', () => { $('erreur-email').hidden = true; });
   $('bouton-renvoyer').onclick = () => demanderCode(emailEnCours);
   $('bouton-changer-adresse').onclick = () => {
     clearInterval(minuteurRenvoi);
-    cacherErreursEntree();
-    $('volet-code').hidden = true;
-    $('volet-adresse').hidden = false;
-    $('champ-email').focus();
+    montrerVolet('volet-oubli');
   };
   $('bouton-quitter-connexion').onclick = () => {
     apresEntree = null;
     clearInterval(minuteurRenvoi);
     montrer('ecran-accueil');
   };
+
+  // « Voir » : sur un clavier de téléphone, un mot de passe qu'on ne peut pas
+  // relire est un mot de passe qu'on retape trois fois.
+  [['voir-mdp', 'champ-mdp'], ['voir-mdp-inscription', 'champ-mdp-inscription'],
+   ['voir-mdp-nouveau', 'champ-mdp-nouveau']].forEach(([bouton, champ]) => {
+    $(bouton).onclick = () => {
+      const montre = $(champ).type === 'password';
+      $(champ).type = montre ? 'text' : 'password';
+      $(bouton).textContent = montre ? 'Cacher' : 'Voir';
+      $(bouton).setAttribute('aria-pressed', String(montre));
+      $(bouton).setAttribute('aria-label',
+        montre ? 'Cacher le mot de passe' : 'Afficher le mot de passe');
+      $(champ).focus();
+    };
+  });
+
+  $('champ-mdp-inscription').addEventListener('input', () => {
+    majJauge();
+    $('erreur-inscription').hidden = true;
+  });
+  // Le code arrive souvent par copier-coller depuis la boîte mail, avec des
+  // espaces. On nettoie à la frappe plutôt que de refuser à la validation.
+  $('champ-code').addEventListener('input', (e) => {
+    const propre = e.target.value.replace(/\D/g, '').slice(0, 6);
+    if (propre !== e.target.value) e.target.value = propre;
+    $('erreur-code').hidden = true;
+  });
+  ['champ-email', 'champ-mdp'].forEach((id) =>
+    $(id).addEventListener('input', () => { $('erreur-connexion').hidden = true; }));
+  ['champ-email-inscription', 'champ-prenom-inscription', 'champ-mdp-confirmation'].forEach((id) =>
+    $(id).addEventListener('input', () => { $('erreur-inscription').hidden = true; }));
+  $('champ-email-oubli').addEventListener('input', () => { $('erreur-oubli').hidden = true; });
+
   $('bouton-sortir').onclick = () => sortir();
   $('bouton-effacer-compte').onclick = () => effacerLeCompte();
   $('bouton-espace').onclick = () => {

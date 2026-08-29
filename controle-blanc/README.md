@@ -45,41 +45,69 @@ Deux types de fiches, à ne pas confondre :
 | Contrainte | Comment |
 |---|---|
 | Une seule page, mobile d'abord | `web/index.html` — écrans successifs, une seule colonne, cibles tactiles ≥ 48 px |
-| Entrée par adresse mail, pas de mot de passe | Un code à six chiffres reçu par courrier. Le code et le jeton de connexion ne sont gardés que hachés (`app/store.py`) |
+| Compte par adresse mail et mot de passe | Mot de passe haché par scrypt ; code de réinitialisation et jeton de connexion hachés eux aussi (`app/store.py`) |
 | Stockage local | `localStorage` : cours, réponses, fiches. Le serveur ne stocke que des compteurs |
 | Reprise de session | Lien `?s=…` mis en avant sur l'écran de session, avec bouton « copier » |
 | Pas de note prédictive | Statuts qualitatifs (`acquis` / `partiel` / `à revoir`) + 3 notions fragiles. Aucun score, aucun `/20`, aucun pourcentage — vérifié par un test |
 | « Cette question me semble fausse » | Sur chaque question, pendant le contrôle **et** dans la correction. Remonte au tableau de bord ; la question ne pénalise pas l'élève |
 | Coût par usage | Quotas côté serveur, par jour et par session (`app/config.py`) |
 
-### L'entrée : une adresse mail, un code reçu dessus
+### Le compte : adresse mail et mot de passe
 
-Pas de mot de passe. L'élève donne son adresse, reçoit six chiffres, les recopie.
-Connexion et inscription sont le même geste : une adresse inconnue crée le compte, une
-adresse connue le retrouve.
+Deux onglets sur le même écran — connexion et inscription — plus « mot de passe oublié »,
+qui envoie un code à six chiffres par courrier.
+
+L'inscription demande **le prénom, la classe, l'adresse et un mot de passe**, et rien de
+plus. Le prénom nomme la page de l'élève, la classe règle le niveau des contrôles : ni
+l'un ni l'autre n'est de la curiosité. Ni nom de famille, ni date de naissance, ni
+établissement — ce qu'on ne collecte pas ne peut ni fuiter, ni être réclamé, ni être
+effacé pour rien.
+
+**Le mot de passe** passe par `hashlib.scrypt` (n = 2¹⁴, r = 8, p = 1, sel aléatoire par
+compte) : dans la bibliothèque standard, donc aucune dépendance à tenir à jour, et coûteux
+en mémoire, ce qui rend une carte graphique bien moins efficace pour l'attaquer qu'avec un
+SHA nu. Environ 45 ms par vérification. Les paramètres voyagent avec l'empreinte, pour
+pouvoir les durcir sans invalider les anciennes.
+
+Pas de règle de composition (« une majuscule, un chiffre, un caractère spécial ») : elles
+poussent à `Motdepasse1!`, que tout dictionnaire connaît, et à écrire le mot de passe sur
+un cahier. On exige **8 caractères**, et on refuse les évidences — la liste des plus
+courants, son propre prénom, sa propre adresse.
 
 Ce qui est tenu côté serveur (`app/store.py`, `app/main.py`, testé dans
 `tests/test_entree.py`) :
 
 | Risque | Ce qui l'arrête |
 |---|---|
-| Deviner le code | Cinq essais, puis le code est brûlé. Comparaison à temps constant |
-| Rejouer un code | Il est effacé dès qu'il a servi, et expire en 10 minutes |
-| Se servir du formulaire comme d'un annuaire | La réponse est identique pour une adresse connue et une adresse inconnue |
-| Inonder la boîte mail d'un camarade | Un code par minute et par adresse, quinze par heure |
-| Arroser mille adresses depuis une machine | Cinquante codes par heure et par machine (`X-Forwarded-For` lu seulement si `CB_PROXY_DE_CONFIANCE=1`) |
+| Essayer mille mots de passe | 10 essais ratés par quart d'heure, par adresse **et** par machine ; une connexion réussie efface l'ardoise |
+| Lire les mots de passe d'une base volée | scrypt avec un sel par compte : jamais de clair, et pas de table pré-calculée |
+| Savoir qui est inscrit | Adresse inconnue et mauvais mot de passe donnent la même réponse, au même temps de calcul (hachage à vide) |
+| Deviner le code de réinitialisation | Cinq essais, puis il est brûlé ; comparaison à temps constant |
+| Rejouer un code | Effacé dès qu'il a servi, expire en 10 minutes |
+| Remettre `12345678` par la porte de service | Le nouveau mot de passe passe les mêmes règles |
+| Garder la main sur un compte volé | Changer de mot de passe ferme **toutes** les connexions ouvertes |
+| Inonder la boîte mail d'un camarade | Un code par minute et 15 par heure par adresse, 50 par heure par machine |
+| Arroser mille adresses depuis une machine | Même limite par machine (`X-Forwarded-For` lu seulement si `CB_PROXY_DE_CONFIANCE=1`) |
 | Voler le jeton depuis la page | Cookie `HttpOnly`, `SameSite=Lax`, `Secure` en HTTPS. Le script ne le lit jamais |
-| Lire la base volée | Code et jeton stockés hachés (SHA-256), jamais en clair |
 | Ouvrir le cours d'un camarade avec son lien `?s=…` | Une séance appartient à un compte ; les autres reçoivent un 404 |
 | Deux élèves sur la même tablette | Les clés du navigateur portent l'identifiant du compte (`cb.<compte>.…`) |
 
-Toutes les routes `/api` sauf `/api/config` et `/api/auth/*` exigent d'être entré — un
+Toutes les routes `/api` sauf `/api/config` et `/api/auth/*` exigent d'être connecté — un
 test énumère l'application pour attraper celle qu'on ajouterait sans le garde-fou.
 
 **Le droit à l'effacement est un bouton**, en bas de sa page : l'adresse et les séances
 partent du serveur, et le classeur de ce navigateur part avec.
 
-### Envoyer les codes
+### Ce que le compte ne fait pas (encore)
+
+Il ne synchronise rien. Les cours, les fiches et les contrôles restent dans le navigateur
+où ils ont été faits ; se connecter sur un autre appareil donne un classeur vide. C'est le
+choix d'origine du cahier des charges — le serveur ne voit pas le contenu — mais **avec un
+compte, l'élève s'attend à l'inverse**. Tant que ce n'est pas vrai, aucune page ne le
+promet (un test le vérifie). Le rendre vrai veut dire stocker les cours côté serveur : un
+autre produit du point de vue des données personnelles, à décider explicitement.
+
+### Envoyer les codes de réinitialisation
 
 Sans `CB_SMTP_HOTE`, les codes partent dans les journaux — c'est fait pour le
 développement. `CB_AUTH_CODE_EN_CLAIR` les renvoie en plus dans la réponse HTTP pour
@@ -96,13 +124,13 @@ CB_SMTP_EXPEDITEUR="Repère <ne-pas-repondre@exemple.fr>"
 
 ### Ce qui reste à faire avant d'ouvrir à des mineurs
 
-Collecter l'adresse mail d'un collégien est un traitement de données personnelles. En
-France, le consentement du seul mineur ne vaut qu'à partir de 15 ans (article 8 du RGPD,
-article 45 de la loi Informatique et Libertés) ; en dessous, il faut aussi celui d'un
-titulaire de l'autorité parentale. Le code tient la partie technique — minimisation,
-effacement, pas de mot de passe, pas de transmission à un tiers. Restent à écrire :
-une politique de confidentialité, le recueil du consentement parental, et le registre
-des traitements.
+Collecter l'adresse mail et le prénom d'un collégien est un traitement de données
+personnelles. En France, le consentement du seul mineur ne vaut qu'à partir de 15 ans
+(article 8 du RGPD, article 45 de la loi Informatique et Libertés) ; en dessous, il faut
+aussi celui d'un titulaire de l'autorité parentale. Le code tient la partie technique —
+minimisation, effacement en un clic, mots de passe hachés, rien de transmis à un tiers.
+Restent à écrire : une politique de confidentialité, le recueil du consentement parental,
+et le registre des traitements.
 
 ### Aucune requête vers un tiers
 

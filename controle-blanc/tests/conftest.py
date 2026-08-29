@@ -24,24 +24,36 @@ sys.path.insert(0, str(RACINE))
 from app.main import app  # noqa: E402
 
 
+MDP_DE_TEST = "chocolatine-du-matin"
+
+
 def adresse_neuve() -> str:
     """Une adresse par test. Le serveur ne laisse partir qu'un code par minute
-    et par adresse : partager la même ferait échouer le sixième test pour une
-    raison qui n'a rien à voir avec ce qu'il vérifie."""
+    et par adresse, et compte les essais ratés : partager la même ferait échouer
+    le sixième test pour une raison qui n'a rien à voir avec ce qu'il vérifie."""
     return f"eleve-{secrets.token_hex(4)}@exemple.test"
 
 
-def entrer(c: TestClient, email: str | None = None) -> str:
-    """Fait entrer le client : adresse, code reçu, cookie posé. En mode
-    démonstration le code revient dans la réponse — c'est ce qui permet de
-    tester le parcours sans serveur de courrier (voir CB_AUTH_CODE_EN_CLAIR)."""
+def inscrire(c: TestClient, email: str | None = None, mot_de_passe: str = MDP_DE_TEST) -> str:
+    """Ouvre un compte et laisse le client connecté (le TestClient garde le
+    cookie). Rend l'adresse utilisée."""
     email = email or adresse_neuve()
-    demande = c.post("/api/auth/code", json={"email": email})
-    assert demande.status_code == 200, demande.text
-    code = demande.json()["code_demonstration"]
-    entree = c.post("/api/auth/entrer", json={"email": email, "code": code})
-    assert entree.status_code == 200, entree.text
+    reponse = c.post("/api/auth/inscription", json={
+        "email": email, "mot_de_passe": mot_de_passe, "prenom": "Lina", "niveau": "4e"})
+    assert reponse.status_code == 200, reponse.text
     return email
+
+
+def connecter(c: TestClient, email: str, mot_de_passe: str = MDP_DE_TEST):
+    return c.post("/api/auth/connexion", json={"email": email, "mot_de_passe": mot_de_passe})
+
+
+def code_recu(c: TestClient, email: str) -> str:
+    """Le code de réinitialisation. En mode démonstration il revient dans la
+    réponse — c'est ce qui permet de tester sans serveur de courrier."""
+    reponse = c.post("/api/auth/oubli", json={"email": email})
+    assert reponse.status_code == 200, reponse.text
+    return reponse.json()["code_demonstration"]
 
 
 @pytest.fixture()
@@ -53,10 +65,10 @@ def visiteur() -> TestClient:
 
 @pytest.fixture()
 def client() -> TestClient:
-    """L'état normal de l'application : un élève entré. Le TestClient garde le
-    cookie, donc tous les appels suivants sont authentifiés."""
+    """L'état normal de l'application : un élève connecté. Le TestClient garde
+    le cookie, donc tous les appels suivants sont authentifiés."""
     with TestClient(app) as c:
-        entrer(c)
+        inscrire(c)
         yield c
 
 

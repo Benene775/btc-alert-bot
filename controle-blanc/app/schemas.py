@@ -9,16 +9,36 @@ from __future__ import annotations
 from pydantic import BaseModel, Field
 
 
+class Inscription(BaseModel):
+    """Ce qu'on demande à l'inscription, et rien de plus.
+
+    Le prénom et la classe ne sont pas de la curiosité : le premier nomme sa
+    page, la seconde règle le niveau des contrôles. Ni nom de famille, ni date
+    de naissance, ni établissement — ce qu'on ne collecte pas ne peut ni fuiter
+    ni être réclamé.
+    """
+
+    email: str = Field(max_length=320)
+    mot_de_passe: str = Field(max_length=256)
+    prenom: str = Field(default="", max_length=80)
+    niveau: str = Field(default="", max_length=16)
+
+
+class Connexion(BaseModel):
+    email: str = Field(max_length=320)
+    mot_de_passe: str = Field(max_length=256)
+
+
 class DemandeCode(BaseModel):
-    """L'adresse, et rien d'autre. On ne demande ni nom, ni classe, ni âge :
-    ce qu'on ne collecte pas ne peut ni fuiter ni être réclamé."""
+    """Mot de passe oublié : on n'a que l'adresse pour reconnaître l'élève."""
 
     email: str = Field(max_length=320)
 
 
-class DemandeEntree(BaseModel):
+class Reinitialisation(BaseModel):
     email: str = Field(max_length=320)
     code: str = Field(max_length=16)
+    mot_de_passe: str = Field(max_length=256)
 
 
 class Chapitre(BaseModel):

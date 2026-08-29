@@ -85,7 +85,7 @@
       </div>
       <button type="button" class="discret" id="bouton-reprendre" hidden>Reprendre où j’en étais</button>
     </div>
-    <p class="mention">Ton adresse mail suffit — pas de mot de passe. Ton cours reste dans ton téléphone.</p>
+    <p class="mention">Un compte en trente secondes. Ton cours et tes fiches restent dans ton téléphone.</p>
     <p class="mention alerte-demo" id="mention-demo" hidden>Mode démonstration : contenus d’exemple, rien n’est analysé.</p>
   </div>
 
@@ -174,7 +174,7 @@
     <p class="fin-titre">Ton prochain contrôle, c’est quand ?</p>
     <p class="fin-texte">Prends ton cours en photo. Dix minutes, et tu sais ce qui te manque.</p>
     <button type="button" class="principal" id="bouton-commencer-bas">Commencer</button>
-    <p class="mention">Une adresse, un code, c’est tout. Ton cours ne sort pas de ton téléphone.</p>
+    <p class="mention">Gratuit. Ton cours ne sort pas de ton téléphone.</p>
   </section>
 
   <footer class="pied a-reveler">
@@ -182,13 +182,13 @@
       <svg class="logo-marque logo-pied" aria-hidden="true" focusable="false"><use href="#glyphe-repere"/></svg>
       <span>Repère</span>
     </p>
-    <p>Rien à installer. Tu entres avec ton adresse mail, sans mot de passe.</p>
+    <p>Rien à installer. Un compte gratuit, et tu commences tout de suite.</p>
     <p>Tes photos et ton cours restent dans ton téléphone.</p>
   </footer>
 
 </section>
 
-<!-- ENTRÉE — une adresse mail, un code reçu dessus, pas de mot de passe -->
+<!-- ENTRÉE — connexion et inscription -->
 <section id="ecran-connexion" class="ecran ecran-connexion" hidden>
 
   <!-- Ici la marque est grande : c'est le seul écran où l'élève confie quelque
@@ -201,26 +201,106 @@
 
   <div class="entree-carte seyes">
 
-    <!-- Volet 1 : l'adresse. Connexion et inscription sont le même geste — une
-         adresse inconnue crée le compte, une adresse connue le retrouve. Deux
-         onglets ne feraient que demander à l'élève de savoir où il en est. -->
-    <form class="entree-volet" id="volet-adresse" novalidate>
-      <h2 class="entree-titre">Entre avec ton adresse mail</h2>
-      <p class="entree-aide">On t’envoie un code à six chiffres. Pas de mot de passe à retenir.</p>
+    <!-- Deux onglets, parce qu'il y a deux gestes différents : revenir chez soi,
+         ou ouvrir un compte. Un formulaire unique qui devine lequel se trompe
+         un jour sur deux, et l'élève ne sait jamais ce qu'il vient de faire. -->
+    <div class="onglets" role="tablist" aria-label="Connexion ou inscription">
+      <button type="button" class="onglet" id="onglet-connexion" role="tab"
+              aria-selected="true" aria-controls="volet-connexion">Connexion</button>
+      <button type="button" class="onglet" id="onglet-inscription" role="tab"
+              aria-selected="false" aria-controls="volet-inscription">Inscription</button>
+      <span class="onglet-curseur" id="onglet-curseur" aria-hidden="true"></span>
+    </div>
+
+    <!-- Volet 1 : se connecter. -->
+    <form class="entree-volet" id="volet-connexion" role="tabpanel"
+          aria-labelledby="onglet-connexion" novalidate>
       <label for="champ-email">Ton adresse mail</label>
       <input type="email" id="champ-email" name="email" required
-             autocomplete="email" inputmode="email" enterkeyhint="send"
+             autocomplete="email" inputmode="email" enterkeyhint="next"
              spellcheck="false" autocapitalize="off" placeholder="prenom@exemple.fr">
-      <p class="entree-erreur" id="erreur-email" role="alert" hidden></p>
-      <button type="submit" class="principal" id="bouton-envoyer-code">Recevoir mon code</button>
+
+      <label for="champ-mdp">Ton mot de passe</label>
+      <div class="champ-secret">
+        <input type="password" id="champ-mdp" name="password" required
+               autocomplete="current-password" enterkeyhint="go">
+        <button type="button" class="voir-mdp" id="voir-mdp"
+                aria-label="Afficher le mot de passe" aria-pressed="false">Voir</button>
+      </div>
+
+      <p class="entree-erreur" id="erreur-connexion" role="alert" hidden></p>
+      <button type="submit" class="principal" id="bouton-connexion">Se connecter</button>
+      <div class="entree-liens">
+        <button type="button" class="lien-nu" id="bouton-oubli">Mot de passe oublié ?</button>
+        <button type="button" class="lien-nu" id="lien-vers-inscription">Créer un compte</button>
+      </div>
+    </form>
+
+    <!-- Volet 2 : s'inscrire. Prénom et classe ne sont pas de la curiosité : le
+         premier nomme sa page, la seconde règle le niveau des contrôles. Ni nom
+         de famille, ni date de naissance, ni établissement. -->
+    <form class="entree-volet" id="volet-inscription" role="tabpanel"
+          aria-labelledby="onglet-inscription" hidden novalidate>
+      <label for="champ-prenom-inscription">Ton prénom</label>
+      <input type="text" id="champ-prenom-inscription" name="given-name" required
+             autocomplete="given-name" maxlength="40" enterkeyhint="next"
+             placeholder="Lina">
+      <p class="entree-note">Il servira à nommer ta page. Rien d’autre.</p>
+
+      <label for="champ-classe-inscription">Ta classe</label>
+      <select id="champ-classe-inscription" name="classe"></select>
+      <p class="entree-note">Elle règle le niveau de tes contrôles blancs.</p>
+
+      <label for="champ-email-inscription">Ton adresse mail</label>
+      <input type="email" id="champ-email-inscription" name="email" required
+             autocomplete="email" inputmode="email" enterkeyhint="next"
+             spellcheck="false" autocapitalize="off" placeholder="prenom@exemple.fr">
+
+      <label for="champ-mdp-inscription">Choisis un mot de passe</label>
+      <div class="champ-secret">
+        <input type="password" id="champ-mdp-inscription" name="new-password" required
+               autocomplete="new-password" enterkeyhint="next">
+        <button type="button" class="voir-mdp" id="voir-mdp-inscription"
+                aria-label="Afficher le mot de passe" aria-pressed="false">Voir</button>
+      </div>
+      <!-- La jauge dit où on en est plutôt que d'énumérer des règles à la fin. -->
+      <div class="jauge-mdp" id="jauge-mdp" aria-hidden="true"><i></i><i></i><i></i></div>
+      <p class="entree-note" id="note-mdp">8 caractères au minimum. Trois mots collés
+        valent mieux qu’un mot avec un chiffre au bout.</p>
+
+      <label for="champ-mdp-confirmation">Le même, pour vérifier</label>
+      <div class="champ-secret">
+        <input type="password" id="champ-mdp-confirmation" name="new-password-confirm" required
+               autocomplete="new-password" enterkeyhint="go">
+      </div>
+
+      <p class="entree-erreur" id="erreur-inscription" role="alert" hidden></p>
+      <button type="submit" class="principal" id="bouton-inscription">Créer mon compte</button>
+      <div class="entree-liens">
+        <button type="button" class="lien-nu" id="lien-vers-connexion">J’ai déjà un compte</button>
+      </div>
       <p class="entree-mention">
-        Ton adresse sert à te reconnaître, à rien d’autre. Pas de publicité,
-        rien de transmis. Tu peux tout effacer en un clic depuis ta page.
+        On garde ton adresse, ton prénom et ta classe — rien d’autre. Ni publicité,
+        ni revente, rien de transmis. Tes cours et tes fiches restent dans ce
+        téléphone. Tu peux tout effacer en un clic depuis ta page.
       </p>
     </form>
 
-    <!-- Volet 2 : le code. Six cases feraient joli et se colleraient mal ; un
-         seul champ numérique accepte le collage depuis la boîte mail. -->
+    <!-- Volet 3 : mot de passe oublié, en deux temps. -->
+    <form class="entree-volet" id="volet-oubli" hidden novalidate>
+      <h2 class="entree-titre">Mot de passe oublié</h2>
+      <p class="entree-aide">On t’envoie un code à six chiffres pour en choisir un nouveau.</p>
+      <label for="champ-email-oubli">Ton adresse mail</label>
+      <input type="email" id="champ-email-oubli" name="email" required
+             autocomplete="email" inputmode="email" enterkeyhint="send"
+             spellcheck="false" autocapitalize="off" placeholder="prenom@exemple.fr">
+      <p class="entree-erreur" id="erreur-oubli" role="alert" hidden></p>
+      <button type="submit" class="principal" id="bouton-envoyer-code">Recevoir un code</button>
+      <div class="entree-liens">
+        <button type="button" class="lien-nu" id="lien-retour-connexion">Revenir à la connexion</button>
+      </div>
+    </form>
+
     <form class="entree-volet" id="volet-code" hidden novalidate>
       <h2 class="entree-titre">Ton code est parti</h2>
       <p class="entree-aide">
@@ -229,10 +309,18 @@
       <label for="champ-code">Le code à six chiffres</label>
       <input type="text" id="champ-code" name="code" required maxlength="6"
              class="champ-code" inputmode="numeric" pattern="[0-9]*"
-             autocomplete="one-time-code" enterkeyhint="go" placeholder="••••••">
-      <p class="entree-erreur" id="erreur-code" role="alert" hidden></p>
+             autocomplete="one-time-code" enterkeyhint="next" placeholder="••••••">
       <p class="entree-demo" id="code-demonstration" hidden></p>
-      <button type="submit" class="principal" id="bouton-entrer">Entrer</button>
+
+      <label for="champ-mdp-nouveau">Ton nouveau mot de passe</label>
+      <div class="champ-secret">
+        <input type="password" id="champ-mdp-nouveau" name="new-password" required
+               autocomplete="new-password" enterkeyhint="go">
+        <button type="button" class="voir-mdp" id="voir-mdp-nouveau"
+                aria-label="Afficher le mot de passe" aria-pressed="false">Voir</button>
+      </div>
+      <p class="entree-erreur" id="erreur-code" role="alert" hidden></p>
+      <button type="submit" class="principal" id="bouton-reinitialiser">Changer mon mot de passe</button>
       <div class="entree-liens">
         <button type="button" class="lien-nu" id="bouton-renvoyer">Renvoyer le code</button>
         <button type="button" class="lien-nu" id="bouton-changer-adresse">Changer d’adresse</button>

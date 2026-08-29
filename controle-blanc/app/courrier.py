@@ -1,8 +1,9 @@
-"""L'envoi du code par courrier.
+"""L'envoi du code de réinitialisation par courrier.
 
-Un seul message part d'ici : « voici ton code ». Il est écrit en texte simple
-et en HTML — beaucoup de messageries scolaires coupent le second, et un code
-qu'on ne peut pas lire est un élève qui n'entre pas.
+Un seul message part d'ici : « voici ton code pour changer de mot de passe ».
+Il est écrit en texte simple et en HTML — beaucoup de messageries scolaires
+coupent le second, et un code qu'on ne peut pas lire est un élève bloqué
+dehors.
 
 Sans serveur SMTP configuré, le code va dans les journaux. C'est fait pour le
 développement : `config.AUTH_CODE_EN_CLAIR` le renvoie alors aussi dans la
@@ -27,15 +28,18 @@ class ErreurCourrier(Exception):
     """Le message n'est pas parti. L'élève doit l'apprendre, pas le deviner."""
 
 
-OBJET = "Ton code Repère : {code}"
+OBJET = "Ton code Repère pour changer de mot de passe : {code}"
 
-TEXTE = """Ton code pour entrer sur Repère :
+TEXTE = """Tu as demandé à changer ton mot de passe sur Repère.
+
+Ton code :
 
     {code}
 
 Il est valable {minutes} minutes, et une seule fois.
 
-Si tu n'as rien demandé, ignore ce message : sans ce code, personne n'entre.
+Si tu n'as rien demandé, ignore ce message : ton mot de passe actuel reste
+valable, et sans ce code personne ne peut le changer.
 
 —
 Repère · passe le contrôle avant le contrôle
@@ -51,13 +55,15 @@ HTML = """<!doctype html>
        padding:28px;border:1px solid rgba(36,30,23,.08)">
     <p style="margin:0 0 4px;font:600 13px/1 ui-monospace,monospace;letter-spacing:.14em;
        text-transform:uppercase;color:#9a6410">Repère</p>
-    <p style="margin:20px 0 8px;font-size:15px;color:#7a6a5a">Ton code pour entrer :</p>
+    <p style="margin:20px 0 8px;font-size:15px;color:#7a6a5a">
+      Ton code pour changer de mot de passe :</p>
     <p style="margin:0;font:700 34px/1.2 ui-monospace,'SFMono-Regular',Menlo,monospace;
        letter-spacing:.18em;color:#241e17">{code}</p>
     <p style="margin:20px 0 0;font-size:14px;color:#7a6a5a">
       Valable {minutes} minutes, et une seule fois.</p>
     <p style="margin:12px 0 0;font-size:14px;color:#7a6a5a">
-      Si tu n'as rien demandé, ignore ce message : sans ce code, personne n'entre.</p>
+      Si tu n'as rien demandé, ignore ce message : ton mot de passe actuel reste
+      valable, et sans ce code personne ne peut le changer.</p>
   </div>
 </body></html>
 """
@@ -78,7 +84,7 @@ def _message(destinataire: str, code: str) -> EmailMessage:
 
 
 def envoyer_code(destinataire: str, code: str) -> None:
-    """Envoie le code, ou lève ErreurCourrier. Ne renvoie jamais le code."""
+    """Envoie le code de réinitialisation, ou lève ErreurCourrier."""
     if not config.SMTP_HOTE:
         # Pas de serveur : le code va dans les journaux, et nulle part ailleurs.
         logger.warning("SMTP non configuré — code pour %s : %s", destinataire, code)

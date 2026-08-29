@@ -34,7 +34,7 @@ const NIVEAUX = [
  * Semé à l'entrée, pas au chargement : avant d'entrer, on ne sait pas encore
  * sous quel préfixe ranger.
  */
-/* Le préfixe arrive de l'appelant : depuis l'entrée par mail, le classeur d'un
+/* Le préfixe arrive de l'appelant : depuis les comptes, le classeur d'un
    élève est rangé sous « cb.<compte>. », et semer sous « cb. » remplirait un
    classeur que personne ne lit. */
 const SUFFIXE_SEMEE = "demo.semee";

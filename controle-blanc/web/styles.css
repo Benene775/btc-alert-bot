@@ -520,7 +520,8 @@ label {
   color: var(--encre-douce);
 }
 
-select, input[type="date"], input[type="email"], input[type="text"], textarea {
+select, input[type="date"], input[type="email"], input[type="text"],
+input[type="password"], textarea {
   width: 100%;
   min-height: 54px;
   padding: 14px 16px;
@@ -1816,15 +1817,14 @@ h1 {
   border-radius: inherit;
 }
 
-/* --- L'entrée : une adresse mail, un code reçu dessus ---------------------
+/* --- L'entrée : connexion, inscription, mot de passe oublié ---------------
  *
- * Un seul écran, deux volets. Connexion et inscription sont le même geste : une
- * adresse inconnue crée le compte, une adresse connue le retrouve. Deux onglets
- * ne feraient que demander à l'élève de savoir où il en est.
+ * Deux onglets, parce qu'il y a deux gestes différents : revenir chez soi, ou
+ * ouvrir un compte. Plus deux volets de secours pour le mot de passe oublié.
  *
- * C'est le seul écran où il confie quelque chose. La marque y est donc grande —
- * 72 px contre 32 ailleurs — parce qu'on ne donne pas son adresse à un logo
- * qu'on distingue à peine.
+ * C'est le seul écran où l'élève confie quelque chose. La marque y est donc
+ * grande — 72 px contre 32 ailleurs — parce qu'on ne donne pas son mot de passe
+ * à un logo qu'on distingue à peine.
  */
 .ecran-connexion {
   max-width: 440px;
@@ -1908,6 +1908,121 @@ h1 {
   padding-right: 0;
   text-indent: .34em;
 }
+
+/* --- Les onglets ---------------------------------------------------------
+ *
+ * Un rail, deux libellés, et une pastille qui glisse sous celui qui est actif.
+ * Le mouvement dit lequel des deux on vient de quitter — deux fonds qui
+ * s'allument et s'éteignent ne le disent pas.
+ */
+.onglets {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  padding: 3px;
+  margin-bottom: var(--e4);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--encre) 6%, transparent);
+}
+
+.onglet {
+  position: relative;
+  z-index: 1;
+  min-height: 40px;
+  padding: 9px 8px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  font: inherit;
+  font-size: .9rem;
+  font-weight: 600;
+  color: var(--encre-douce);
+  cursor: pointer;
+  transition: color .2s ease;
+}
+
+.onglet[aria-selected="true"] { color: var(--encre); }
+
+.onglet-curseur {
+  position: absolute;
+  z-index: 0;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: calc(50% - 4px);
+  border-radius: 999px;
+  background: var(--carte);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--encre) 14%, transparent),
+              0 6px 14px -8px color-mix(in srgb, var(--encre) 40%, transparent);
+  transition: transform .26s cubic-bezier(.2, .7, .3, 1);
+}
+
+.onglets[data-actif="inscription"] .onglet-curseur { transform: translateX(calc(100% + 2px)); }
+
+@media (prefers-reduced-motion: reduce) {
+  .onglet-curseur { transition: none; }
+}
+
+/* --- Le mot de passe -----------------------------------------------------
+ *
+ * « Voir » plutôt qu'un œil : sur un clavier de téléphone, un mot de passe
+ * qu'on ne peut pas relire est un mot de passe qu'on retape trois fois.
+ */
+.champ-secret { position: relative; }
+
+.champ-secret input {
+  /* La place du bouton, pour que le texte ne passe pas dessous. */
+  padding-right: 68px;
+}
+
+.voir-mdp {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  min-height: 0;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--encre) 6%, transparent);
+  font: inherit;
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--encre-douce);
+  cursor: pointer;
+}
+
+.voir-mdp[aria-pressed="true"] { color: var(--accent); }
+
+/* Trois barres : trop court, ça va, solide. Une jauge dit où on en est pendant
+   qu'on tape ; une liste de règles ne se lit qu'après le refus. */
+.jauge-mdp {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.jauge-mdp i {
+  height: 4px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--encre) 10%, transparent);
+  transition: background .2s ease;
+}
+
+.jauge-mdp[data-force="1"] i:nth-child(1) { background: var(--rouge); }
+.jauge-mdp[data-force="2"] i:nth-child(-n+2) { background: var(--accent); }
+.jauge-mdp[data-force="3"] i { background: var(--acquis, var(--accent)); }
+
+.entree-note {
+  margin: 7px 0 0;
+  font-size: .78rem;
+  line-height: 1.45;
+  color: var(--encre-douce);
+}
+
+.entree-volet label:first-child { margin-top: 0; }
 
 .entree-erreur {
   margin: 10px 0 0;

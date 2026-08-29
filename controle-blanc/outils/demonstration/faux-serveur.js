@@ -14,17 +14,45 @@ const DELAIS = {
 
 const corrigesEnMemoire = {};
 
-/* Le « compte » de la démonstration.
-   Le vrai produit garde un cookie HttpOnly, que le serveur pose et relit. Ici il
-   n'y a pas de serveur : on garde donc l'équivalent dans le navigateur, sinon un
-   simple rafraîchissement remettrait dehors — ce que le produit ne fait pas. */
+/* Les comptes de la démonstration.
+   Le vrai produit garde un cookie HttpOnly posé par le serveur, et les mots de
+   passe hachés par scrypt en base. Ici il n'y a pas de serveur : les comptes
+   vivent dans localStorage, en clair, le temps de la démonstration. Le nom de la
+   clé le dit, pour qu'on ne s'y trompe pas en lisant ce fichier. */
 const CLE_ENTREE_DEMO = 'cb.demo.entre';
+const CLE_COMPTES_DEMO = 'cb.demo.comptes-en-clair';
 
-const sessionDemo = { email: '', code: null, compte: null };
+const sessionDemo = { email: '', code: null, compte: null, oubli: '' };
 try {
   const garde = JSON.parse(localStorage.getItem(CLE_ENTREE_DEMO) || 'null');
   if (garde && garde.compte) { sessionDemo.email = garde.email; sessionDemo.compte = garde.compte; }
-} catch (e) { /* stockage refusé : on redemandera d'entrer */ }
+} catch (e) { /* stockage refusé : on redemandera de se connecter */ }
+
+function comptesDemo() {
+  try { return JSON.parse(localStorage.getItem(CLE_COMPTES_DEMO) || '{}') || {}; }
+  catch (e) { return {}; }
+}
+
+function garderComptesDemo(tous) {
+  try { localStorage.setItem(CLE_COMPTES_DEMO, JSON.stringify(tous)); } catch (e) { /* idem */ }
+}
+
+function normaliserEmail(brut) {
+  const email = (brut || '').trim().toLowerCase();
+  return /^[^@\s]+@[^@\s.]+(\.[^@\s.]+)+$/.test(email) ? email : '';
+}
+
+/* Ouvre la session de démonstration et sème le classeur factice : sans lui la
+   page perso s'ouvrirait vide et la démonstration ne démontrerait rien. */
+function ouvrirDemo(email) {
+  const ouvert = comptesDemo()[email];
+  sessionDemo.email = email;
+  sessionDemo.compte = ouvert.compte;
+  garderEntreeDemo();
+  semerLePasse('cb.' + ouvert.compte + '.');
+  return { connecte: true, email, compte: ouvert.compte,
+           prenom: ouvert.prenom || '', niveau: ouvert.niveau || '' };
+}
 
 function garderEntreeDemo() {
   try {
@@ -68,59 +96,101 @@ async function api(chemin, options = {}) {
              max_photos: 12, matiere_par_defaut: MATIERE_PAR_DEFAUT };
   }
 
-  /* --- L'entrée -----------------------------------------------------------
-     La démonstration joue le vrai parcours : on donne une adresse, on reçoit un
-     code, on entre avec. Le code s'affiche à l'écran, puisqu'il n'y a pas de
-     serveur de courrier — c'est exactement ce que fait le vrai serveur quand
-     CB_AUTH_CODE_EN_CLAIR est actif.
+  /* --- Le compte ----------------------------------------------------------
+     La démonstration joue le vrai parcours : on s'inscrit, on se connecte, on
+     peut même changer son mot de passe oublié. Le code de réinitialisation
+     s'affiche à l'écran, puisqu'il n'y a pas de serveur de courrier — c'est
+     exactement ce que fait le vrai serveur quand CB_AUTH_CODE_EN_CLAIR est actif.
 
-     Ce qu'on ne rejoue pas : la cadence d'envoi, les cinq essais, l'expiration.
+     Ce qu'on ne rejoue pas : les blocages (cadence, essais ratés, expiration).
      Ce sont des refus, et une démonstration qui refuse n'apprend rien à qui
-     l'essaie. Ils sont tenus par les tests du serveur. */
+     l'essaie. Ils sont tenus par les tests du serveur.
+
+     Ce qu'on ne fait surtout pas : hacher quoi que ce soit. Les comptes vivent
+     dans localStorage, en clair, le temps de la démonstration — d'où le nom de
+     la clé, qui le dit. */
+  const refusAuth = (message, genre) => {
+    const erreur = new ErreurApi(message, 'auth');
+    erreur.genreAuth = genre || 'refus';
+    erreur.attendre = 0;
+    return erreur;
+  };
+
   if (chemin === '/api/auth/moi') {
-    return sessionDemo.compte
-      ? { connecte: true, email: sessionDemo.email, compte: sessionDemo.compte }
+    const ouvert = comptesDemo()[sessionDemo.email];
+    return sessionDemo.compte && ouvert
+      ? { connecte: true, email: sessionDemo.email, compte: sessionDemo.compte,
+          prenom: ouvert.prenom || '', niveau: ouvert.niveau || '' }
       : { connecte: false };
   }
 
-  if (chemin === '/api/auth/code') {
-    const email = (corps && corps.email || '').trim().toLowerCase();
-    if (!/^[^@\s]+@[^@\s.]+(\.[^@\s.]+)+$/.test(email)) {
-      const refus = new ErreurApi('Cette adresse ne ressemble pas à une adresse mail.', 'auth');
-      refus.attendre = 0;
-      throw refus;
+  if (chemin === '/api/auth/inscription') {
+    const email = normaliserEmail(corps && corps.email);
+    if (!email) throw refusAuth('Cette adresse ne ressemble pas à une adresse mail.', 'email');
+    if ((corps.mot_de_passe || '').length < 8) {
+      throw refusAuth('Ton mot de passe doit faire au moins 8 caractères.', 'mdp');
     }
-    sessionDemo.email = email;
-    sessionDemo.code = String(Math.floor(Math.random() * 1000000)).padStart(6, '0');
-    return { envoye: true, expire_dans_minutes: 10, renvoi_dans_secondes: 15,
-             code_demonstration: sessionDemo.code };
+    const tous = comptesDemo();
+    if (tous[email]) {
+      throw refusAuth('Un compte existe déjà avec cette adresse. Connecte-toi, ou '
+                      + 'utilise « mot de passe oublié ».', 'existe');
+    }
+    tous[email] = { compte: 'demo' + empreinteCourte(email), mdp: corps.mot_de_passe,
+                    prenom: (corps.prenom || '').trim(), niveau: corps.niveau || '' };
+    garderComptesDemo(tous);
+    return ouvrirDemo(email);
   }
 
-  if (chemin === '/api/auth/entrer') {
-    if (!corps || String(corps.code).replace(/\D/g, '') !== sessionDemo.code) {
-      const refus = new ErreurApi('Ce code ne correspond pas.', 'auth');
-      refus.attendre = 0;
-      throw refus;
+  if (chemin === '/api/auth/connexion') {
+    const email = normaliserEmail(corps && corps.email);
+    const ouvert = email && comptesDemo()[email];
+    if (!ouvert || ouvert.mdp !== corps.mot_de_passe) {
+      throw refusAuth('Adresse ou mot de passe incorrect.', 'refus');
     }
-    // Le même compte pour la même adresse : l'élève qui ressort et rerentre
-    // doit retrouver son classeur, comme sur le vrai serveur.
-    sessionDemo.compte = 'demo' + empreinteCourte(sessionDemo.email);
+    return ouvrirDemo(email);
+  }
+
+  if (chemin === '/api/auth/oubli') {
+    const email = normaliserEmail(corps && corps.email);
+    if (!email) throw refusAuth('Cette adresse ne ressemble pas à une adresse mail.', 'email');
+    const reponse = { envoye: true, expire_dans_minutes: 10, renvoi_dans_secondes: 15 };
+    if (!comptesDemo()[email]) return reponse;   // comme le vrai : rien ne part
+    sessionDemo.oubli = email;
+    sessionDemo.code = String(Math.floor(Math.random() * 1000000)).padStart(6, '0');
+    reponse.code_demonstration = sessionDemo.code;
+    return reponse;
+  }
+
+  if (chemin === '/api/auth/reinitialiser') {
+    const email = normaliserEmail(corps && corps.email);
+    if (!corps || String(corps.code).replace(/\D/g, '') !== sessionDemo.code
+        || email !== sessionDemo.oubli) {
+      throw refusAuth('Ce code ne correspond pas.', 'faux');
+    }
+    if ((corps.mot_de_passe || '').length < 8) {
+      throw refusAuth('Ton mot de passe doit faire au moins 8 caractères.', 'mdp');
+    }
+    const tous = comptesDemo();
+    tous[email].mdp = corps.mot_de_passe;
+    garderComptesDemo(tous);
     sessionDemo.code = null;
-    // Le classeur factice est semé sous le préfixe du compte, sans quoi la page
-    // perso s'ouvrirait vide et la démonstration ne démontrerait rien.
-    semerLePasse('cb.' + sessionDemo.compte + '.');
-    garderEntreeDemo();
-    return { connecte: true, email: sessionDemo.email, compte: sessionDemo.compte };
+    sessionDemo.oubli = '';
+    return ouvrirDemo(email);
   }
 
   if (chemin === '/api/auth/sortir') {
     sessionDemo.compte = null;
+    sessionDemo.email = '';
     garderEntreeDemo();
     return { connecte: false };
   }
 
   if (chemin === '/api/auth/supprimer') {
+    const tous = comptesDemo();
+    delete tous[sessionDemo.email];
+    garderComptesDemo(tous);
     sessionDemo.compte = null;
+    sessionDemo.email = '';
     garderEntreeDemo();
     return { supprime: true };
   }

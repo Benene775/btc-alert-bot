@@ -7,9 +7,9 @@ Ce qu'on garde ici, et pourquoi :
     attendues avant que l'élève ait répondu) ;
   - des événements anonymes pour les trois métriques du test.
 
-  - depuis l'entrée par mail : une adresse par compte, et rien d'autre. Pas de
-    mot de passe — on n'en demande pas — donc rien à voler qui ouvre autre chose.
-    Le code à six chiffres et le jeton de connexion ne sont gardés que hachés.
+  - depuis les comptes : l'adresse, le prénom et la classe de l'élève, plus son
+    mot de passe haché par scrypt. Le code de réinitialisation et le jeton de
+    connexion sont hachés eux aussi. Rien n'est gardé en clair.
 
 Ce qu'on ne garde pas : les photos du cours (traitées en mémoire puis jetées),
 le texte du cours, les réponses de l'élève, ses fiches. Tout ça vit dans son
@@ -68,11 +68,25 @@ CREATE INDEX IF NOT EXISTS idx_evenements_session ON evenements (session_id, typ
 CREATE INDEX IF NOT EXISTS idx_evenements_jour ON evenements (jour);
 
 CREATE TABLE IF NOT EXISTS comptes (
-    id      TEXT PRIMARY KEY,
-    email   TEXT NOT NULL UNIQUE,
-    cree_le TEXT NOT NULL,
-    vu_le   TEXT NOT NULL
+    id            TEXT PRIMARY KEY,
+    email         TEXT NOT NULL UNIQUE,
+    mot_de_passe  TEXT NOT NULL DEFAULT '',
+    prenom        TEXT NOT NULL DEFAULT '',
+    niveau        TEXT NOT NULL DEFAULT '',
+    cree_le       TEXT NOT NULL,
+    vu_le         TEXT NOT NULL
 );
+
+-- Les essais de connexion ratés, pour bloquer celui qui essaie mille mots de
+-- passe. Purgée avec l'âge, comme demandes_code.
+CREATE TABLE IF NOT EXISTS tentatives (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    email      TEXT NOT NULL,
+    source     TEXT NOT NULL DEFAULT '',
+    horodatage TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_tentatives_email ON tentatives (email, horodatage);
+CREATE INDEX IF NOT EXISTS idx_tentatives_source ON tentatives (source, horodatage);
 
 -- Un seul code vivant par adresse : en demander un deuxième annule le premier.
 -- L'empreinte, jamais le code : une base volée ne doit pas ouvrir les boîtes.
@@ -123,7 +137,7 @@ def aujourdhui() -> str:
 
 def _init(conn: sqlite3.Connection) -> None:
     conn.executescript(SCHEMA)
-    # Les séances d'avant l'entrée par mail n'ont pas de colonne compte_id.
+    # Les séances d'avant les comptes n'ont pas de colonne compte_id.
     # SQLite n'a pas d'« ADD COLUMN IF NOT EXISTS » : on regarde d'abord.
     colonnes = {ligne[1] for ligne in conn.execute("PRAGMA table_info(sessions)")}
     if "compte_id" not in colonnes:
@@ -133,6 +147,13 @@ def _init(conn: sqlite3.Connection) -> None:
     if demandes and "source" not in demandes:
         conn.execute("ALTER TABLE demandes_code ADD COLUMN source TEXT NOT NULL DEFAULT ''")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_demandes_source ON demandes_code (source, horodatage)")
+    # Les comptes ouverts avant le mot de passe n'en ont pas. Ils gardent une
+    # empreinte vide : impossible à deviner (aucun mot de passe ne s'y compare),
+    # et « mot de passe oublié » leur en donne un.
+    comptes = {ligne[1] for ligne in conn.execute("PRAGMA table_info(comptes)")}
+    for colonne in ("mot_de_passe", "prenom", "niveau"):
+        if comptes and colonne not in comptes:
+            conn.execute(f"ALTER TABLE comptes ADD COLUMN {colonne} TEXT NOT NULL DEFAULT ''")
     conn.commit()
 
 
@@ -184,7 +205,7 @@ def creer_session(compte_id: str) -> str:
 def session_existe(session_id: str, compte_id: str | None = None) -> bool:
     """Sans compte_id, la question est « cette séance existe-t-elle ». Avec, elle
     devient « est-elle à ce compte » : le lien de reprise d'un camarade ne doit
-    pas ouvrir son cours. Les séances d'avant l'entrée par mail n'ont pas de
+    pas ouvrir son cours. Les séances d'avant les comptes n'ont pas de
     compte : la première personne qui les rouvre se les approprie."""
     with curseur() as cur:
         cur.execute("SELECT compte_id FROM sessions WHERE id = ?", (session_id,))
@@ -209,15 +230,24 @@ def toucher_session(session_id: str, **champs: Any) -> None:
             cur.execute(f"UPDATE sessions SET {cle} = ? WHERE id = ?", (valeur, session_id))
 
 
-# --- Comptes, codes, jetons -------------------------------------------------
+# --- Comptes, mots de passe, jetons -----------------------------------------
 #
-# Trois règles, et tout le reste en découle :
-#   1. On ne stocke jamais un secret en clair. Le code à six chiffres et le
-#      jeton de connexion sont hachés ; la base volée n'ouvre aucune boîte.
-#   2. On ne dit jamais si une adresse est connue. « Un code est parti » est la
-#      seule réponse possible, sinon le formulaire devient un annuaire d'élèves.
-#   3. On borne tout : cinq essais par code, un code par minute, quinze par
-#      heure. Sans ça, six chiffres se devinent et une boîte mail se noie.
+# Quatre règles, et tout le reste en découle :
+#
+#   1. On ne stocke jamais un secret en clair. Le mot de passe passe par scrypt,
+#      le code de réinitialisation et le jeton de connexion par SHA-256. Une base
+#      volée n'ouvre ni un compte, ni une boîte mail.
+#   2. On ne dit jamais si une adresse est connue. « Adresse ou mot de passe
+#      incorrect » et « un code est parti » sont les seules réponses possibles ;
+#      sinon le formulaire devient un annuaire d'élèves.
+#   3. On borne tout : les essais de mot de passe, les codes envoyés, par adresse
+#      et par machine. Sans ça, un mot de passe d'élève se devine en une nuit.
+#   4. Une réponse ne doit pas se laisser chronométrer. Une adresse inconnue coûte
+#      le même temps qu'une adresse connue — d'où le hachage à vide plus bas.
+#
+# Pourquoi scrypt : il est dans la bibliothèque standard (donc pas de dépendance
+# à installer et à tenir à jour), et il est coûteux en mémoire, ce qui rend une
+# carte graphique bien moins efficace pour l'attaquer qu'avec un simple SHA.
 
 class ErreurAuth(Exception):
     """Refus d'entrée, avec un message dicible à un élève."""
@@ -249,6 +279,95 @@ def _empreinte(secret: str) -> str:
     return hashlib.sha256(secret.encode("utf-8")).hexdigest()
 
 
+# --- Les mots de passe ------------------------------------------------------
+
+# n = 2^14, r = 8, p = 1 : environ 16 Mo de mémoire et quelques dizaines de
+# millisecondes par vérification. Assez cher pour l'attaquant, assez rapide pour
+# ne pas faire attendre un élève sur un téléphone.
+SCRYPT_N = 2 ** 14
+SCRYPT_R = 8
+SCRYPT_P = 1
+SCRYPT_MEM = 64 * 1024 * 1024
+
+MIN_LONGUEUR_MDP = 8
+# scrypt encaisserait n'importe quelle longueur, mais un mot de passe d'un mega-
+# octet ne sert qu'à faire ramer le serveur.
+MAX_LONGUEUR_MDP = 128
+
+# Les mots de passe qu'un attaquant essaie en premier. Une liste courte : elle
+# attrape ce qu'un élève tape par réflexe, pas ce qu'un dictionnaire contient.
+TROP_COURANTS = {
+    "12345678", "123456789", "1234567890", "motdepasse", "password", "azertyui",
+    "qwertyui", "azerty123", "qwerty123", "password1", "motdepasse1", "11111111",
+    "00000000", "abcd1234", "iloveyou", "princesse", "football", "doudou12",
+}
+
+
+def verifier_forme_mot_de_passe(clair: str, email: str = "", prenom: str = "") -> str:
+    """Ce qu'on refuse, et rien de plus.
+
+    Pas de « une majuscule, un chiffre, un caractère spécial » : ces règles
+    poussent à « Motdepasse1! », que tout dictionnaire connaît, et à écrire le
+    mot de passe sur un cahier. On exige de la longueur, et on refuse les
+    évidences — dont son propre prénom et sa propre adresse.
+    """
+    if not clair or len(clair) < MIN_LONGUEUR_MDP:
+        raise ErreurAuth(
+            f"Ton mot de passe doit faire au moins {MIN_LONGUEUR_MDP} caractères.", "mdp")
+    if len(clair) > MAX_LONGUEUR_MDP:
+        raise ErreurAuth(f"{MAX_LONGUEUR_MDP} caractères au maximum.", "mdp")
+    bas = clair.lower()
+    if bas in TROP_COURANTS:
+        raise ErreurAuth("Ce mot de passe est trop courant. Trouve autre chose.", "mdp")
+    if prenom and len(prenom) >= 3 and prenom.lower() in bas:
+        raise ErreurAuth("Évite ton prénom dans ton mot de passe.", "mdp")
+    if email and email.split("@")[0].lower() in bas:
+        raise ErreurAuth("Évite ton adresse mail dans ton mot de passe.", "mdp")
+    return clair
+
+
+def _hacher_mot_de_passe(clair: str) -> str:
+    sel = secrets.token_bytes(16)
+    brut = hashlib.scrypt(clair.encode("utf-8"), salt=sel, n=SCRYPT_N, r=SCRYPT_R,
+                          p=SCRYPT_P, dklen=32, maxmem=SCRYPT_MEM)
+    # Les paramètres voyagent avec l'empreinte : le jour où on les durcit, les
+    # anciennes empreintes restent vérifiables.
+    return f"scrypt${SCRYPT_N}${SCRYPT_R}${SCRYPT_P}${sel.hex()}${brut.hex()}"
+
+
+# Une empreinte qui ne correspond à rien, pour les adresses inconnues. Sans elle,
+# une adresse inexistante répondrait en une microseconde et une adresse inscrite
+# en cinquante millisecondes : le chronomètre suffirait à faire l'annuaire.
+_EMPREINTE_LEURRE: str | None = None
+
+
+def _leurre() -> str:
+    global _EMPREINTE_LEURRE
+    if _EMPREINTE_LEURRE is None:
+        _EMPREINTE_LEURRE = _hacher_mot_de_passe(secrets.token_urlsafe(24))
+    return _EMPREINTE_LEURRE
+
+
+def _mot_de_passe_correspond(clair: str, empreinte: str) -> bool:
+    if not empreinte:
+        # Compte d'avant les mots de passe : rien ne peut s'y comparer. On brûle
+        # quand même le temps du hachage pour ne rien laisser voir.
+        hashlib.scrypt(clair.encode("utf-8"), salt=b"0" * 16, n=SCRYPT_N, r=SCRYPT_R,
+                       p=SCRYPT_P, dklen=32, maxmem=SCRYPT_MEM)
+        return False
+    try:
+        marque, n, r, pp, sel, attendu = empreinte.split("$")
+        if marque != "scrypt":
+            return False
+        calcule = hashlib.scrypt(clair.encode("utf-8"), salt=bytes.fromhex(sel),
+                                 n=int(n), r=int(r), p=int(pp), dklen=len(attendu) // 2,
+                                 maxmem=SCRYPT_MEM)
+    except (ValueError, TypeError):
+        return False
+    return secrets.compare_digest(calcule.hex(), attendu)
+
+
+
 def _plus_tard(minutes: int = 0, jours: int = 0) -> str:
     return (datetime.now(timezone.utc) + timedelta(minutes=minutes, days=jours)).isoformat(
         timespec="seconds")
@@ -258,18 +377,25 @@ def _expire(horodatage: str) -> bool:
     return datetime.fromisoformat(horodatage) < datetime.now(timezone.utc)
 
 
-def preparer_code(email: str, source: str = "") -> str:
+def preparer_code(email: str, source: str = "", garder: bool = True) -> str:
     """Fabrique le code, l'enregistre haché, et rend le clair — une seule fois,
-    à l'appelant qui va l'envoyer par courrier. Il n'est plus lisible ensuite."""
+    à l'appelant qui va l'envoyer par courrier. Il n'est plus lisible ensuite.
+
+    `garder=False` pour une adresse sans compte : on décompte quand même la
+    cadence — sinon le temps de réponse et le quota trahiraient les adresses
+    inscrites — mais on n'écrit pas un code que personne ne pourra utiliser.
+    """
     _verifier_cadence(email, source)
     # secrets, pas random : un code prévisible est un code déjà connu.
     code = f"{secrets.randbelow(1_000_000):06d}"
     with curseur() as cur:
-        cur.execute(
-            "INSERT OR REPLACE INTO codes (email, empreinte, expire_le, essais, demande_le)"
-            " VALUES (?, ?, ?, 0, ?)",
-            (email, _empreinte(code), _plus_tard(minutes=config.DUREE_CODE_MINUTES), maintenant()),
-        )
+        if garder:
+            cur.execute(
+                "INSERT OR REPLACE INTO codes (email, empreinte, expire_le, essais, demande_le)"
+                " VALUES (?, ?, ?, 0, ?)",
+                (email, _empreinte(code), _plus_tard(minutes=config.DUREE_CODE_MINUTES),
+                 maintenant()),
+            )
         cur.execute("INSERT INTO demandes_code (email, source, horodatage) VALUES (?, ?, ?)",
                     (email, source, maintenant()))
     return code
@@ -294,11 +420,12 @@ def _verifier_cadence(email: str, source: str = "") -> None:
                 raise ErreurAuth(
                     "Trop de codes demandés depuis cet appareil. Réessaie dans une heure.",
                     "cadence", 3600)
-        cur.execute("SELECT demande_le FROM codes WHERE email = ?", (email,))
+        cur.execute("SELECT MAX(horodatage) AS dernier FROM demandes_code WHERE email = ?",
+                    (email,))
         ligne = cur.fetchone()
-    if ligne:
+    if ligne and ligne["dernier"]:
         ecoule = (datetime.now(timezone.utc)
-                  - datetime.fromisoformat(ligne["demande_le"])).total_seconds()
+                  - datetime.fromisoformat(ligne["dernier"])).total_seconds()
         reste = int(config.DELAI_ENTRE_CODES_SECONDES - ecoule)
         if reste > 0:
             raise ErreurAuth(
@@ -307,10 +434,9 @@ def _verifier_cadence(email: str, source: str = "") -> None:
                 "cadence", reste)
 
 
-def verifier_code(email: str, code: str) -> str:
-    """Rend l'identifiant du compte, créé au passage si l'adresse est nouvelle.
-    Le code est brûlé dans tous les cas : réussi, il a servi ; raté cinq fois,
-    il ne doit plus servir."""
+def verifier_code(email: str, code: str) -> None:
+    """Vérifie le code de réinitialisation. Il est brûlé dans tous les cas :
+    réussi, il a servi ; raté cinq fois, il ne doit plus servir."""
     propre = "".join(c for c in (code or "") if c.isdigit())
     with curseur() as cur:
         cur.execute("SELECT empreinte, expire_le, essais FROM codes WHERE email = ?", (email,))
@@ -332,15 +458,125 @@ def verifier_code(email: str, code: str) -> str:
                                                 if reste > 0 else " Redemande un code."),
                 "faux")
         cur.execute("DELETE FROM codes WHERE email = ?", (email,))
-        cur.execute("SELECT id FROM comptes WHERE email = ?", (email,))
-        compte = cur.fetchone()
-        if compte:
-            cur.execute("UPDATE comptes SET vu_le = ? WHERE id = ?", (maintenant(), compte["id"]))
-            return compte["id"]
+
+
+# --- Ouvrir un compte, s'y connecter ----------------------------------------
+
+MAX_LONGUEUR_PRENOM = 40
+
+
+def nettoyer_prenom(brut: str) -> str:
+    """On garde ce que l'élève écrit, borné. Le prénom sert à personnaliser sa
+    page ; il n'a pas à être validé comme un état civil."""
+    prenom = " ".join((brut or "").split())[:MAX_LONGUEUR_PRENOM]
+    return prenom
+
+
+def inscrire(email: str, mot_de_passe: str, prenom: str = "", niveau: str = "") -> str:
+    """Ouvre un compte. Rend son identifiant.
+
+    Une adresse déjà inscrite est refusée — et c'est le seul endroit du produit
+    qui révèle qu'une adresse existe. On ne peut pas y couper : accepter en
+    silence donnerait un deuxième compte fantôme à qui se réinscrit par erreur,
+    et son travail resterait dans l'autre.
+    """
+    verifier_forme_mot_de_passe(mot_de_passe, email, prenom)
+    with curseur() as cur:
+        cur.execute("SELECT 1 FROM comptes WHERE email = ?", (email,))
+        if cur.fetchone():
+            raise ErreurAuth(
+                "Un compte existe déjà avec cette adresse. Connecte-toi, ou utilise "
+                "« mot de passe oublié ».", "existe")
         identifiant = secrets.token_urlsafe(9)
-        cur.execute("INSERT INTO comptes (id, email, cree_le, vu_le) VALUES (?, ?, ?, ?)",
-                    (identifiant, email, maintenant(), maintenant()))
+        cur.execute(
+            "INSERT INTO comptes (id, email, mot_de_passe, prenom, niveau, cree_le, vu_le)"
+            " VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (identifiant, email, _hacher_mot_de_passe(mot_de_passe),
+             nettoyer_prenom(prenom), (niveau or "").strip()[:16],
+             maintenant(), maintenant()),
+        )
     return identifiant
+
+
+def connecter(email: str, mot_de_passe: str, source: str = "") -> str:
+    """Rend l'identifiant du compte, ou lève. Le message de refus est le même
+    pour une adresse inconnue et un mot de passe faux : deux messages
+    différents, et le formulaire dit qui est inscrit."""
+    _verifier_tentatives(email, source)
+    with curseur() as cur:
+        cur.execute("SELECT id, mot_de_passe FROM comptes WHERE email = ?", (email,))
+        ligne = cur.fetchone()
+
+    # Adresse inconnue : on hache quand même, pour que la réponse mette le même
+    # temps que pour une adresse inscrite.
+    empreinte = ligne["mot_de_passe"] if ligne else _leurre()
+    bon = _mot_de_passe_correspond(mot_de_passe or "", empreinte)
+
+    if not ligne or not bon:
+        with curseur() as cur:
+            cur.execute("INSERT INTO tentatives (email, source, horodatage) VALUES (?, ?, ?)",
+                        (email, source, maintenant()))
+        raise ErreurAuth("Adresse ou mot de passe incorrect.", "refus")
+
+    with curseur() as cur:
+        cur.execute("DELETE FROM tentatives WHERE email = ?", (email,))
+        cur.execute("UPDATE comptes SET vu_le = ? WHERE id = ?", (maintenant(), ligne["id"]))
+    return ligne["id"]
+
+
+def _verifier_tentatives(email: str, source: str = "") -> None:
+    """Dix essais ratés par quart d'heure, par adresse et par machine. Un élève
+    qui cherche son mot de passe en fait trois ; un programme en fait mille."""
+    depuis = (datetime.now(timezone.utc)
+              - timedelta(minutes=config.FENETRE_TENTATIVES_MINUTES)).isoformat()
+    with curseur() as cur:
+        cur.execute("DELETE FROM tentatives WHERE horodatage < ?", (depuis,))
+        cur.execute("SELECT COUNT(*) AS n FROM tentatives WHERE email = ?", (email,))
+        par_adresse = int(cur.fetchone()["n"])
+        par_machine = 0
+        if source:
+            cur.execute("SELECT COUNT(*) AS n FROM tentatives WHERE source = ?", (source,))
+            par_machine = int(cur.fetchone()["n"])
+    if max(par_adresse, par_machine) >= config.MAX_TENTATIVES:
+        raise ErreurAuth(
+            f"Trop d'essais. Attends {config.FENETRE_TENTATIVES_MINUTES} minutes, ou "
+            "utilise « mot de passe oublié ».",
+            "cadence", config.FENETRE_TENTATIVES_MINUTES * 60)
+
+
+def changer_mot_de_passe(email: str, nouveau: str) -> str:
+    """Après un code vérifié. Rend l'identifiant du compte.
+
+    Toutes les autres connexions sont fermées : si quelqu'un avait pris le
+    compte, c'est ici qu'il en sort.
+    """
+    with curseur() as cur:
+        cur.execute("SELECT id, prenom FROM comptes WHERE email = ?", (email,))
+        ligne = cur.fetchone()
+    if ligne is None:
+        raise ErreurAuth("Aucun compte avec cette adresse.", "absent")
+    verifier_forme_mot_de_passe(nouveau, email, ligne["prenom"])
+    with curseur() as cur:
+        cur.execute("UPDATE comptes SET mot_de_passe = ?, vu_le = ? WHERE id = ?",
+                    (_hacher_mot_de_passe(nouveau), maintenant(), ligne["id"]))
+        cur.execute("DELETE FROM jetons WHERE compte_id = ?", (ligne["id"],))
+        cur.execute("DELETE FROM tentatives WHERE email = ?", (email,))
+    return ligne["id"]
+
+
+def compte_existe(email: str) -> bool:
+    """Sert au serveur pour ne pas fabriquer de code pour une adresse inconnue.
+    La réponse HTTP, elle, reste la même dans les deux cas."""
+    with curseur() as cur:
+        cur.execute("SELECT 1 FROM comptes WHERE email = ?", (email,))
+        return cur.fetchone() is not None
+
+
+def profil(compte_id: str) -> dict[str, str] | None:
+    with curseur() as cur:
+        cur.execute("SELECT id, email, prenom, niveau FROM comptes WHERE id = ?", (compte_id,))
+        ligne = cur.fetchone()
+    return dict(ligne) if ligne else None
 
 
 def ouvrir_jeton(compte_id: str) -> str:
@@ -360,8 +596,8 @@ def compte_du_jeton(jeton: str | None) -> dict[str, str] | None:
         return None
     with curseur() as cur:
         cur.execute(
-            "SELECT c.id, c.email, j.expire_le FROM jetons j JOIN comptes c ON c.id = j.compte_id"
-            " WHERE j.empreinte = ?", (_empreinte(jeton),))
+            "SELECT c.id, c.email, c.prenom, c.niveau, j.expire_le FROM jetons j"
+            " JOIN comptes c ON c.id = j.compte_id WHERE j.empreinte = ?", (_empreinte(jeton),))
         ligne = cur.fetchone()
         if ligne is None:
             return None
@@ -370,7 +606,8 @@ def compte_du_jeton(jeton: str | None) -> dict[str, str] | None:
             return None
         cur.execute("UPDATE jetons SET vu_le = ? WHERE empreinte = ?",
                     (maintenant(), _empreinte(jeton)))
-    return {"id": ligne["id"], "email": ligne["email"]}
+    return {"id": ligne["id"], "email": ligne["email"],
+            "prenom": ligne["prenom"], "niveau": ligne["niveau"]}
 
 
 def fermer_jeton(jeton: str | None) -> None:
@@ -392,6 +629,8 @@ def purger_auth() -> int:
         efface += cur.rowcount
         cur.execute("DELETE FROM demandes_code WHERE horodatage < ?", (vieux,))
         efface += cur.rowcount
+        cur.execute("DELETE FROM tentatives WHERE horodatage < ?", (vieux,))
+        efface += cur.rowcount
     return efface
 
 
@@ -410,6 +649,7 @@ def supprimer_compte(compte_id: str) -> None:
         if ligne:
             cur.execute("DELETE FROM codes WHERE email = ?", (ligne["email"],))
             cur.execute("DELETE FROM demandes_code WHERE email = ?", (ligne["email"],))
+            cur.execute("DELETE FROM tentatives WHERE email = ?", (ligne["email"],))
         cur.execute("DELETE FROM comptes WHERE id = ?", (compte_id,))
 
 

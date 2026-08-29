@@ -74,10 +74,10 @@ PRIX_USD_PAR_MTOK = {
 }
 
 
-# --- Entrée par adresse mail ------------------------------------------------
-# On n'enregistre pas de mot de passe : l'élève donne son adresse, reçoit un
-# code à six chiffres, et entre avec. Sans accès à sa boîte, personne n'entre —
-# et il n'y a aucun mot de passe d'enfant à se faire voler.
+# --- Le compte --------------------------------------------------------------
+# Adresse mail et mot de passe. Le mot de passe est haché par scrypt (voir
+# store.py) ; les réglages ci-dessous concernent le « mot de passe oublié », qui
+# envoie un code à six chiffres, et les limites qui protègent les deux.
 
 DUREE_CODE_MINUTES = _int("CB_DUREE_CODE_MINUTES", 10)
 # Cinq essais, puis le code est brûlé : six chiffres se devinent en un million
@@ -94,6 +94,12 @@ MAX_CODES_PAR_HEURE_ET_SOURCE = _int("CB_MAX_CODES_HEURE_SOURCE", 50)
 PROXY_DE_CONFIANCE = _flag("CB_PROXY_DE_CONFIANCE", default=False)
 # Une rentrée scolaire tient dans trente jours de connexion.
 DUREE_JETON_JOURS = _int("CB_DUREE_JETON_JOURS", 30)
+
+# Essais de mot de passe ratés avant blocage temporaire, par adresse et par
+# machine. Un élève qui cherche son mot de passe en fait trois ; un programme
+# en fait mille.
+MAX_TENTATIVES = _int("CB_MAX_TENTATIVES", 10)
+FENETRE_TENTATIVES_MINUTES = _int("CB_FENETRE_TENTATIVES", 15)
 
 # Envoi du courrier. Sans serveur SMTP configuré, le code part dans les
 # journaux : ça suffit en développement, jamais en production.

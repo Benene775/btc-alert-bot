@@ -7,9 +7,10 @@ Trois principes de découpage :
   rien, et n'en garde rien.
 - Sauf le corrigé du contrôle en cours : si on l'envoyait avec les questions,
   n'importe quel élève le lirait dans les outils de développement avant de répondre.
-- On entre par son adresse mail et un code reçu dessus. Pas de mot de passe :
-  il n'y a donc aucun mot de passe d'élève à se faire voler. Toutes les routes
-  /api sauf /api/config et /api/auth/* exigent d'être entré.
+- On entre avec son adresse mail et son mot de passe. Le mot de passe passe par
+  scrypt avant d'être écrit ; « oublié » renvoie un code à six chiffres par
+  courrier. Toutes les routes /api sauf /api/config et /api/auth/* exigent
+  d'être connecté.
 """
 
 from __future__ import annotations
@@ -26,14 +27,16 @@ from fastapi.staticfiles import StaticFiles
 
 from . import config, courrier, formats, llm, store
 from .schemas import (
+    Connexion,
     ContexteSession,
     DemandeCode,
     DemandeControle,
     DemandeCorrection,
-    DemandeEntree,
     DemandeFiche,
     DemandeFicheCiblee,
     Evenement,
+    Inscription,
+    Reinitialisation,
     SignalementQuestion,
 )
 
@@ -54,13 +57,13 @@ async def cycle_de_vie(_: FastAPI):
         logger.info("purge : %s code(s) et jeton(s) périmé(s) supprimé(s)", perimes)
     if not config.SMTP_HOTE:
         logger.warning(
-            "AUCUN SERVEUR DE COURRIER : les codes d'entrée partent dans ces journaux. "
-            "Définir CB_SMTP_HOTE pour les envoyer vraiment."
+            "AUCUN SERVEUR DE COURRIER : les codes de réinitialisation partent dans "
+            "ces journaux. Définir CB_SMTP_HOTE pour les envoyer vraiment."
         )
     if config.AUTH_CODE_EN_CLAIR:
         logger.warning(
-            "CB_AUTH_CODE_EN_CLAIR : le code est renvoyé dans la réponse HTTP. "
-            "N'importe qui entre avec n'importe quelle adresse — démonstration seulement."
+            "CB_AUTH_CODE_EN_CLAIR : le code de réinitialisation est renvoyé dans la "
+            "réponse HTTP. N'importe qui prend n'importe quel compte — démonstration seulement."
         )
     if config.DEMO_MODE:
         logger.warning(
@@ -95,11 +98,11 @@ def gerer_auth(_: Request, exc: store.ErreurAuth) -> JSONResponse:
     )
 
 
-# --- L'entrée : une adresse mail, un code reçu dessus -----------------------
+# --- Le compte : adresse mail et mot de passe -------------------------------
 #
-# Pas de mot de passe. L'élève donne son adresse, reçoit six chiffres, les
-# recopie. Ce qu'on garde de lui tient en une ligne : son adresse. Le code et le
-# jeton ne sont stockés que hachés (voir store.py).
+# Connexion, inscription, et « mot de passe oublié » qui envoie un code à six
+# chiffres. Le mot de passe passe par scrypt, le code et le jeton par SHA-256 :
+# rien n'est stocké en clair (voir store.py).
 #
 # Le jeton voyage dans un cookie HttpOnly : le script de la page ne peut pas le
 # lire, donc une faille d'affichage ne le donne pas. SameSite=Lax suffit — toutes
@@ -144,33 +147,78 @@ def compte_connecte(cb_jeton: str | None = Cookie(default=None)) -> dict[str, st
     return compte
 
 
-@app.post("/api/auth/code")
-def demander_code(corps: DemandeCode, request: Request) -> dict[str, Any]:
-    """Envoie un code. Répond pareil que l'adresse soit connue ou non : sinon ce
-    formulaire devient un moyen de savoir qui est inscrit."""
+@app.post("/api/auth/inscription")
+def inscription(corps: Inscription, request: Request) -> JSONResponse:
+    """Ouvrir un compte, et être connecté dans la foulée : demander de se
+    reconnecter juste après s'être inscrit, c'est un formulaire pour rien."""
     email = store.normaliser_email(corps.email)
-    code = store.preparer_code(email, _source(request))
-    try:
-        courrier.envoyer_code(email, code)
-    except courrier.ErreurCourrier as erreur:
-        raise HTTPException(status_code=502, detail=str(erreur)) from erreur
+    compte_id = store.inscrire(email, corps.mot_de_passe, corps.prenom, corps.niveau)
+    jeton = store.ouvrir_jeton(compte_id)
+    reponse = JSONResponse({"connecte": True, "email": email, "compte": compte_id,
+                            "prenom": store.nettoyer_prenom(corps.prenom),
+                            "niveau": (corps.niveau or "").strip()})
+    _poser_cookie(reponse, jeton, request)
+    return reponse
+
+
+@app.post("/api/auth/connexion")
+def connexion(corps: Connexion, request: Request) -> JSONResponse:
+    email = store.normaliser_email(corps.email)
+    compte_id = store.connecter(email, corps.mot_de_passe, _source(request))
+    jeton = store.ouvrir_jeton(compte_id)
+    fiche = store.profil(compte_id) or {}
+    reponse = JSONResponse({"connecte": True, "email": email, "compte": compte_id,
+                            "prenom": fiche.get("prenom", ""), "niveau": fiche.get("niveau", "")})
+    _poser_cookie(reponse, jeton, request)
+    return reponse
+
+
+@app.post("/api/auth/oubli")
+def mot_de_passe_oublie(corps: DemandeCode, request: Request) -> dict[str, Any]:
+    """Envoie un code de réinitialisation.
+
+    Répond pareil que l'adresse soit connue ou non : sinon ce formulaire devient
+    un moyen de savoir qui est inscrit. Un code n'est réellement fabriqué et
+    envoyé que si le compte existe — mais la cadence est décomptée dans les deux
+    cas, sans quoi le temps de réponse trahirait la différence.
+    """
+    email = store.normaliser_email(corps.email)
+    connu = store.compte_existe(email)
+    # La cadence est décomptée dans les deux cas ; le code n'est gardé que s'il
+    # peut servir. Sans ça, la table se remplit de codes pour des adresses qui
+    # n'ont pas de compte.
+    code = store.preparer_code(email, _source(request), garder=connu)
     reponse: dict[str, Any] = {
         "envoye": True,
         "expire_dans_minutes": config.DUREE_CODE_MINUTES,
         "renvoi_dans_secondes": config.DELAI_ENTRE_CODES_SECONDES,
     }
+    if not connu:
+        # Rien ne part : on n'écrit pas à quelqu'un qui n'a pas de compte chez
+        # nous. L'élève qui s'est trompé d'adresse ne verra pas de code arriver,
+        # ce qui est exactement l'information dont il a besoin.
+        return reponse
+    try:
+        courrier.envoyer_code(email, code)
+    except courrier.ErreurCourrier as erreur:
+        raise HTTPException(status_code=502, detail=str(erreur)) from erreur
     if config.AUTH_CODE_EN_CLAIR:
         # Démonstration seulement : voir le garde-fou dans config.py.
         reponse["code_demonstration"] = code
     return reponse
 
 
-@app.post("/api/auth/entrer")
-def entrer(corps: DemandeEntree, request: Request) -> JSONResponse:
+@app.post("/api/auth/reinitialiser")
+def reinitialiser(corps: Reinitialisation, request: Request) -> JSONResponse:
     email = store.normaliser_email(corps.email)
-    compte_id = store.verifier_code(email, corps.code)
+    store.verifier_code(email, corps.code)
+    compte_id = store.changer_mot_de_passe(email, corps.mot_de_passe)
+    # changer_mot_de_passe ferme toutes les connexions ouvertes : si quelqu'un
+    # avait pris le compte, il en sort ici. On en rouvre une pour l'élève.
     jeton = store.ouvrir_jeton(compte_id)
-    reponse = JSONResponse({"connecte": True, "email": email, "compte": compte_id})
+    fiche = store.profil(compte_id) or {}
+    reponse = JSONResponse({"connecte": True, "email": email, "compte": compte_id,
+                            "prenom": fiche.get("prenom", ""), "niveau": fiche.get("niveau", "")})
     _poser_cookie(reponse, jeton, request)
     return reponse
 
@@ -180,7 +228,8 @@ def qui_suis_je(cb_jeton: str | None = Cookie(default=None)) -> dict[str, Any]:
     compte = store.compte_du_jeton(cb_jeton)
     if compte is None:
         return {"connecte": False}
-    return {"connecte": True, "email": compte["email"], "compte": compte["id"]}
+    return {"connecte": True, "email": compte["email"], "compte": compte["id"],
+            "prenom": compte.get("prenom", ""), "niveau": compte.get("niveau", "")}
 
 
 @app.post("/api/auth/sortir")
