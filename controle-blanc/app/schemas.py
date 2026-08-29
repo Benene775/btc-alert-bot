@@ -73,6 +73,32 @@ class DemandeControle(BaseModel):
     enonces_deja_poses: list[str] = Field(default_factory=list)
 
 
+class DemandeQuiz(BaseModel):
+    """Le quiz porte sur un cours déjà photographié, et sur les chapitres que
+    l'élève a cochés — pas sur toute la matière. « Réviser le chapitre 3 » est
+    une demande plus fréquente que « réviser l'année »."""
+
+    session_id: str
+    niveau: str = "3e"
+    matiere: str = "autre"
+    chapitres: list[Chapitre]
+
+
+class DemandeReponseQuiz(BaseModel):
+    """Une réponse à une question du quiz.
+
+    Le corrigé reste au serveur : le navigateur envoie le rang de la
+    proposition choisie et reçoit ce qu'il faut dire, jamais la liste des
+    bonnes réponses à l'avance. Cet appel ne touche aucun modèle — c'est une
+    lecture du corrigé déjà écrit, donc il ne coûte rien.
+    """
+
+    session_id: str
+    quiz_id: str
+    numero: int
+    choix: int
+
+
 class ReponseEleve(BaseModel):
     numero: int
     texte: str = ""

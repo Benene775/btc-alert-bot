@@ -167,7 +167,11 @@ function semerLePasse(prefixe) {
         matiere,
         niveau: "4e",
         dansJours,
-        chapitres: [{ titre: chapitre, notions: [], transcription: "", photos: [] }],
+        // Le classeur d'un élève garde le texte de ses pages : c'est lui qui
+        // permet de repasser un cours au quiz. Le semer vide donnait un
+        // classeur où rien n'était quizzable, ce qu'un vrai classeur n'est pas.
+        chapitres: [{ titre: chapitre, notions: [], photos: [0],
+                      transcription: "[[page 0]] " + chapitre + " — notes prises en cours." }],
         fiches,
         controles,
       });

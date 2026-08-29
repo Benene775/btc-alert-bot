@@ -435,6 +435,7 @@ function dessinerEspace() {
   dessinerCarteEleve(sessions);
   dessinerRevientCourt(sessions);
   dessinerEtagere(sessions);
+  dessinerAccesQuiz();
   const echeances = dessinerAgenda(sessions);
   $('compte-agenda').textContent = echeances ? String(echeances) : '';
   soignerTypographie($('ecran-espace'));
@@ -2096,17 +2097,31 @@ function montrer(id) {
   majBandeau(id);
 }
 
+/* Les écrans qui tiennent « --large ». La liste double celle de la feuille de
+ * style (« .ecran-accueil, .ecran-espace, .ecran-matiere ») ; un test vérifie
+ * qu'elles ne divergent pas. */
+const ECRANS_LARGES = new Set(['ecran-accueil', 'ecran-espace', 'ecran-matiere']);
+
 function majBandeau(idEcran) {
   const bandeau = $('bandeau');
   // « Ma page » et l'écran d'une matière se consultent même sans séance en
   // cours : ils relisent l'historique. Sans ce cas, le bandeau — donc la
   // marque, donc le rond — disparaissait sur l'écran d'une matière.
-  const dansMaPage = idEcran === 'ecran-espace' || idEcran === 'ecran-matiere';
+  // Le quiz se consulte depuis sa page, comme l'écran d'une matière : il relit
+  // l'historique et ne demande pas de séance en cours. Sans lui dans cette
+  // liste, le bandeau — donc la marque et le rond — disparaissait chez un élève
+  // qui vient repasser un cours sans avoir de séance ouverte.
+  const dansMaPage = idEcran === 'ecran-espace' || idEcran === 'ecran-matiere'
+    || idEcran === 'ecran-quiz';
   const dansEspace = idEcran === 'ecran-espace';
   if (idEcran === 'ecran-accueil' || (!etat && !dansMaPage)) { bandeau.hidden = true; return; }
   bandeau.hidden = false;
-  // Le bandeau se cale sur la largeur de l'écran qu'il coiffe.
-  bandeau.dataset.large = dansMaPage ? 'oui' : 'non';
+  // Le bandeau se cale sur la largeur de l'écran qu'il coiffe — et « se
+  // consulte depuis sa page » n'est pas « tient toute la largeur » : le quiz
+  // relit l'historique comme l'écran d'une matière, mais il se lit en colonne,
+  // une question à la fois. Confondre les deux donnait un bandeau de 1120 px
+  // au-dessus d'un écran de 620.
+  bandeau.dataset.large = ECRANS_LARGES.has(idEcran) ? 'oui' : 'non';
   const matiere = etat && (config.matieres.find((m) => m.cle === etat.matiere) || {}).nom;
   $('bandeau-matiere').textContent = dansMaPage ? 'Repère' : (matiere || 'Repère');
   $('bandeau-compte').textContent = etat ? texteCompteARebours() : '';
@@ -3390,6 +3405,305 @@ function suivreCartes() {
 
 /* --------------------------------------------- étape 4 : contrôle blanc -- */
 
+/* --- Le quiz éclair -------------------------------------------------------
+ *
+ * L'objet complémentaire du contrôle blanc, pas une version au rabais.
+ *
+ * Le contrôle fait rédiger, et c'est ce qui révèle ce qu'on n'a pas compris.
+ * Mais rédiger coûte dix minutes par question, et avant un gros contrôle un
+ * élève doit repasser vingt notions en dix minutes. Le quiz fait reconnaître ;
+ * la reconnaissance se répète, et c'est la répétition qui fait tenir.
+ *
+ * Il porte sur un cours DÉJÀ photographié : on choisit la matière, puis les
+ * chapitres. Les bonnes réponses ne descendent jamais dans le navigateur — le
+ * serveur reçoit un rang et dit ce qu'il en est.
+ */
+let quizEnCours = null;
+
+/* Les cours photographiés, rangés par matière : c'est là-dedans qu'on choisit.
+ *
+ * « Photographié » au sens fort : il faut le TEXTE des pages, pas seulement un
+ * titre de chapitre. Le quiz sort du cours de l'élève ; sans transcription il
+ * n'y a rien à interroger, et le modèle inventerait des questions sur un titre.
+ * C'est la même exigence que pour le contrôle blanc. */
+function coursQuizzables() {
+  const par = new Map();
+  sessionsFaites().forEach((session) => {
+    const chapitres = (session.chapitres || []).filter((c) => (c.transcription || '').trim());
+    if (!chapitres.length || !session.matiere) return;
+    if (!par.has(session.matiere)) par.set(session.matiere, []);
+    par.get(session.matiere).push({ ...session, chapitres });
+  });
+  return par;
+}
+
+function dessinerAccesQuiz() {
+  const cours = coursQuizzables();
+  $('vide-quiz').hidden = cours.size > 0;
+  $('bouton-quiz').hidden = cours.size === 0;
+}
+
+function ouvrirQuiz() {
+  const cours = coursQuizzables();
+  if (!cours.size) return;
+
+  const choix = $('quiz-matiere');
+  choix.innerHTML = '';
+  [...cours.keys()].forEach((cle) => {
+    const option = document.createElement('option');
+    option.value = cle;
+    const combien = cours.get(cle).length;
+    option.textContent = nomMatiere(cle) + ' · ' + combien + (combien > 1 ? ' cours' : ' cours');
+    choix.appendChild(option);
+  });
+  // La matière dont le contrôle approche passe devant : c'est celle qu'on vient
+  // réviser neuf fois sur dix.
+  const prochaine = prochainesEcheances(sessionsFaites())[0];
+  if (prochaine && cours.has(prochaine.matiere)) choix.value = prochaine.matiere;
+
+  dessinerChapitresQuiz();
+  $('quiz-choix').hidden = false;
+  $('quiz-jeu').hidden = true;
+  $('quiz-bilan').hidden = true;
+  montrer('ecran-quiz');
+}
+
+/* Les chapitres de la matière choisie, tout coché. Une case par chapitre et par
+ * séance : deux séances de SVT ont chacune leurs chapitres, et l'élève doit
+ * pouvoir n'en reprendre qu'un. */
+function dessinerChapitresQuiz() {
+  const cours = coursQuizzables();
+  const sessions = cours.get($('quiz-matiere').value) || [];
+  const boite = $('quiz-chapitres');
+  boite.innerHTML = '';
+
+  sessions.forEach((session, rangSession) => {
+    (session.chapitres || []).forEach((chapitre, rang) => {
+      const cle = rangSession + ':' + rang;
+      const ligne = document.createElement('label');
+      ligne.className = 'quiz-chapitre';
+
+      const case_ = document.createElement('input');
+      case_.type = 'checkbox';
+      case_.checked = true;
+      case_.value = cle;
+      case_.onchange = majLancerQuiz;
+
+      const texte = document.createElement('span');
+      const titre = document.createElement('b');
+      titre.textContent = chapitre.titre || 'Chapitre sans titre';
+      texte.appendChild(titre);
+      const notions = (chapitre.notions || []).length;
+      if (notions) {
+        const combien = document.createElement('i');
+        combien.textContent = notions + (notions > 1 ? ' notions' : ' notion');
+        texte.appendChild(combien);
+      }
+
+      ligne.append(case_, texte);
+      boite.appendChild(ligne);
+    });
+  });
+  majLancerQuiz();
+}
+
+function chapitresCochesQuiz() {
+  const cours = coursQuizzables();
+  const sessions = cours.get($('quiz-matiere').value) || [];
+  const pris = [];
+  $('quiz-chapitres').querySelectorAll('input:checked').forEach((case_) => {
+    const [rangSession, rang] = case_.value.split(':').map(Number);
+    const chapitre = ((sessions[rangSession] || {}).chapitres || [])[rang];
+    if (chapitre) pris.push({ chapitre, session: sessions[rangSession] });
+  });
+  return pris;
+}
+
+function majLancerQuiz() {
+  const pris = chapitresCochesQuiz();
+  $('bouton-lancer-quiz').disabled = pris.length === 0;
+  $('quiz-aide').textContent = pris.length
+    ? 'Tout est coché : décoche ce que tu ne révises pas.'
+    : 'Coche au moins un chapitre.';
+}
+
+async function lancerQuiz() {
+  const pris = chapitresCochesQuiz();
+  if (!pris.length) return;
+  // Toutes les cases cochées viennent d'une séance : on rattache le quiz à la
+  // première, puisque c'est elle qui porte le quota et le corrigé.
+  const session = pris[0].session;
+
+  attendre('On prépare ton quiz…', 'Des questions courtes, tirées de tes pages.');
+  try {
+    const quiz = await envoyerJson('/api/quiz', {
+      session_id: session.sessionId,
+      niveau: session.niveau || '3e',
+      matiere: $('quiz-matiere').value,
+      chapitres: pris.map((p) => p.chapitre),
+    });
+    fermerAttente();
+    quizEnCours = {
+      ...quiz,
+      sessionId: session.sessionId,
+      index: 0,
+      rates: [],
+      acquises: [],
+      repondue: false,
+    };
+    $('quiz-choix').hidden = true;
+    $('quiz-bilan').hidden = true;
+    $('quiz-jeu').hidden = false;
+    dessinerQuestionQuiz();
+  } catch (e) { gererErreur(e); }
+}
+
+function dessinerJaugeQuiz() {
+  const jauge = $('quiz-jauge');
+  jauge.innerHTML = '';
+  quizEnCours.questions.forEach((q, rang) => {
+    const trait = document.createElement('li');
+    // C'est d'avoir répondu qui colore le trait, pas d'être passé à la suite :
+    // sinon la question qu'on vient de rater reste « en cours » sous les yeux
+    // pendant qu'on lit pourquoi elle est fausse.
+    const rate = quizEnCours.rates.some((r) => r.numero === q.numero);
+    const acquise = quizEnCours.acquises.some((r) => r.numero === q.numero);
+    if (rate) trait.dataset.etat = 'faux';
+    else if (acquise) trait.dataset.etat = 'juste';
+    else if (rang === quizEnCours.index) trait.dataset.etat = 'courante';
+    jauge.appendChild(trait);
+  });
+}
+
+function dessinerQuestionQuiz() {
+  const question = quizEnCours.questions[quizEnCours.index];
+  quizEnCours.repondue = false;
+
+  $('quiz-titre').textContent = quizEnCours.titre || 'Quiz éclair';
+  $('quiz-notion').textContent = question.chapitre || '';
+  $('quiz-enonce').textContent = question.enonce;
+  $('quiz-verdict').hidden = true;
+  $('quiz-verdict').innerHTML = '';
+  $('bouton-quiz-suivant').hidden = true;
+  dessinerJaugeQuiz();
+
+  const boite = $('quiz-propositions');
+  boite.innerHTML = '';
+  (question.propositions || []).forEach((texte, rang) => {
+    const bouton = document.createElement('button');
+    bouton.type = 'button';
+    bouton.className = 'quiz-proposition';
+    bouton.textContent = texte;
+    bouton.onclick = () => repondreQuiz(rang);
+    boite.appendChild(bouton);
+  });
+}
+
+async function repondreQuiz(choix) {
+  if (quizEnCours.repondue) return;
+  quizEnCours.repondue = true;
+  const question = quizEnCours.questions[quizEnCours.index];
+  const boutons = [...$('quiz-propositions').children];
+  boutons.forEach((b) => { b.disabled = true; });
+
+  let verdict;
+  try {
+    verdict = await envoyerJson('/api/quiz/reponse', {
+      session_id: quizEnCours.sessionId,
+      quiz_id: quizEnCours.quiz_id,
+      numero: question.numero,
+      choix,
+    });
+  } catch (e) {
+    // La question reste jouable : on ne perd pas le quiz pour un appel raté.
+    quizEnCours.repondue = false;
+    boutons.forEach((b) => { b.disabled = false; });
+    return gererErreur(e);
+  }
+
+  boutons.forEach((b, rang) => {
+    if (rang === choix) b.dataset.etat = verdict.juste ? 'juste' : 'faux';
+    else if (rang === verdict.bonne) b.dataset.etat = 'ratee';
+    else b.dataset.etat = 'ecartee';
+  });
+
+  const garde = { numero: question.numero, notion: question.notion,
+                  chapitre: question.chapitre, ou: verdict.ou_dans_le_cours };
+  if (verdict.juste) quizEnCours.acquises.push(garde);
+  else quizEnCours.rates.push(garde);
+  dessinerJaugeQuiz();
+
+  const boite = $('quiz-verdict');
+  boite.hidden = false;
+  const phrase = document.createElement('p');
+  phrase.className = 'quiz-pourquoi';
+  phrase.dataset.juste = verdict.juste ? 'oui' : 'non';
+  phrase.textContent = verdict.pourquoi;
+  boite.appendChild(phrase);
+  // Se tromper doit apprendre quelque chose : on dit aussi ce qu'était la
+  // bonne réponse, pas seulement que celle-ci ne l'était pas.
+  if (!verdict.juste && verdict.pourquoi_juste) {
+    const bonne = document.createElement('p');
+    bonne.className = 'quiz-bonne';
+    bonne.textContent = verdict.pourquoi_juste;
+    boite.appendChild(bonne);
+  }
+  if (verdict.ou_dans_le_cours) {
+    const ou = document.createElement('p');
+    ou.className = 'quiz-ou';
+    ou.textContent = '→ ' + verdict.ou_dans_le_cours;
+    boite.appendChild(ou);
+  }
+
+  const dernière = quizEnCours.index === quizEnCours.questions.length - 1;
+  const suivant = $('bouton-quiz-suivant');
+  suivant.hidden = false;
+  suivant.textContent = dernière ? 'Voir ce qui me reste à revoir' : 'Question suivante';
+}
+
+function questionSuivanteQuiz() {
+  if (quizEnCours.index >= quizEnCours.questions.length - 1) return finirQuiz();
+  quizEnCours.index += 1;
+  dessinerQuestionQuiz();
+}
+
+function finirQuiz() {
+  $('quiz-jeu').hidden = true;
+  $('quiz-bilan').hidden = false;
+
+  // Une notion ratée deux fois ne se compte qu'une : c'est une notion à revoir,
+  // pas deux.
+  const parNotion = new Map();
+  quizEnCours.rates.forEach((r) => { if (!parNotion.has(r.notion)) parNotion.set(r.notion, r); });
+  const aRevoir = [...parNotion.values()];
+
+  $('quiz-bilan-titre').textContent = aRevoir.length
+    ? (aRevoir.length === 1 ? 'Une notion à revoir' : aRevoir.length + ' notions à revoir')
+    : 'Tout est acquis sur ce cours.';
+
+  const liste = $('quiz-a-revoir');
+  liste.innerHTML = '';
+  aRevoir.forEach((r) => {
+    const li = document.createElement('li');
+    li.className = 'quiz-a-revoir-ligne';
+    const nom = document.createElement('b');
+    nom.textContent = r.notion;
+    li.appendChild(nom);
+    if (r.ou) {
+      const ou = document.createElement('span');
+      ou.textContent = '→ à relire : ' + r.ou;
+      li.appendChild(ou);
+    }
+    liste.appendChild(li);
+  });
+
+  const acquises = quizEnCours.acquises.length;
+  $('quiz-acquis').textContent = !acquises ? ''
+    : acquises === 1 ? '✓ Une question juste, on n’y revient pas.'
+    : '✓ ' + acquises + ' questions justes, on n’y revient pas.';
+}
+
+
 async function lancerControle(notionsCiblees = []) {
   const notions = notionsCiblees;
   const dejaPoses = [];
@@ -3896,6 +4210,14 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   $('embleme').onclick = basculerAtelier;
   $('bouton-agenda').onclick = () => basculerAgenda();
+
+  $('bouton-quiz').onclick = ouvrirQuiz;
+  $('quiz-matiere').onchange = dessinerChapitresQuiz;
+  $('bouton-lancer-quiz').onclick = lancerQuiz;
+  $('bouton-quiz-suivant').onclick = questionSuivanteQuiz;
+  $('bouton-quiz-refaire').onclick = ouvrirQuiz;
+  $('quiz-retour').onclick = () => { montrer('ecran-espace'); dessinerEspace(); };
+  $('bouton-quiz-fini').onclick = () => { montrer('ecran-espace'); dessinerEspace(); };
 
   // Un seul écouteur sur la grille, pas un par case : le mois se redessine à
   // chaque ajout, à chaque changement de mois, et des écouteurs posés case par

@@ -374,3 +374,78 @@ Notions à traiter, dans cet ordre :
 - « pieges » : la confusion exacte qui l'a fait tomber, et comment l'éviter.
 - Fiche courte : elle doit se relire en 5 minutes. C'est sa valeur.
 - Pas de note, pas de pronostic."""
+
+
+# --- 6. Quiz éclair ---------------------------------------------------------
+#
+# L'objet complémentaire du contrôle blanc, pas une version au rabais.
+#
+# Le contrôle interdit le QCM par écrit, et pour une bonne raison : rédiger est
+# ce qui révèle ce qui n'est pas compris. Mais rédiger coûte dix minutes par
+# question, et avant un gros contrôle un élève a besoin de repasser vingt
+# notions en dix minutes. C'est ce que fait le quiz — reconnaître, pas produire.
+#
+# Les deux ne mesurent donc pas la même chose, et le quiz ne remplace jamais le
+# contrôle : il le prépare.
+
+QUIZ_CONSIGNE = """Construis un quiz éclair sur le cours ci-dessus.
+
+Matière : {matiere}
+
+Ce que c'est : {nombre} questions à choix multiple, quatre propositions chacune, une seule juste. L'élève y répond en quelques secondes ; l'ensemble se fait en cinq minutes. Ce n'est pas un contrôle au rabais : le contrôle fait rédiger parce que rédiger révèle ce qu'on n'a pas compris ; le quiz fait reconnaître, parce que reconnaître se répète et que c'est la répétition qui fait tenir.
+
+Règles :
+- Une question porte sur une notion précise du cours, et une seule. Tu la nommes dans « notion », avec son chapitre.
+- Les quatre propositions se ressemblent assez pour qu'on ait à réfléchir. Une proposition manifestement absurde ne fait pas travailler : elle se raye sans lire.
+- Les trois fausses sont les erreurs que les élèves font vraiment sur cette notion : confusion avec une notion voisine, définition à l'envers, exemple mal rattaché, chiffre ou date décalés. Pas d'inventions gratuites.
+- « pourquoi_faux » : pour CHAQUE proposition fausse, la phrase qui nomme la confusion. C'est elle qui apprend quelque chose, pas le fait d'avoir tort.
+- « pourquoi_juste » : ce que la bonne réponse dit, en une phrase.
+- « ou_dans_le_cours » : où l'élève retrouve ça dans SON cours (titre du chapitre, et la phrase concernée).
+- Les propositions sont courtes — une ligne. Si elles font trois lignes, c'est une question de contrôle, pas de quiz.
+- Tu varies les notions : {nombre} questions sur {nombre} notions différentes si le cours en offre assez. Ne pose pas deux fois la même chose autrement.
+- Pas de note, pas de score, pas de « bonnes réponses sur {nombre} ». À la fin on dira à l'élève quelles notions revoir, rien d'autre."""
+
+SCHEMA_QUIZ = {
+    "type": "object",
+    "properties": {
+        "titre": {"type": "string", "description": "Ce sur quoi porte le quiz, en cinq mots."},
+        "questions": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "numero": {"type": "integer"},
+                    "enonce": {"type": "string"},
+                    "propositions": {
+                        "type": "array",
+                        "description": "Quatre propositions courtes, dans l'ordre d'affichage.",
+                        "items": {"type": "string"},
+                    },
+                    "juste": {
+                        "type": "integer",
+                        "description": "L'index (0 à 3) de la proposition juste.",
+                    },
+                    "pourquoi_juste": {"type": "string"},
+                    "pourquoi_faux": {
+                        "type": "array",
+                        "description": (
+                            "Une entrée par proposition, dans le même ordre : la confusion "
+                            "que trahit ce choix. Chaîne vide en face de la proposition juste."
+                        ),
+                        "items": {"type": "string"},
+                    },
+                    "notion": {"type": "string"},
+                    "chapitre": {"type": "string"},
+                    "ou_dans_le_cours": {"type": "string"},
+                },
+                "required": [
+                    "numero", "enonce", "propositions", "juste", "pourquoi_juste",
+                    "pourquoi_faux", "notion", "chapitre", "ou_dans_le_cours",
+                ],
+                "additionalProperties": False,
+            },
+        },
+    },
+    "required": ["titre", "questions"],
+    "additionalProperties": False,
+}

@@ -243,6 +243,34 @@ def generer_controle(
     )
 
 
+
+# --- 3 bis. Quiz éclair -----------------------------------------------------
+
+def generer_quiz(
+    chapitres: list[dict],
+    niveau: str,
+    matiere_nom: str,
+    nombre: int = 8,
+) -> tuple[dict[str, Any], dict[str, int]]:
+    """Le QCM court sur un cours déjà photographié.
+
+    Moins de jetons que le contrôle : les propositions tiennent en une ligne et
+    il n'y a pas de document à écrire. L'effort reste « high » — inventer trois
+    fausses réponses crédibles est la partie difficile, et une fausse réponse
+    absurde ne fait rien travailler.
+    """
+    if config.DEMO_MODE:
+        return demo.quiz(chapitres, nombre), {}
+
+    consigne = prompts.QUIZ_CONSIGNE.format(matiere=matiere_nom, nombre=nombre)
+    return _appel(
+        blocs_systeme=_systeme_avec_cours(niveau, chapitres),
+        contenu_utilisateur=[{"type": "text", "text": consigne}],
+        schema=prompts.SCHEMA_QUIZ,
+        max_tokens=12000,
+        effort="high",
+    )
+
 # --- 4. Correction ----------------------------------------------------------
 
 def corriger(

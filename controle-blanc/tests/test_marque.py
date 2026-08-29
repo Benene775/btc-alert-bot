@@ -100,10 +100,21 @@ def test_le_bandeau_se_cale_sur_l_ecran_qu_il_coiffe():
     assert '#bandeau[data-large="oui"]' in STYLE, "le bandeau n'a qu'une largeur"
     assert "var(--large)" in STYLE.split('#bandeau[data-large="oui"]')[1][:200]
     assert "bandeau.dataset.large" in SCRIPT, "rien ne bascule la largeur"
-    # Les trois écrans larges sont exactement ceux qui tiennent --large.
+    # Les écrans larges sont exactement ceux qui tiennent --large — et la liste
+    # vit en double, dans la feuille de style et dans le script. Si elles
+    # divergent, le bandeau se met à coiffer un écran d'une autre largeur : on
+    # l'a vu avec le quiz, bandeau de 1120 px au-dessus d'un écran de 620.
+    import re as _re
     regle = next(l for l in STYLE.splitlines() if "max-width: var(--large)" in l)
-    for ecran in ("ecran-accueil", "ecran-espace", "ecran-matiere"):
-        assert ecran in regle, f"« {ecran} » ne tient plus la largeur"
+    du_style = {m for m in _re.findall(r"ecran-[a-z]+", regle)}
+    assert du_style == {"ecran-accueil", "ecran-espace", "ecran-matiere"}, du_style
+
+    js = _re.search(r"const ECRANS_LARGES = new Set\(\[(.+?)\]\)", SCRIPT, _re.S)
+    assert js, "ECRANS_LARGES introuvable dans le script"
+    du_script = {m for m in _re.findall(r"ecran-[a-z]+", js.group(1))}
+    assert du_style == du_script, (
+        f"seulement dans le style : {sorted(du_style - du_script)} ; "
+        f"seulement dans le script : {sorted(du_script - du_style)}")
 
 
 def test_l_ancien_nom_ne_traine_plus_comme_nom_de_produit():

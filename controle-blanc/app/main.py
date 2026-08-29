@@ -31,6 +31,8 @@ from .schemas import (
     ContexteSession,
     DemandeCode,
     DemandeControle,
+    DemandeQuiz,
+    DemandeReponseQuiz,
     DemandeCorrection,
     DemandeFiche,
     DemandeFicheCiblee,
@@ -452,6 +454,102 @@ def creer_controle(corps: DemandeControle,
         "duree_minutes": max(10, sum(int(q.get("duree_minutes", 5)) for q in questions)),
         "questions": publiques,
         "quotas": store.etat_quota(corps.session_id, "controle"),
+    }
+
+
+# --- Le quiz éclair ---------------------------------------------------------
+#
+# L'objet complémentaire du contrôle : huit QCM sur un cours déjà photographié,
+# cinq minutes, à refaire autant qu'on veut. Le contrôle fait rédiger parce que
+# rédiger révèle ce qu'on n'a pas compris ; le quiz fait reconnaître, parce que
+# la reconnaissance se répète et que c'est la répétition qui fait tenir.
+#
+# Le corrigé ne part jamais au navigateur. Pour un QCM c'est encore plus vrai
+# que pour un contrôle : la bonne réponse tient dans un entier, et un élève qui
+# ouvre les outils de développement la lirait en trois secondes. Le navigateur
+# reçoit les propositions, il renvoie un rang, le serveur dit ce qu'il en est.
+
+CHAMPS_CORRIGE_QUIZ = ("juste", "pourquoi_juste", "pourquoi_faux", "ou_dans_le_cours")
+
+
+@app.post("/api/quiz")
+def creer_quiz(corps: DemandeQuiz,
+               compte: dict = Depends(compte_connecte)) -> dict[str, Any]:
+    _session_valide(corps.session_id, compte)
+    if not corps.chapitres:
+        raise HTTPException(status_code=400, detail="aucun chapitre choisi")
+    store.verifier_quota(corps.session_id, "quiz")
+
+    fmt = formats.format_matiere(corps.matiere)
+    brut, usage = llm.generer_quiz(
+        _chapitres_en_dicts(corps.chapitres),
+        formats.nom_niveau(corps.niveau),
+        fmt["nom"],
+    )
+
+    questions = [q for q in brut.get("questions", []) if _question_quiz_tenable(q)]
+    if not questions:
+        raise HTTPException(status_code=502, detail="quiz vide")
+
+    quiz_id = uuid.uuid4().hex
+    store.enregistrer_corrige(
+        quiz_id, corps.session_id, {"questions": questions, "titre": brut.get("titre", "")})
+    store.enregistrer_usage(corps.session_id, "quiz", usage)
+    store.enregistrer_evenement(
+        corps.session_id, "quiz_commence",
+        {"questions": len(questions), "chapitres": len(corps.chapitres)},
+    )
+
+    publiques = [
+        {cle: valeur for cle, valeur in q.items() if cle not in CHAMPS_CORRIGE_QUIZ}
+        for q in questions
+    ]
+    return {
+        "quiz_id": quiz_id,
+        "titre": brut.get("titre", "Quiz éclair"),
+        "matiere": fmt["nom"],
+        "questions": publiques,
+        "quotas": store.etat_quota(corps.session_id, "quiz"),
+    }
+
+
+def _question_quiz_tenable(q: dict[str, Any]) -> bool:
+    """Une question de QCM dont l'index juste sort des propositions est
+    injouable : l'élève ne pourrait avoir raison sur aucun choix. On l'écarte
+    plutôt que de la servir — le modèle en rend huit, il en reste sept."""
+    propositions = q.get("propositions") or []
+    if len(propositions) < 2:
+        return False
+    juste = q.get("juste")
+    return isinstance(juste, int) and 0 <= juste < len(propositions)
+
+
+@app.post("/api/quiz/reponse")
+def repondre_quiz(corps: DemandeReponseQuiz,
+                  compte: dict = Depends(compte_connecte)) -> dict[str, Any]:
+    """Aucun appel au modèle ici : on relit le corrigé déjà écrit. C'est pour ça
+    que répondre ne consomme aucun quota — sinon le quiz se paierait huit fois."""
+    _session_valide(corps.session_id, compte)
+    corrige = store.lire_corrige(corps.quiz_id, corps.session_id)
+    if not corrige:
+        raise HTTPException(status_code=404, detail="quiz introuvable ou expiré")
+
+    question = next(
+        (q for q in corrige.get("questions", []) if q.get("numero") == corps.numero), None)
+    if not question:
+        raise HTTPException(status_code=404, detail="question introuvable")
+
+    juste = int(question.get("juste", -1))
+    pourquoi_faux = question.get("pourquoi_faux") or []
+    a_raison = corps.choix == juste
+    return {
+        "juste": a_raison,
+        "bonne": juste,
+        "pourquoi": question.get("pourquoi_juste", "") if a_raison else (
+            pourquoi_faux[corps.choix] if 0 <= corps.choix < len(pourquoi_faux) else ""),
+        "pourquoi_juste": question.get("pourquoi_juste", ""),
+        "ou_dans_le_cours": question.get("ou_dans_le_cours", ""),
+        "notion": question.get("notion", ""),
     }
 
 

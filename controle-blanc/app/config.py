@@ -52,6 +52,10 @@ QUOTAS: dict[str, dict[str, int]] = {
     "fiche_generale": {"jour": _int("CB_QUOTA_FICHE_JOUR", 3), "session": _int("CB_QUOTA_FICHE_SESSION", 12)},
     "controle": {"jour": _int("CB_QUOTA_CONTROLE_JOUR", 3), "session": _int("CB_QUOTA_CONTROLE_SESSION", 12)},
     "fiche_ciblee": {"jour": _int("CB_QUOTA_CIBLEE_JOUR", 5), "session": _int("CB_QUOTA_CIBLEE_SESSION", 20)},
+    # Le quiz se refait — c'est même tout son intérêt — et il coûte bien moins
+    # qu'un contrôle : huit questions courtes contre un sujet entier. Sa limite
+    # est donc plus large, sans quoi on interdirait la répétition qu'on vend.
+    "quiz": {"jour": _int("CB_QUOTA_QUIZ_JOUR", 6), "session": _int("CB_QUOTA_QUIZ_SESSION", 30)},
 }
 
 # La correction n'est pas comptée : elle fait partie du contrôle déjà décompté.
