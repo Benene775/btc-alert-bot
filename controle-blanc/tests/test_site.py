@@ -65,6 +65,28 @@ def test_le_compte_s_ouvre_vide():
         "le semis n'est pas conditionné"
 
 
+def test_l_onglet_ne_nomme_pas_un_cours_que_la_page_n_a_pas():
+    """Le titre portait « Repère — Histoire » : hérité des deux démonstrations,
+    qu'il fallait distinguer dans une galerie. Sur le site public il n'y a qu'une
+    page, et elle est vierge — l'onglet annonçait donc un cours d'histoire à
+    quelqu'un qui n'a rien encore."""
+    with tempfile.TemporaryDirectory() as dossier:
+        index = construire(Path(dossier))["index.html"]
+    assert "<title>Repère</title>" in index
+    assert "Repère — Histoire" not in index
+
+    # Les démonstrations envoyées à la main, elles, gardent leur nom de cours :
+    # c'est ce qui les sépare l'une de l'autre.
+    with tempfile.TemporaryDirectory() as dossier:
+        page = Path(dossier) / "d.html"
+        fait = subprocess.run(
+            [sys.executable, str(RACINE / "outils" / "artefact.py"),
+             "--contenu", "espagnol", str(page)],
+            capture_output=True, text=True, cwd=RACINE)
+        assert fait.returncode == 0, fait.stderr
+        assert "<title>Repère — Espagnol</title>" in page.read_text(encoding="utf-8")
+
+
 def test_une_seance_qui_n_a_rien_ne_s_affiche_pas():
     """S'inscrire ouvre une séance avant qu'on ait demandé la matière. La page
     perso montrait donc « Matière à préciser · 0 fiche », et « 1 cours » à côté

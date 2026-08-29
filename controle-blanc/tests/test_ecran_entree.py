@@ -212,3 +212,19 @@ def test_la_page_ne_promet_pas_une_synchronisation_qui_n_existe_pas():
                      "partout", "d’un appareil à l’autre"):
         for endroit, nom in ((accueil, "l'accueil"), (entree, "l'entrée")):
             assert promesse not in endroit.lower(), f"« {promesse} » promis sur {nom}"
+
+
+def test_apres_la_connexion_on_arrive_sur_sa_page():
+    """Aller droit au questionnaire (« c'est quoi ce contrôle ? ») mettait
+    l'élève au travail avant de lui montrer où il est, et créait au passage une
+    séance vide — avant même qu'on ait demandé la matière. Sa page porte le
+    bouton pour commencer : elle est le point de départ."""
+    bloc = SCRIPT[SCRIPT.index("async function ouvrirLaPorte"):]
+    bloc = bloc[: bloc.index("\n}\n")]
+    # La sortie par défaut — ce qu'on fait quand rien de particulier n'attend.
+    derniere = [l.strip() for l in bloc.splitlines() if l.strip().startswith("return")][-1]
+    assert derniere == "return ouvrirEspace();", f"on finit sur « {derniere} »"
+    # La seule exception : une date posée dans l'agenda dit déjà quoi et quand.
+    assert "suite.agenda" in bloc
+    assert "return demarrerSession();" not in bloc, \
+        "on démarre encore une séance sans savoir la matière"
