@@ -1,8 +1,26 @@
-import requests
+import os
 import time
 
-TOKEN = "7797778540:AAFQ5yGD-2l3bM0rhnO35ID1Y7kvg4u6B7U"  
-CHAT_ID = "7530371836"  
+import requests
+
+# Le jeton et l'identifiant de conversation ne sont PLUS dans le code : ils y
+# étaient en clair, dans un dépôt public, lisibles par n'importe qui. Un jeton
+# Telegram permet d'envoyer des messages en se faisant passer pour le bot et de
+# lire ce qu'on lui écrit ; des robots parcourent GitHub pour en récolter.
+#
+# Ils se posent maintenant dans l'environnement :
+#     export BTC_BOT_TOKEN="..."   (donné par @BotFather)
+#     export BTC_CHAT_ID="..."
+# ou dans un fichier .env, que .gitignore empêche de committer.
+TOKEN = os.environ.get("BTC_BOT_TOKEN", "").strip()
+CHAT_ID = os.environ.get("BTC_CHAT_ID", "").strip()
+
+if not TOKEN or not CHAT_ID:
+    raise SystemExit(
+        "BTC_BOT_TOKEN et BTC_CHAT_ID doivent être définis dans l'environnement.\n"
+        "Voir .env.example."
+    )
+
 BTC_API = "https://api.coindesk.com/v1/bpi/currentprice/BTC.json"
 
 def get_btc_price():
