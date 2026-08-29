@@ -716,7 +716,7 @@ function dessinerProchain(sessions) {
   aller.textContent = session.sessionId ? 'Réviser' : 'Photographier';
   aller.onclick = () => (session.sessionId
     ? ouvrirSession(session.sessionId)
-    : demarrerSession({ matiere: session.matiere, date: session.date }));
+    : demarrerSession({ matiere: session.matiere, date: session.date, versPhotos: true }));
 
   boite.append(compte, texte, aller);
 }
@@ -916,7 +916,8 @@ function dessinerJourChoisi(sessions) {
       action.onclick = () => ouvrirSession(e.sessionId);
     } else {
       action.textContent = 'Photographier';
-      action.onclick = () => demarrerSession({ matiere: e.matiere, date: e.date });
+      action.onclick = () =>
+        demarrerSession({ matiere: e.matiere, date: e.date, versPhotos: true });
     }
     ligne.appendChild(action);
 
@@ -982,13 +983,27 @@ function formulaireRendezVous() {
   valider.className = 'principal ajout-rv-valider';
   valider.textContent = 'Ajouter';
 
+  // Dire ce qui tombe et le photographier sont le même geste, à une minute
+  // près : le cours est ouvert sur la table quand on note la date. Le lien pose
+  // d'abord le contrôle — sinon la date serait perdue en quittant la page — et
+  // enchaîne sur l'appareil photo.
+  const photos = document.createElement('button');
+  photos.type = 'button';
+  photos.className = 'ajout-rv-photos';
+  photos.textContent = 'Ajouter les photos du cours';
+  photos.onclick = () => {
+    const jour = jourChoisi;
+    ajouterRendezVous(jour, choix.value, note.value.trim());
+    demarrerSession({ matiere: choix.value, date: jour, versPhotos: true });
+  };
+
   forme.onsubmit = (evenement) => {
     evenement.preventDefault();
     ajouterRendezVous(jourChoisi, choix.value, note.value.trim());
     dessinerEspace();
   };
 
-  forme.append(titre, etiquetteMatiere, choix, etiquetteNote, note, valider);
+  forme.append(titre, etiquetteMatiere, choix, etiquetteNote, note, photos, valider);
   return forme;
 }
 
@@ -1042,10 +1057,10 @@ function dessinerAtelier() {
  * l'inverse : on attend la fin de la transition pour remettre « hidden », afin
  * que le bloc sorte vraiment de l'ordre de tabulation.
  */
-function basculerAgenda() {
+function basculerAgenda(ouvre) {
   const bloc = $('agenda-deplie');
   const porte = $('bouton-agenda');
-  const ouvre = bloc.dataset.ouvert !== 'oui';
+  if (typeof ouvre !== 'boolean') ouvre = bloc.dataset.ouvert !== 'oui';
 
   porte.setAttribute('aria-expanded', ouvre ? 'true' : 'false');
   $('frise-invite-mot').textContent = ouvre ? 'Replier l’agenda' : 'Ouvrir l’agenda';
@@ -1974,9 +1989,9 @@ function montrer(id) {
   // La fiche du jour vit hors des écrans — sinon « position: fixed » se cale
   // sur la section, qui porte un transform. Elle ne se cache donc pas avec eux :
   // on la referme à la main en quittant sa page.
-  if (id !== 'ecran-espace' && !$('fiche-jour').hidden) {
-    jourChoisi = null;
-    fermerFicheJour();
+  if (id !== 'ecran-espace') {
+    if (!$('fiche-jour').hidden) { jourChoisi = null; fermerFicheJour(); }
+    if ($('ecran-espace').dataset.agenda) basculerAgenda(false);
   }
   // L'ambiance dépend du moment : on révise au chaud, on se teste au froid.
   document.documentElement.dataset.ecran = id.replace('ecran-', '');
@@ -2154,6 +2169,11 @@ async function demarrerSession(depuisAgenda = null) {
     }
     sauver();
     fermerAttente();
+    // « versPhotos » : on sait déjà quoi et quand, l'écran de contexte n'aurait
+    // que trois champs remplis et un bouton. validerContexte() les lit dans le
+    // formulaire — que les deux lignes ci-dessus viennent de renseigner — et
+    // enchaîne sur l'appareil photo.
+    if (depuisAgenda && depuisAgenda.versPhotos) return validerContexte();
     montrer('ecran-contexte');
   } catch (e) { gererErreur(e); }
 }
@@ -3778,7 +3798,7 @@ document.addEventListener('DOMContentLoaded', () => {
     garderCarte({ ...carte(), prenom: evenement.target.value.trim() });
   };
   $('embleme').onclick = basculerAtelier;
-  $('bouton-agenda').onclick = basculerAgenda;
+  $('bouton-agenda').onclick = () => basculerAgenda();
   $('fermer-fiche-jour').onclick = () => { jourChoisi = null; dessinerEspace(); };
   $('bouton-reprendre').onclick = () => {
     const derniere = localStorage.getItem(CLE_DERNIERE);

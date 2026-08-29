@@ -335,3 +335,52 @@ def test_au_telephone_la_fiche_vient_du_bas():
     large = STYLE[STYLE.index("@media (min-width: 900px)") :]
     assert '#ecran-espace[data-fiche="ouverte"]' in large, \
         "le tiroir recouvre le calendrier au lieu de lui faire de la place"
+
+
+def test_on_peut_photographier_le_cours_depuis_la_fiche_du_jour():
+    """Dire ce qui tombe et photographier le cours sont le même geste à une
+    minute près : le cahier est ouvert sur la table quand on note la date. Le
+    lien pose d'abord le contrôle — sinon la date serait perdue en quittant la
+    page — puis enchaîne sur l'appareil photo."""
+    forme = SCRIPT[SCRIPT.index("function formulaireRendezVous"):]
+    forme = forme[: forme.index("\n}\n")]
+    assert "ajout-rv-photos" in forme, "aucun lien vers les photos"
+    assert "Ajouter les photos du cours" in forme
+
+    lien = forme[forme.index("photos.onclick"):]
+    lien = lien[: lien.index("};")]
+    assert "ajouterRendezVous(" in lien, "le contrôle n'est pas posé avant de partir"
+    assert lien.index("ajouterRendezVous(") < lien.index("demarrerSession("), \
+        "on part photographier avant d'avoir enregistré la date"
+    assert "versPhotos: true" in lien
+    # La date est relevée avant l'enregistrement : « ajouterRendezVous » relance
+    # un dessin, et « jourChoisi » ne vaut plus rien à la ligne suivante.
+    assert "const jour = jourChoisi;" in lien
+
+
+def test_venir_de_l_agenda_mene_droit_aux_photos():
+    """La matière et la date sont connues : l'écran de contexte n'aurait que
+    trois champs déjà remplis et un bouton. Les trois chemins — le lien de la
+    fiche, le bouton d'un rendez-vous, la prochaine échéance — vont au même
+    endroit ; deux routes vers le même geste ne peuvent pas mener à deux
+    écrans différents."""
+    demarrer = SCRIPT[SCRIPT.index("async function demarrerSession"):]
+    demarrer = demarrer[: demarrer.index("\n}\n")]
+    assert "depuisAgenda.versPhotos" in demarrer
+    assert demarrer.index("versPhotos") < demarrer.index("montrer('ecran-contexte')"), \
+        "le raccourci arrive après l'écran de contexte : il ne sert à rien"
+    assert SCRIPT.count("versPhotos: true") == 3, \
+        "les trois chemins vers l'appareil photo ne sont pas alignés"
+
+
+def test_quitter_sa_page_referme_l_agenda():
+    """Revenir de l'appareil photo sur une page où les matières et les chiffres
+    restent cachés est désorientant : on croit avoir perdu son classeur."""
+    montrer = SCRIPT[SCRIPT.index("function montrer(id)"):]
+    montrer = montrer[: montrer.index("\n}\n")]
+    assert "basculerAgenda(false)" in montrer, "l'agenda reste en mode « seul »"
+    # La bascule accepte donc une direction, sans casser le clic du bouton.
+    assert "function basculerAgenda(ouvre)" in SCRIPT
+    assert "if (typeof ouvre !== 'boolean')" in SCRIPT, \
+        "un PointerEvent passerait pour « ouvrir »"
+    assert "$('bouton-agenda').onclick = () => basculerAgenda();" in SCRIPT

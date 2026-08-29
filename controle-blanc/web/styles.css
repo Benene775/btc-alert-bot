@@ -3420,7 +3420,29 @@ h1 {
   margin-top: 4px;
 }
 
-.ajout-rv .ajout-rv-valider { margin-top: var(--e2); }
+.ajout-rv .ajout-rv-valider { margin-top: 2px; }
+
+/* Un lien, pas un second bouton : photographier le cours est le prolongement
+   de « ce qui tombe », pas une action concurrente de « Ajouter ». */
+.ajout-rv-photos {
+  align-self: flex-start;
+  margin-top: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: .86rem;
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  /* Une cible au pouce, sans la faire ressembler à un bouton. */
+  min-height: 40px;
+  text-align: left;
+}
+
+.ajout-rv-photos::before { content: "＋ "; text-decoration: none; }
+.ajout-rv-photos:hover { color: var(--encre); }
 
 /* Dans la fiche, le détail commence en haut : c'est l'en-tête qui porte la
    date, il n'y a rien à décaler. Et quand le jour est vide, le formulaire est
