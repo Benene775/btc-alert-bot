@@ -168,8 +168,20 @@ def test_la_page_d_accueil_ne_promet_plus_ce_qui_n_est_plus_vrai():
     accueil = PAGE.split('id="ecran-accueil"')[1].split('id="ecran-connexion"')[0]
     for mensonge in ("Sans compte", "sans compte", "Aucune donnée"):
         assert mensonge not in accueil, f"« {mensonge} » n'est plus vrai"
-    # Ce qui reste vrai, et qu'on doit continuer à dire.
-    assert "téléphone" in accueil
+
+
+def test_pas_de_petites_lignes_rassurantes():
+    """« Gratuit », « ni publicité ni revente », « rien ne sort de ton
+    téléphone » : ces lignes se défendent au lieu de convaincre, et elles
+    reviennent toutes seules dès qu'on écrit une page d'accueil. Le produit dit
+    ce qu'il fait ; ce qu'il ne fait pas se lit dans les conditions, pas sous
+    chaque bouton."""
+    ecrans = PAGE.split('id="ecran-accueil"')[1].split("<!-- MA PAGE")[0].lower()
+    for tic in ("gratuit", "publicité", "revente", "rien n’est transmis",
+                "rien de transmis", "reste dans ton téléphone",
+                "restent dans ton téléphone", "ne sort pas de ton téléphone",
+                "sans engagement", "rien d’autre."):
+        assert tic not in ecrans, f"« {tic} » est revenu dans les petites lignes"
 
 
 def test_effacer_son_compte_efface_aussi_ce_navigateur():

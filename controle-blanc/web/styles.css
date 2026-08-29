@@ -2052,13 +2052,6 @@ h1 {
   margin-top: var(--e3);
 }
 
-.entree-mention {
-  margin: var(--e3) 0 0;
-  font-size: .78rem;
-  line-height: 1.5;
-  color: var(--encre-douce);
-}
-
 .lien-nu {
   background: none;
   border: 0;
