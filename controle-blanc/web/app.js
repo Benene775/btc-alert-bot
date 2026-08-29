@@ -98,6 +98,104 @@ function toutesLesSessions() {
   return sessions.sort((a, b) => String(b.creeLe).localeCompare(String(a.creeLe)));
 }
 
+/* --- Le ménage ------------------------------------------------------------
+ *
+ * Repartir de l'accueil crée une séance neuve. Photographier deux fois le même
+ * cours donnait donc deux séances jumelles, et l'archive affichait la même
+ * fiche autant de fois qu'on avait recommencé.
+ *
+ * Deux séances qui portent la même matière et les mêmes chapitres sont le même
+ * cours : on les réunit. La survivante est la plus fournie — c'est elle qui
+ * porte le plus de travail, et son lien de reprise est celui qui a servi.
+ *
+ * Les séances vraiment vides (aucun chapitre, aucune fiche, aucun contrôle)
+ * sont des départs abandonnés : elles disparaissent.
+ */
+function signatureCours(session) {
+  const chapitres = (session.chapitres || [])
+    .map((c) => String(c.titre || '').trim().toLowerCase())
+    .sort()
+    .join(' | ');
+  return (session.matiere || '') + ' :: ' + chapitres;
+}
+
+function poids(session) {
+  return (session.fiches || []).length + (session.controles || []).length
+    + (session.chapitres || []).length;
+}
+
+function fusionner(garde, autre) {
+  const fiches = garde.fiches || [];
+  (autre.fiches || []).forEach((fiche) => {
+    const titre = (fiche.contenu && fiche.contenu.titre) || '';
+    const jumelle = fiches.find(
+      (f) => f.type === fiche.type && ((f.contenu && f.contenu.titre) || '') === titre);
+    // La plus récente gagne : c'est celle qui reflète le cours tel qu'il est.
+    if (!jumelle) fiches.push(fiche);
+    else if (String(fiche.le) > String(jumelle.le)) Object.assign(jumelle, fiche);
+  });
+  garde.fiches = fiches;
+
+  // Les contrôles, eux, s'additionnent : chacun est un essai distinct.
+  const dejaVus = new Set((garde.controles || []).map((c) => c.controle_id));
+  (autre.controles || []).forEach((c) => {
+    if (!dejaVus.has(c.controle_id)) (garde.controles = garde.controles || []).push(c);
+  });
+  garde.controles.sort((a, b) => String(a.le).localeCompare(String(b.le)));
+
+  // La date de contrôle la plus proche à venir prime : c'est celle qui compte.
+  if (autre.dateControle && (!garde.dateControle || autre.dateControle > garde.dateControle)) {
+    garde.dateControle = autre.dateControle;
+  }
+  garde.marques = { ...(autre.marques || {}), ...(garde.marques || {}) };
+  if (!(garde.notionsFragiles || []).length) garde.notionsFragiles = autre.notionsFragiles || [];
+  return garde;
+}
+
+function oublierSession(sessionId) {
+  try {
+    localStorage.removeItem(CLE_ETAT + sessionId);
+    if (localStorage.getItem(CLE_DERNIERE) === sessionId) localStorage.removeItem(CLE_DERNIERE);
+  } catch (e) { /* stockage refusé */ }
+  // Les pages du cahier de la séance disparue n'ont plus rien à illustrer.
+  oublierPages(sessionId);
+}
+
+function menageSessions() {
+  const sessions = toutesLesSessions();
+  const parCours = new Map();
+  let change = false;
+
+  sessions.forEach((session) => {
+    if (!poids(session)) {
+      // Un départ abandonné : rien à garder.
+      oublierSession(session.sessionId);
+      change = true;
+      return;
+    }
+    const cle = signatureCours(session);
+    const deja = parCours.get(cle);
+    if (!deja) return parCours.set(cle, session);
+
+    const [garde, jete] = poids(deja) >= poids(session) ? [deja, session] : [session, deja];
+    parCours.set(cle, fusionner(garde, jete));
+    oublierSession(jete.sessionId);
+    change = true;
+  });
+
+  if (!change) return false;
+  parCours.forEach((session) => {
+    try { localStorage.setItem(CLE_ETAT + session.sessionId, JSON.stringify(session)); }
+    catch (e) { /* stockage plein */ }
+  });
+  // La séance courante a pu être absorbée : on repart de celle qui reste.
+  if (etat && !localStorage.getItem(CLE_ETAT + etat.sessionId)) {
+    const survivante = [...parCours.values()].find((s) => signatureCours(s) === signatureCours(etat));
+    etat = survivante || null;
+  }
+  return true;
+}
+
 function nomMatiere(cle) {
   const trouvee = (config.matieres || []).find((m) => m.cle === cle);
   return trouvee ? trouvee.nom : (cle || 'Matière à préciser');
@@ -1189,6 +1287,20 @@ async function garderPages(sessionId, pages) {
   }
 }
 
+/* Les pages d'une séance disparue n'illustrent plus rien : elles occupent le
+ * stockage du téléphone pour rien, et ce sont les objets les plus lourds. */
+async function oublierPages(sessionId) {
+  try {
+    const base = await ouvrirBase();
+    await new Promise((resoudre) => {
+      const transaction = base.transaction('pages', 'readwrite');
+      transaction.objectStore('pages').delete(sessionId);
+      transaction.oncomplete = resoudre;
+      transaction.onerror = resoudre;
+    });
+  } catch (e) { /* stockage refusé : rien à nettoyer */ }
+}
+
 async function lirePages(sessionId) {
   try {
     const base = await ouvrirBase();
@@ -1325,6 +1437,10 @@ async function initialiser() {
   remplirSelecteur($('champ-niveau'), config.niveaux, '3e');
   remplirSelecteur($('champ-matiere'), config.matieres,
                    config.matiere_par_defaut || 'histoire-geographie');
+
+  // Avant de lire l'historique : deux séances jumelles n'ont aucune raison de
+  // rester deux, et un départ abandonné n'a rien à montrer.
+  menageSessions();
 
   const params = new URLSearchParams(location.search);
   const depuisLien = params.get('s');
@@ -1730,6 +1846,9 @@ async function analyser() {
     dessinerPhotos();
     etat.etape = 'perimetre';
     sauver();
+    // Le cours vient d'être identifié : s'il double une séance existante, on
+    // les réunit maintenant plutôt que de laisser deux jumelles s'installer.
+    if (menageSessions() && etat) sauver();
     dessinerPerimetre();
     montrer('ecran-perimetre');
   } catch (e) { gererErreur(e); }

@@ -203,3 +203,40 @@ def test_l_archive_ne_montre_pas_de_titres_indistincts():
     assert "fiche.type === 'ciblee'" in CODE_NU
     assert "codeMatiere" in CODE_NU, "les lignes n'ont pas de pastille de matière"
     assert "CODES_MATIERE" in SCRIPT
+
+
+def test_deux_seances_du_meme_cours_se_reunissent():
+    """Repartir de l'accueil crée une séance neuve.
+
+    Photographier deux fois le même cours donnait donc deux séances jumelles, et
+    l'archive affichait la même fiche autant de fois qu'on avait recommencé —
+    neuf lignes « Turismo y Madrid » identiques. Dédoublonner à l'intérieur
+    d'une séance ne suffisait pas : le double était entre séances.
+    """
+    assert "function menageSessions" in CODE_NU
+    assert "function signatureCours" in CODE_NU, "rien ne reconnaît deux fois le même cours"
+    # La signature tient à la matière ET aux chapitres : deux chapitres
+    # différents de la même matière restent deux cours.
+    signature = CODE_NU[CODE_NU.index("function signatureCours") :][:400]
+    assert "matiere" in signature and "chapitres" in signature
+
+    # Un contrôle repassé est un essai distinct : il ne doit jamais fusionner.
+    fusion = CODE_NU[CODE_NU.index("function fusionner") :]
+    fusion = fusion[: fusion.index("\n}\n")]
+    assert "controle_id" in fusion, "les contrôles ne sont pas conservés un par un"
+
+
+def test_le_menage_tourne_avant_qu_on_lise_l_historique():
+    """Sinon la page affiche les doublons une fois avant de les ranger."""
+    debut = SCRIPT.index("async function initialiser")
+    entete = SCRIPT[debut : SCRIPT.index("const derniere = localStorage.getItem(CLE_DERNIERE)", debut)]
+    assert "menageSessions()" in entete, "le ménage passe après la lecture de l'historique"
+
+
+def test_les_pages_d_une_seance_disparue_sont_effacees():
+    """Ce sont les objets les plus lourds du stockage : les laisser derrière une
+    séance supprimée remplit le téléphone pour rien."""
+    assert "function oublierPages" in SCRIPT
+    oublier = SCRIPT[SCRIPT.index("function oublierSession") :]
+    oublier = oublier[: oublier.index("\n}\n")]
+    assert "oublierPages" in oublier
