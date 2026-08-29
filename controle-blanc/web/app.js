@@ -152,9 +152,15 @@ function notionsQuiReviennent(sessions) {
 function toutesLesFiches(sessions) {
   const fiches = [];
   sessions.forEach((session) => {
+    const chapitre = ((session.chapitres || [])[0] || {}).titre || '';
     (session.fiches || []).forEach((fiche, rang) => {
-      fiches.push({ session, rang, type: fiche.type, le: fiche.le,
-                    titre: (fiche.contenu && fiche.contenu.titre) || 'Fiche' });
+      // Une fiche ciblée s'appelle « Ce qui ne tenait pas encore » — juste dans
+      // la fiche, illisible dans une liste où trois se suivent. Dans l'archive
+      // elle prend le nom de son chapitre, qui est ce qu'on y cherche.
+      const titre = fiche.type === 'ciblee'
+        ? (chapitre || (fiche.contenu && fiche.contenu.titre) || 'Fiche ciblée')
+        : ((fiche.contenu && fiche.contenu.titre) || chapitre || 'Fiche');
+      fiches.push({ session, rang, type: fiche.type, le: fiche.le, titre });
     });
   });
   return fiches.sort((a, b) => String(b.le).localeCompare(String(a.le)));
@@ -868,6 +874,22 @@ function teinteMatiere(cle) {
   return String((rang < 0 ? 0 : rang) % 6);
 }
 
+/* Le code court d'une matière : « SVT », « ESP », « H-G ». Une pastille de
+ * trois lettres se lit d'un coup d'oeil dans une liste de trente lignes, là où
+ * « Histoire-Géographie / EMC » écrit en entier noie la ligne. */
+const CODES_MATIERE = {
+  'francais': 'FR', 'mathematiques': 'MATH', 'histoire-geographie': 'H-G',
+  'svt': 'SVT', 'physique-chimie': 'P-C', 'technologie': 'TECH',
+  'anglais': 'ANG', 'espagnol': 'ESP', 'allemand': 'ALL',
+  'ses': 'SES', 'philosophie': 'PHILO', 'autre': '···',
+};
+
+function codeMatiere(cle) {
+  if (CODES_MATIERE[cle]) return CODES_MATIERE[cle];
+  const nom = nomMatiere(cle);
+  return nom.slice(0, 3).toUpperCase();
+}
+
 function sansAccent(texte) {
   return String(texte || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 }
@@ -979,6 +1001,13 @@ function ligneArchive(e, sousTitre) {
   bouton.className = 'ligne-archive';
   bouton.dataset.teinte = teinteMatiere(e.session.matiere);
 
+  // La pastille porte la matière : sa couleur et son code se lisent avant le
+  // titre, et donnent à la ligne un point d'ancrage plutôt qu'un filet.
+  const pastille = document.createElement('span');
+  pastille.className = 'ligne-archive-pastille';
+  pastille.textContent = codeMatiere(e.session.matiere);
+  pastille.setAttribute('aria-label', nomMatiere(e.session.matiere));
+
   const corps = document.createElement('span');
   corps.className = 'ligne-archive-corps';
 
@@ -988,11 +1017,10 @@ function ligneArchive(e, sousTitre) {
 
   const bas = document.createElement('span');
   bas.className = 'ligne-archive-bas';
-  bas.textContent = nomMatiere(e.session.matiere) + ' · ' + dateCourte(e.le)
-    + (sousTitre(e) ? ' · ' + sousTitre(e) : '');
+  bas.textContent = [dateCourte(e.le), sousTitre(e)].filter(Boolean).join(' · ');
 
   corps.append(titre, bas);
-  bouton.appendChild(corps);
+  bouton.append(pastille, corps);
   li.appendChild(bouton);
   return li;
 }
@@ -1828,6 +1856,25 @@ function choisirChemin(chemin, position) {
 
 /* ---------------------------------------------------------- les fiches --- */
 
+/* Une fiche remplace celle qu'elle refait, elle ne s'ajoute pas à côté.
+ *
+ * Repasser par « je révise d'abord » sur le même chapitre empilait une fiche
+ * identique à chaque fois : dix lignes « Turismo y Madrid · 28 août » dans
+ * l'archive, impossibles à distinguer, et un stockage qui gonflait pour rien.
+ *
+ * Un contrôle blanc, lui, se garde à chaque fois : le repasser est un nouvel
+ * essai, et comparer les deux est justement l'intérêt.
+ */
+function garderFiche(type, contenu) {
+  const titre = (contenu && contenu.titre) || '';
+  const rang = etat.fiches.findIndex(
+    (f) => f.type === type && ((f.contenu && f.contenu.titre) || '') === titre);
+  const entree = { type, contenu, le: new Date().toISOString() };
+  if (rang >= 0) etat.fiches[rang] = entree;
+  else etat.fiches.push(entree);
+}
+
+
 async function demanderFicheGenerale() {
   attendre('On prépare ta fiche…', 'Elle reprend ton cours, dans ton ordre à toi.');
   try {
@@ -1837,7 +1884,7 @@ async function demanderFicheGenerale() {
       chapitres: chapitresRetenus(),
     });
     fermerAttente();
-    etat.fiches.push({ type: 'generale', contenu: fiche, le: new Date().toISOString() });
+    garderFiche('generale', fiche);
     etat.etape = 'fiche';
     sauver();
     afficherFiche(fiche, 'generale');
@@ -1858,7 +1905,7 @@ async function demanderFicheCiblee() {
       notions: etat.notionsFragiles,
     });
     fermerAttente();
-    etat.fiches.push({ type: 'ciblee', contenu: fiche, le: new Date().toISOString() });
+    garderFiche('ciblee', fiche);
     sauver();
     afficherFiche(fiche, 'ciblee');
   } catch (e) { gererErreur(e); }

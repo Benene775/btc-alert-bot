@@ -177,3 +177,29 @@ def test_rien_dans_l_espace_ne_grandit_sans_fin():
     assert ".slice(0, PAR_PAGE)" in CODE_NU, "l'archive n'est pas coupée"
     assert "const TETE_MAX" in CODE_NU, "les notions récurrentes ne sont pas bornées"
     assert "SEMAINES_FRISE" in CODE_NU, "la frise n'est pas bornée"
+
+
+def test_une_fiche_remplace_celle_qu_elle_refait():
+    """Repasser par « je révise » sur le même chapitre empilait une fiche
+    identique à chaque fois : dix lignes « Turismo y Madrid · 28 août » dans
+    l'archive, impossibles à distinguer, et un stockage qui gonflait pour rien.
+
+    Un contrôle blanc, lui, se garde à chaque fois : le repasser est un nouvel
+    essai, et comparer les deux est justement l'intérêt.
+    """
+    assert "function garderFiche" in SCRIPT, "les fiches s'ajoutent sans se remplacer"
+    # Le seul empilement autorisé est celui de garderFiche, après avoir cherché
+    # un doublon. Ailleurs, c'est le bogue qui revient.
+    corps = SCRIPT[SCRIPT.index("function garderFiche") :]
+    corps = corps[: corps.index("\n}\n")]
+    assert "etat.fiches.push" in corps
+    assert SCRIPT.count("etat.fiches.push") == 1, "une fiche est encore empilée hors de garderFiche"
+    assert "etat.controles.push" in SCRIPT, "les contrôles ne doivent PAS être dédoublonnés"
+
+
+def test_l_archive_ne_montre_pas_de_titres_indistincts():
+    """Trois « Ce qui ne tenait pas encore » à la suite ne se distinguent pas :
+    dans une liste, une fiche ciblée prend le nom de son chapitre."""
+    assert "fiche.type === 'ciblee'" in CODE_NU
+    assert "codeMatiere" in CODE_NU, "les lignes n'ont pas de pastille de matière"
+    assert "CODES_MATIERE" in SCRIPT
