@@ -42,6 +42,13 @@ def sans_couche_reseau(source: str) -> str:
     return allege
 
 
+# Le nom du cours embarqué, pour distinguer les démonstrations entre elles.
+TITRES = {
+    "histoire": "Histoire",
+    "espagnol": "Espagnol",
+}
+
+
 def contenus_disponibles() -> list[str]:
     exclus = {"faux-serveur", "commun"}
     return sorted(f.stem for f in DEMO.glob("*.js") if f.stem not in exclus)
@@ -72,7 +79,10 @@ def main() -> int:
         # caractères fait rendre « contrôle » en « contrÃ´le ». La plateforme
         # d'artefacts fournit le sien, pas un hébergement quelconque.
         '<meta charset="utf-8">\n'
-        "<title>Contrôle blanc</title>\n"
+        # Les deux démonstrations portaient le même titre : dans une galerie
+        # d'artefacts, elles apparaissaient comme deux entrées identiques et
+        # rien ne disait laquelle contenait quel cours.
+        f"<title>Contrôle blanc — {TITRES.get(arguments.contenu, arguments.contenu.capitalize())}</title>\n"
         '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n'
         f"<style>\n{polices}\n{styles}\n</style>\n\n{corps}\n\n"
         f"<script>\n{donnees}\n\n{commun}\n\n{faux}\n\n{app}\n</script>\n"
