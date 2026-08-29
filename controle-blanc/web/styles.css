@@ -2387,84 +2387,261 @@ h1 {
   font-weight: 700;
 }
 
-/* --- Les intercalaires --------------------------------------------------- */
+/* --- Le tableau de bord --------------------------------------------------
+ *
+ * Tout était derrière quatre onglets : en arrivant, l'élève voyait son prénom
+ * et une échéance, jamais son année. Les onglets disparaissent au profit d'une
+ * étagère — une tuile par matière, l'année d'un coup d'oeil — et chaque tuile
+ * ouvre tout ce que cette matière contient.
+ */
+.pan { display: flex; flex-direction: column; gap: var(--e2); }
 
-/* Des onglets de classeur : celui qui est ouvert descend se raccorder à sa
-   pile, les autres restent en retrait. Une seule pile visible à la fois. */
-/* Sur les écrans les plus étroits, les quatre onglets ne tiennent pas à une
-   taille lisible. Plutôt que de rogner le vocabulaire du produit, la barre
-   défile — et un fondu sur le bord droit dit qu'il y a une suite, au lieu de
-   laisser croire à un mot coupé. */
-.intercalaires {
-  display: flex;
-  gap: 3px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  margin-inline: calc(-1 * var(--gouttiere));
-  padding: 0 var(--gouttiere);
-  margin-bottom: -1px;
-  mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent 100%);
-  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent 100%);
+.pan-tete { display: flex; align-items: baseline; justify-content: space-between; gap: var(--e2); }
+
+.pan-titre {
+  font-family: var(--mono);
+  font-size: .66rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--encre) 52%, transparent);
+  margin: 0;
+  font-weight: 500;
 }
 
-.intercalaires::-webkit-scrollbar { display: none; }
+.pan-lien {
+  border: 0;
+  background: none;
+  padding: 4px 0;
+  min-height: 32px;
+  font-size: .8rem;
+  font-weight: 700;
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
 
-.intercalaire {
-  flex: 0 0 auto;
+.pan-vide { color: var(--encre-douce); font-size: .9rem; margin: 0; }
+
+/* L'agenda se replie : la prochaine échéance est déjà en haut de page, le
+   calendrier complet sert à planifier, pas à consulter. */
+.pan-pliant {
+  background: var(--carte);
+  border-radius: var(--rayon-carte);
+  box-shadow: var(--ombre-carte);
+  overflow: hidden;
+}
+
+.pan-tete-pliante {
   display: flex;
   align-items: center;
-  gap: 5px;
-  border: 0;
-  border-radius: 12px 12px 0 0;
-  /* Serré exprès : à 10 px de rembourrage les quatre intercalaires
-     débordaient d'un téléphone. En dessous de 380 px de large la barre défile,
-     et l'onglet coupé sert alors d'indice qu'il y en a d'autres. */
-  padding: 11px 7px;
-  min-height: 44px;
-  font-size: .82rem;
-  font-weight: 700;
-  color: color-mix(in srgb, var(--encre) 62%, transparent);
-  background: color-mix(in srgb, var(--t0) 55%, var(--papier));
-  transform: translateY(4px);
-  transition: transform .18s cubic-bezier(.2, .7, .3, 1), background .2s ease, color .2s ease;
+  gap: var(--e2);
+  padding: var(--e3);
+  min-height: 52px;
+  cursor: pointer;
+  list-style: none;
 }
 
-.intercalaire[data-teinte="1"] { background: color-mix(in srgb, var(--t3) 55%, var(--papier)); }
-.intercalaire[data-teinte="2"] { background: color-mix(in srgb, var(--t4) 55%, var(--papier)); }
-.intercalaire[data-teinte="3"] { background: color-mix(in srgb, var(--t2) 55%, var(--papier)); }
+.pan-tete-pliante::-webkit-details-marker { display: none; }
+.pan-tete-pliante .pan-titre { flex: 1; }
 
-.intercalaire[data-actif="oui"] {
-  transform: translateY(0);
-  color: var(--encre);
-  background: var(--carte);
-  box-shadow: 0 -2px 10px -6px color-mix(in srgb, var(--encre) 40%, transparent);
-}
-
-.intercalaire-compte {
+.pan-compte {
   font-family: var(--mono);
-  font-size: .6rem;
-  padding: 1px 4px;
+  font-size: .62rem;
+  padding: 2px 7px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--encre) 9%, transparent);
+  background: var(--accent-doux);
+  color: var(--accent);
   font-variant-numeric: tabular-nums;
 }
 
-.intercalaire[data-actif="oui"] .intercalaire-compte { background: var(--accent-doux); color: var(--accent); }
-
-.classeur {
-  background: var(--carte);
-  border-radius: 0 var(--rayon-carte) var(--rayon-carte) var(--rayon-carte);
-  box-shadow: var(--ombre-carte);
-  padding: var(--e3);
-  min-height: 220px;
+.pan-chevron {
+  font-size: .9rem;
+  line-height: 1;
+  color: var(--encre-douce);
+  transition: transform .22s cubic-bezier(.2, .7, .3, 1);
 }
 
-.panneau { display: flex; flex-direction: column; gap: var(--e2); }
-.panneau:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
+.pan-pliant[open] .pan-chevron { transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) { .pan-chevron { transition: none; } }
 
-.panneau-vide { color: var(--encre-douce); font-size: .9rem; margin: 0; }
+.pan-corps { padding: 0 var(--e3) var(--e3); display: flex; flex-direction: column; gap: var(--e2); }
 
-.aide-espace { font-size: .85rem; color: var(--encre-douce); margin: 0; }
+/* --- L'étagère ------------------------------------------------------------ */
+
+.etagere {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--e2);
+}
+
+/* Une tuile de matière : sa couleur, son code, ce qu'elle contient, et
+   l'échéance si elle en a une. C'est l'objet qu'on collectionne au fil de
+   l'année, et celui qu'on ouvre pour travailler. */
+.tuile-matiere {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas:
+    "code echeance"
+    "nom  nom"
+    "chiffres chiffres"
+    "revoir revoir";
+  align-content: start;
+  gap: 6px var(--e2);
+  text-align: left;
+  padding: var(--e3);
+  min-height: 132px;
+  border: 0;
+  border-radius: var(--rayon-carte);
+  background: var(--t0);
+  color: var(--encre);
+  box-shadow: var(--ombre-carte);
+  transition: transform .16s cubic-bezier(.2, .7, .3, 1), box-shadow .2s ease;
+}
+
+.tuile-matiere[data-teinte="1"] { background: var(--t1); }
+.tuile-matiere[data-teinte="2"] { background: var(--t2); }
+.tuile-matiere[data-teinte="3"] { background: var(--t3); }
+.tuile-matiere[data-teinte="4"] { background: var(--t4); }
+.tuile-matiere[data-teinte="5"] { background: var(--t5); }
+
+.tuile-matiere:active { transform: scale(.975); }
+
+.tuile-code {
+  grid-area: code;
+  font-family: var(--mono);
+  font-size: .6rem;
+  letter-spacing: .1em;
+  padding: 4px 8px;
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--carte) 68%, transparent);
+  color: color-mix(in srgb, var(--encre) 70%, transparent);
+  justify-self: start;
+}
+
+.tuile-nom {
+  grid-area: nom;
+  font-family: var(--titre);
+  font-weight: 600;
+  font-size: 1.08rem;
+  line-height: 1.15;
+  letter-spacing: -.015em;
+  margin-top: 2px;
+}
+
+.tuile-chiffres {
+  grid-area: chiffres;
+  font-size: .74rem;
+  color: color-mix(in srgb, var(--encre) 58%, transparent);
+}
+
+.tuile-echeance {
+  grid-area: echeance;
+  justify-self: end;
+  font-family: var(--mono);
+  font-size: .66rem;
+  font-variant-numeric: tabular-nums;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--carte) 68%, transparent);
+  color: var(--accent);
+}
+
+.tuile-echeance[data-urgence="moyenne"] { color: var(--partiel); }
+.tuile-echeance[data-urgence="haute"] { background: var(--rouge); color: var(--papier); }
+
+.tuile-revoir {
+  grid-area: revoir;
+  justify-self: start;
+  font-family: var(--mono);
+  font-size: .6rem;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--encre) 55%, transparent);
+  margin-top: 2px;
+}
+
+/* Cinq tuiles rouges sur six, c'est du bruit : le compte reste en gris, et un
+   point rouge signale simplement qu'une notion y est déjà revenue. */
+.tuile-revoir { display: flex; align-items: center; gap: 5px; }
+.tuile-revoir i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--rouge);
+  flex: 0 0 auto;
+}
+
+/* --- La vue d'une matière ------------------------------------------------ */
+
+.ecran-matiere { display: flex; flex-direction: column; gap: var(--e4); }
+
+.retour {
+  align-self: flex-start;
+  border: 0;
+  background: none;
+  padding: 6px 0;
+  min-height: 40px;
+  font-size: .86rem;
+  font-weight: 700;
+  color: var(--encre-douce);
+}
+
+.matiere-tete {
+  display: flex;
+  align-items: center;
+  gap: var(--e3);
+  padding: var(--e4);
+  border-radius: var(--rayon-carte);
+  background: var(--t0);
+  box-shadow: var(--ombre-carte);
+}
+
+.matiere-tete[data-teinte="1"] { background: var(--t1); }
+.matiere-tete[data-teinte="2"] { background: var(--t2); }
+.matiere-tete[data-teinte="3"] { background: var(--t3); }
+.matiere-tete[data-teinte="4"] { background: var(--t4); }
+.matiere-tete[data-teinte="5"] { background: var(--t5); }
+.matiere-tete[data-tout="oui"] { background: var(--carte); }
+
+.matiere-code {
+  flex: 0 0 auto;
+  min-width: 54px;
+  height: 50px;
+  padding: 0 10px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  font-family: var(--mono);
+  font-size: .68rem;
+  letter-spacing: .06em;
+  background: color-mix(in srgb, var(--carte) 70%, transparent);
+  color: color-mix(in srgb, var(--encre) 72%, transparent);
+}
+
+.matiere-nom {
+  font-family: var(--titre);
+  font-weight: 600;
+  font-size: clamp(1.5rem, 6vw, 1.9rem);
+  line-height: 1.1;
+  letter-spacing: -.022em;
+  margin: 0;
+}
+
+.matiere-dessous {
+  font-size: .82rem;
+  color: color-mix(in srgb, var(--encre) 62%, transparent);
+  margin: 4px 0 0;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .tuile-matiere:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 2px 4px color-mix(in srgb, var(--encre) 9%, transparent),
+                0 24px 46px -22px color-mix(in srgb, var(--encre) 40%, transparent);
+  }
+  .pan-lien:hover, .retour:hover { color: var(--encre); }
+}
 
 /* --- L'agenda ------------------------------------------------------------
  *
@@ -2903,6 +3080,7 @@ h1 {
 .ligne-archive-pastille {
   flex: 0 0 auto;
   min-width: 46px;
+  font-variant-numeric: tabular-nums;
   height: 42px;
   padding: 0 7px;
   border-radius: 11px;
@@ -2914,6 +3092,14 @@ h1 {
   font-weight: 500;
   color: color-mix(in srgb, var(--encre) 72%, transparent);
   background: var(--t0);
+}
+
+/* Le jour du mois, dans une matière : plus gros, il sert de repère. */
+.ligne-archive-pastille[data-jour="oui"] {
+  font-family: var(--titre);
+  font-weight: 600;
+  font-size: 1.05rem;
+  letter-spacing: -.02em;
 }
 
 .ligne-archive[data-teinte="1"] .ligne-archive-pastille { background: var(--t1); }

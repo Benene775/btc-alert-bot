@@ -197,17 +197,31 @@
     <div class="atelier-choix" id="choix-teintes"></div>
   </div>
 
-  <!-- Les intercalaires du classeur : une seule pile ouverte à la fois. -->
-  <div class="intercalaires" id="intercalaires" role="tablist" aria-label="Mon année"></div>
+  <!-- Ce qui revient. Passe avant tout le reste : c'est la seule chose que ce
+       produit sache dire qu'un cahier ne dit pas. -->
+  <section class="pan" id="pan-revient" hidden>
+    <h2 class="pan-titre">Ce qui ne tient pas encore</h2>
+    <ul class="reviennent" id="liste-reviennent"></ul>
+  </section>
 
-  <div class="classeur">
-    <div class="panneau" id="panneau-revoir" role="tabpanel" aria-labelledby="onglet-revoir" tabindex="0">
-      <p class="aide-espace">Une notion qui revient deux fois, c’est elle qu’il faut travailler — pas tout le chapitre.</p>
-      <ul class="reviennent" id="liste-reviennent"></ul>
-      <p class="panneau-vide" id="vide-revoir" hidden>Rien à revoir pour l’instant. Passe un contrôle blanc et ça se remplira.</p>
+  <!-- L'étagère : une année en un coup d'oeil, une tuile par matière. -->
+  <section class="pan" id="pan-matieres">
+    <div class="pan-tete">
+      <h2 class="pan-titre">Tes matières</h2>
+      <button type="button" class="pan-lien" id="bouton-tout-voir">Tout chercher</button>
     </div>
+    <div class="etagere" id="etagere"></div>
+    <p class="pan-vide" id="vide-matieres" hidden>Photographie ton premier cours : il s’installera ici.</p>
+  </section>
 
-    <div class="panneau" id="panneau-agenda" role="tabpanel" aria-labelledby="onglet-agenda" tabindex="0" hidden>
+  <!-- L'agenda, replié : la prochaine échéance est déjà en haut de page. -->
+  <details class="pan pan-pliant" id="pan-agenda">
+    <summary class="pan-tete-pliante">
+      <h2 class="pan-titre">Ton agenda</h2>
+      <span class="pan-compte" id="compte-agenda"></span>
+      <span class="pan-chevron" aria-hidden="true">⌄</span>
+    </summary>
+    <div class="pan-corps">
       <div class="mois-barre">
         <button type="button" id="mois-precedent" class="mois-fleche" aria-label="Mois précédent">‹</button>
         <p class="mois-titre" id="mois-titre" aria-live="polite"></p>
@@ -219,34 +233,50 @@
       <div class="mois" id="mois-grille"></div>
       <div class="jour-detail" id="jour-detail"></div>
     </div>
-
-    <div class="panneau" id="panneau-fiches" role="tabpanel" aria-labelledby="onglet-fiches" tabindex="0" hidden>
-      <div class="archive">
-        <label class="masque" for="recherche-fiches">Chercher une fiche</label>
-        <input type="search" id="recherche-fiches" class="recherche" placeholder="Chercher une fiche…"
-               autocomplete="off" enterkeyhint="search">
-        <div class="filtres" id="filtres-fiches" role="group" aria-label="Filtrer par matière"></div>
-        <ul class="archive-liste" id="liste-mes-fiches"></ul>
-        <button type="button" class="archive-plus" id="plus-fiches" hidden></button>
-        <p class="panneau-vide" id="vide-fiches" hidden>Aucune fiche encore.</p>
-      </div>
-    </div>
-
-    <div class="panneau" id="panneau-controles" role="tabpanel" aria-labelledby="onglet-controles" tabindex="0" hidden>
-      <div class="archive">
-        <label class="masque" for="recherche-controles">Chercher un contrôle blanc</label>
-        <input type="search" id="recherche-controles" class="recherche" placeholder="Chercher un contrôle…"
-               autocomplete="off" enterkeyhint="search">
-        <div class="filtres" id="filtres-controles" role="group" aria-label="Filtrer par matière"></div>
-        <ul class="archive-liste" id="liste-mes-controles"></ul>
-        <button type="button" class="archive-plus" id="plus-controles" hidden></button>
-        <p class="panneau-vide" id="vide-controles" hidden>Aucun contrôle blanc encore.</p>
-      </div>
-    </div>
-  </div>
+  </details>
 
   <button type="button" class="principal" id="bouton-espace-nouveau">Photographier un nouveau cours</button>
   <button type="button" class="discret" id="bouton-quitter-espace">Revenir</button>
+</section>
+
+<!-- LA VUE D'UNE MATIÈRE — tout ce qu'elle contient, sans onglet à deviner.
+     Sert aussi de vue « tout », quand aucune matière n'est choisie. -->
+<section id="ecran-matiere" class="ecran ecran-matiere" hidden>
+  <button type="button" class="retour" id="retour-etagere">← Tes matières</button>
+
+  <div class="matiere-tete" id="matiere-tete"></div>
+
+  <section class="pan" id="pan-matiere-revoir" hidden>
+    <h2 class="pan-titre">Ce qui ne tient pas encore</h2>
+    <ul class="reviennent" id="liste-matiere-revoir"></ul>
+    <button type="button" class="archive-plus" id="plus-revoir" hidden></button>
+  </section>
+
+  <section class="pan">
+    <div class="archive">
+      <label class="masque" for="recherche-fiches">Chercher une fiche</label>
+      <input type="search" id="recherche-fiches" class="recherche" placeholder="Chercher une fiche…"
+             autocomplete="off" enterkeyhint="search">
+      <div class="filtres" id="filtres-fiches" role="group" aria-label="Filtrer par matière"></div>
+      <h2 class="pan-titre" id="titre-fiches">Ses fiches</h2>
+      <ul class="archive-liste" id="liste-mes-fiches"></ul>
+      <button type="button" class="archive-plus" id="plus-fiches" hidden></button>
+      <p class="pan-vide" id="vide-fiches" hidden>Aucune fiche encore.</p>
+    </div>
+  </section>
+
+  <section class="pan">
+    <div class="archive">
+      <label class="masque" for="recherche-controles">Chercher un contrôle blanc</label>
+      <input type="search" id="recherche-controles" class="recherche" placeholder="Chercher un contrôle…"
+             autocomplete="off" enterkeyhint="search">
+      <div class="filtres" id="filtres-controles" role="group" aria-label="Filtrer par matière"></div>
+      <h2 class="pan-titre" id="titre-controles">Ses contrôles blancs</h2>
+      <ul class="archive-liste" id="liste-mes-controles"></ul>
+      <button type="button" class="archive-plus" id="plus-controles" hidden></button>
+      <p class="pan-vide" id="vide-controles" hidden>Aucun contrôle blanc encore.</p>
+    </div>
+  </section>
 </section>
 
 <!-- ÉTAPE 1a — le contexte -->

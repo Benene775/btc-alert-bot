@@ -98,6 +98,61 @@ function toutesLesSessions() {
   return sessions.sort((a, b) => String(b.creeLe).localeCompare(String(a.creeLe)));
 }
 
+/* --- L'étagère des matières ----------------------------------------------
+ *
+ * Tout ce que l'élève possède appartient à une matière : ses cours, ses fiches,
+ * ses contrôles, ses notions fragiles. La matière n'était pourtant qu'une puce
+ * de filtre — jamais la structure.
+ *
+ * Elle le devient. On voit son année d'un coup, une tuile par matière, et on
+ * ouvre celle qui concerne le contrôle de demain. Rien n'est caché derrière un
+ * onglet qu'il faut deviner.
+ */
+function matieres(sessions) {
+  const par = new Map();
+  const notions = notionsQuiReviennent(sessions);
+
+  sessions.forEach((session) => {
+    const cle = session.matiere || '';
+    if (!par.has(cle)) {
+      par.set(cle, { cle, sessions: [], fiches: 0, controles: 0, aRevoir: 0,
+                     insistantes: 0, prochaine: null, dernier: '' });
+    }
+    const m = par.get(cle);
+    m.sessions.push(session);
+    m.fiches += (session.fiches || []).length;
+    m.controles += (session.controles || []).length;
+    if (String(session.creeLe) > String(m.dernier)) m.dernier = session.creeLe;
+  });
+
+  notions.forEach((n) => {
+    const m = par.get(n.matiere || '');
+    if (!m) return;
+    m.aRevoir += 1;
+    if (n.fois > 1) m.insistantes += 1;
+  });
+
+  // La prochaine échéance de chaque matière, dates saisies comprises.
+  prochainesEcheances(sessions).forEach((e) => {
+    const m = par.get(e.matiere || '');
+    if (m && !m.prochaine) m.prochaine = e;
+  });
+  rendezVous().forEach((r) => {
+    const m = par.get(r.matiere || '');
+    if (m && !m.prochaine && joursAvant(r.date) >= 0) m.prochaine = { date: r.date, matiere: r.matiere };
+  });
+
+  // Ce qui presse d'abord, puis ce qui pèse : une matière sans échéance ni
+  // notion fragile n'a pas de raison de passer devant.
+  return [...par.values()].sort((a, b) => {
+    const ja = a.prochaine ? joursAvant(a.prochaine.date) : 9999;
+    const jb = b.prochaine ? joursAvant(b.prochaine.date) : 9999;
+    if (ja !== jb) return ja - jb;
+    if (b.insistantes !== a.insistantes) return b.insistantes - a.insistantes;
+    return String(b.dernier).localeCompare(String(a.dernier));
+  });
+}
+
 /* --- Le ménage ------------------------------------------------------------
  *
  * Repartir de l'accueil crée une séance neuve. Photographier deux fois le même
@@ -316,15 +371,6 @@ function garderCarte(valeurs) {
  * intercalaires. La hauteur ne dépend plus du nombre de séances.
  */
 
-const CLE_ONGLET = 'cb.onglet';
-
-const ONGLETS = [
-  { cle: 'revoir', nom: 'À revoir' },
-  { cle: 'agenda', nom: 'Agenda' },
-  { cle: 'fiches', nom: 'Fiches' },
-  { cle: 'controles', nom: 'Contrôles' },
-];
-
 function dateCourte(iso) {
   if (!iso) return '';
   const d = new Date(iso.length > 10 ? iso : iso + 'T00:00:00');
@@ -342,17 +388,179 @@ function urgence(jours) {
   return jours <= 1 ? 'haute' : (jours <= 3 ? 'moyenne' : 'basse');
 }
 
+/* La matière ouverte, ou null pour la vue « tout ». */
+let matiereOuverte = null;
+let revoirDeplie = false;
+
 function dessinerEspace() {
   const sessions = toutesLesSessions();
   dessinerCarteEleve(sessions);
-  const comptes = {
-    revoir: dessinerReviennent(sessions),
-    agenda: dessinerAgenda(sessions),
-    fiches: dessinerMesFiches(sessions),
-    controles: dessinerMesControles(sessions),
-  };
-  dessinerIntercalaires(comptes);
+  dessinerRevientCourt(sessions);
+  dessinerEtagere(sessions);
+  const echeances = dessinerAgenda(sessions);
+  $('compte-agenda').textContent = echeances ? String(echeances) : '';
   soignerTypographie($('ecran-espace'));
+}
+
+/* Trois notions au plus, en haut de page : celles qui sont revenues. Le détail
+ * par matière attend dans sa tuile — ici on ne montre que ce qui insiste. */
+function dessinerRevientCourt(sessions) {
+  const notions = notionsQuiReviennent(sessions).filter((n) => n.fois > 1).slice(0, 3);
+  $('pan-revient').hidden = notions.length === 0;
+  const liste = $('liste-reviennent');
+  liste.innerHTML = '';
+  notions.forEach((n) => liste.appendChild(ligneNotion(n)));
+}
+
+function dessinerEtagere(sessions) {
+  const etagere = $('etagere');
+  etagere.innerHTML = '';
+  const toutes = matieres(sessions);
+  $('vide-matieres').hidden = toutes.length > 0;
+  $('bouton-tout-voir').hidden = toutes.length < 2;
+
+  toutes.forEach((m) => {
+    const tuile = document.createElement('button');
+    tuile.type = 'button';
+    tuile.className = 'tuile-matiere';
+    tuile.dataset.teinte = teinteMatiere(m.cle);
+
+    const code = document.createElement('span');
+    code.className = 'tuile-code';
+    code.textContent = codeMatiere(m.cle);
+
+    const nom = document.createElement('span');
+    nom.className = 'tuile-nom';
+    nom.textContent = nomMatiere(m.cle);
+
+    const chiffres = document.createElement('span');
+    chiffres.className = 'tuile-chiffres';
+    chiffres.textContent = [
+      m.fiches + (m.fiches > 1 ? ' fiches' : ' fiche'),
+      m.controles + (m.controles > 1 ? ' contrôles' : ' contrôle'),
+    ].join(' · ');
+
+    tuile.append(code, nom, chiffres);
+
+    // Une échéance proche passe devant tout : c'est ce qu'on cherche des yeux.
+    if (m.prochaine) {
+      const jours = joursAvant(m.prochaine.date);
+      const compte = document.createElement('span');
+      compte.className = 'tuile-echeance';
+      compte.dataset.urgence = urgence(jours);
+      compte.textContent = jours === 0 ? 'Jour J' : 'J−' + jours;
+      tuile.appendChild(compte);
+    }
+
+    if (m.aRevoir) {
+      const revoir = document.createElement('span');
+      revoir.className = 'tuile-revoir';
+      revoir.dataset.insistante = m.insistantes ? 'oui' : 'non';
+      revoir.textContent = m.aRevoir + ' à revoir';
+      if (m.insistantes) {
+        const point = document.createElement('i');
+        point.setAttribute('aria-hidden', 'true');
+        revoir.prepend(point);
+        revoir.title = m.insistantes + ' notion(s) déjà revenue(s) plusieurs fois';
+      }
+      tuile.appendChild(revoir);
+    }
+
+    tuile.onclick = () => ouvrirMatiere(m.cle);
+    etagere.appendChild(tuile);
+  });
+}
+
+/* --- La vue d'une matière ------------------------------------------------ */
+
+function ouvrirMatiere(cle) {
+  matiereOuverte = cle;
+  archives.fiches.matiere = cle || '';
+  archives.controles.matiere = cle || '';
+  archives.fiches.tout = false;
+  archives.controles.tout = false;
+  revoirDeplie = false;
+  dessinerMatiere();
+  montrer('ecran-matiere');
+}
+
+function dessinerMatiere() {
+  const sessions = toutesLesSessions();
+  const cle = matiereOuverte;
+  const tete = $('matiere-tete');
+  tete.innerHTML = '';
+  tete.dataset.teinte = cle ? teinteMatiere(cle) : '';
+  tete.dataset.tout = cle ? 'non' : 'oui';
+
+  if (cle) {
+    const m = matieres(sessions).find((x) => x.cle === cle) || { fiches: 0, controles: 0 };
+    const code = document.createElement('span');
+    code.className = 'matiere-code';
+    code.textContent = codeMatiere(cle);
+    const bloc = document.createElement('div');
+    const nom = document.createElement('h1');
+    nom.className = 'matiere-nom';
+    nom.textContent = nomMatiere(cle);
+    const dessous = document.createElement('p');
+    dessous.className = 'matiere-dessous';
+    const morceaux = [m.fiches + (m.fiches > 1 ? ' fiches' : ' fiche'),
+                      m.controles + (m.controles > 1 ? ' contrôles blancs' : ' contrôle blanc')];
+    if (m.prochaine) {
+      const jours = joursAvant(m.prochaine.date);
+      morceaux.unshift(jours === 0 ? 'contrôle aujourd’hui' : 'contrôle ' + ligneJours(jours));
+    }
+    dessous.textContent = morceaux.join(' · ');
+    bloc.append(nom, dessous);
+    tete.append(code, bloc);
+  } else {
+    const nom = document.createElement('h1');
+    nom.className = 'matiere-nom';
+    nom.textContent = 'Tout ton travail';
+    tete.appendChild(nom);
+  }
+
+  // La recherche et les filtres ne servent que dans la vue « tout » : dans une
+  // matière, le filtre par matière n'a plus rien à filtrer.
+  const dansTout = !cle;
+  ['fiches', 'controles'].forEach((genre) => {
+    $('recherche-' + genre).dataset.tout = dansTout ? 'oui' : 'non';
+    $('filtres-' + genre).dataset.tout = dansTout ? 'oui' : 'non';
+  });
+  $('titre-fiches').textContent = dansTout ? 'Toutes tes fiches' : 'Ses fiches';
+  $('titre-controles').textContent = dansTout ? 'Tous tes contrôles blancs' : 'Ses contrôles blancs';
+
+  dessinerMatiereRevoir(sessions, cle);
+  dessinerMesFiches(sessions);
+  dessinerMesControles(sessions);
+  soignerTypographie($('ecran-matiere'));
+}
+
+function dessinerMatiereRevoir(sessions, cle) {
+  /* Pas de notions dans la vue « tout » : le tableau de bord montre déjà les
+   * trois qui insistent, et chaque matière montre les siennes. Les treize d'un
+   * coup y ajoutaient un écran entier avant même la première fiche, alors
+   * qu'on vient ici pour chercher. */
+  if (!cle) { $('pan-matiere-revoir').hidden = true; return; }
+  const notions = notionsQuiReviennent(sessions).filter((n) => n.matiere === cle);
+  $('pan-matiere-revoir').hidden = notions.length === 0;
+  const liste = $('liste-matiere-revoir');
+  liste.innerHTML = '';
+
+  // Bornées comme le reste : neuf notions d'affilée sur une matière chargée
+  // ajoutaient un écran entier. Les cinq premières sont celles qui insistent.
+  const visibles = revoirDeplie ? notions : notions.slice(0, PAR_PAGE_TOUT);
+  visibles.forEach((n) => liste.appendChild(ligneNotion(n, false)));
+
+  const plus = $('plus-revoir');
+  const reste = notions.length - visibles.length;
+  plus.hidden = reste <= 0 && !revoirDeplie;
+  if (revoirDeplie && notions.length > PAR_PAGE_TOUT) {
+    plus.textContent = 'Réduire la liste';
+    plus.onclick = () => { revoirDeplie = false; dessinerMatiere(); };
+  } else if (reste > 0) {
+    plus.textContent = 'Voir les ' + reste + ' autres';
+    plus.onclick = () => { revoirDeplie = true; dessinerMatiere(); };
+  }
 }
 
 /* La porte vers l'espace personnel, sur l'accueil. Elle ne s'affiche que s'il
@@ -604,7 +812,7 @@ function dessinerMois(sessions) {
       jour.appendChild(points);
     }
 
-    jour.onclick = () => { jourChoisi = cle; dessinerAgenda(toutesLesSessions()); };
+    jour.onclick = () => { jourChoisi = cle; dessinerEspace(); };
     grille.appendChild(jour);
   }
 }
@@ -758,75 +966,6 @@ function basculerAtelier() {
   if (ouvert) dessinerAtelier();
 }
 
-/* --- Les intercalaires ---------------------------------------------------- */
-
-function dessinerIntercalaires(comptes) {
-  const barre = $('intercalaires');
-  barre.innerHTML = '';
-  ONGLETS.forEach((onglet, rang) => {
-    const bouton = document.createElement('button');
-    bouton.type = 'button';
-    bouton.id = 'onglet-' + onglet.cle;
-    bouton.className = 'intercalaire';
-    bouton.dataset.onglet = onglet.cle;
-    bouton.dataset.teinte = String(rang);
-    bouton.setAttribute('role', 'tab');
-    bouton.setAttribute('aria-controls', 'panneau-' + onglet.cle);
-
-    const nom = document.createElement('span');
-    nom.textContent = onglet.nom;
-    bouton.appendChild(nom);
-
-    if (comptes[onglet.cle]) {
-      const compte = document.createElement('span');
-      compte.className = 'intercalaire-compte';
-      compte.textContent = String(comptes[onglet.cle]);
-      bouton.appendChild(compte);
-    }
-
-    bouton.onclick = () => ouvrirOnglet(onglet.cle);
-    // Flèches gauche/droite entre onglets : c'est ce qu'attend un lecteur d'écran.
-    bouton.onkeydown = (evenement) => {
-      const pas = { ArrowLeft: -1, ArrowRight: 1 }[evenement.key];
-      if (!pas) return;
-      evenement.preventDefault();
-      const suivant = ONGLETS[(rang + pas + ONGLETS.length) % ONGLETS.length];
-      ouvrirOnglet(suivant.cle);
-      $('onglet-' + suivant.cle).focus();
-    };
-    barre.appendChild(bouton);
-  });
-
-  let choisi = 'revoir';
-  try { choisi = localStorage.getItem(CLE_ONGLET) || choisi; } catch (e) { /* stockage refusé */ }
-  if (!ONGLETS.some((o) => o.cle === choisi)) choisi = 'revoir';
-  // Un onglet vide ne s'ouvre pas de lui-même : on tombe sur le premier qui a
-  // quelque chose à montrer, sinon la page accueille l'élève par du vide.
-  if (!comptes[choisi]) {
-    const plein = ONGLETS.find((o) => comptes[o.cle]);
-    if (plein) choisi = plein.cle;
-  }
-  ouvrirOnglet(choisi, false);
-}
-
-function ouvrirOnglet(cle, memoriser = true) {
-  ONGLETS.forEach((onglet) => {
-    const actif = onglet.cle === cle;
-    const bouton = $('onglet-' + onglet.cle);
-    const panneau = $('panneau-' + onglet.cle);
-    if (!bouton || !panneau) return;
-    bouton.dataset.actif = actif ? 'oui' : 'non';
-    bouton.setAttribute('aria-selected', actif ? 'true' : 'false');
-    // Un onglet inactif sort du parcours de tabulation : on entre dans la barre
-    // une fois, puis on circule aux flèches.
-    bouton.tabIndex = actif ? 0 : -1;
-    panneau.hidden = !actif;
-  });
-  if (memoriser) {
-    try { localStorage.setItem(CLE_ONGLET, cle); } catch (e) { /* stockage refusé */ }
-  }
-}
-
 /* --- Les panneaux --------------------------------------------------------- */
 
 /* Chaque dessinateur renvoie son nombre d'éléments : c'est ce qui alimente la
@@ -838,69 +977,6 @@ function ouvrirOnglet(cle, memoriser = true) {
  *
  * « details » plutôt qu'un accordéon maison : le navigateur sait déjà le faire,
  * au clavier comme au lecteur d'écran. */
-function dessinerReviennent(sessions) {
-  const notions = notionsQuiReviennent(sessions);
-  const liste = $('liste-reviennent');
-  liste.innerHTML = '';
-  $('vide-revoir').hidden = notions.length > 0;
-
-  /* Sept notions à la file, c'est une liste qu'on ne lit pas. On les range donc
-   * par matière, en groupes qui se déplient.
-   *
-   * Sauf celles qui sont revenues plusieurs fois : elles restent dehors, en
-   * tête. C'est toute la raison d'être de cette section — les ranger dans un
-   * tiroir fermé reviendrait à cacher la seule chose qu'on avait à dire. */
-  /* Quatre au plus restent dehors : au-delà, une liste d'alertes n'alerte plus
-   * de rien. Les suivantes rejoignent le tiroir de leur matière, où elles
-   * gardent leur marque rouge et leur compte. */
-  const TETE_MAX = 3;
-  const recurrentes = notions.filter((n) => n.fois > 1);
-  const enTete = recurrentes.slice(0, TETE_MAX);
-  const dansTiroirs = notions.filter((n) => !enTete.includes(n));
-
-  enTete.forEach((n) => liste.appendChild(ligneNotion(n)));
-
-  const parMatiere = new Map();
-  dansTiroirs.forEach((n) => {
-    const cle = n.matiere || '';
-    if (!parMatiere.has(cle)) parMatiere.set(cle, []);
-    parMatiere.get(cle).push(n);
-  });
-
-  parMatiere.forEach((groupe, matiere) => {
-    const li = document.createElement('li');
-    const tiroir = document.createElement('details');
-    tiroir.className = 'groupe';
-    // La couleur de la matière, la même que dans l'archive et les filtres :
-    // six barres grises identiques ne disent rien de ce qu'elles contiennent.
-    tiroir.dataset.teinte = teinteMatiere(matiere);
-
-    const tete = document.createElement('summary');
-    tete.className = 'groupe-tete';
-    const nom = document.createElement('span');
-    nom.className = 'groupe-nom';
-    nom.textContent = nomMatiere(matiere);
-    const compte = document.createElement('span');
-    compte.className = 'groupe-compte';
-    compte.textContent = String(groupe.length);
-    const chevron = document.createElement('span');
-    chevron.className = 'groupe-chevron';
-    chevron.setAttribute('aria-hidden', 'true');
-    chevron.textContent = '⌄';
-    tete.append(nom, compte, chevron);
-
-    const dedans = document.createElement('ul');
-    dedans.className = 'groupe-contenu';
-    groupe.forEach((n) => dedans.appendChild(ligneNotion(n, false)));
-
-    tiroir.append(tete, dedans);
-    li.appendChild(tiroir);
-    liste.appendChild(li);
-  });
-
-  return notions.length;
-}
-
 /* Une notion, repliée. Le titre et le nombre de fois suffisent à décider ; le
  * détail ne s'ouvre que si on le demande. */
 function ligneNotion(n, montrerMatiere = true) {
@@ -958,7 +1034,15 @@ function ligneNotion(n, montrerMatiere = true) {
  * par mois. On n'en montre que huit ; le reste se déplie à la demande, pour
  * que la page ne s'allonge pas avec l'année.
  */
-const PAR_PAGE = 8;
+/* Huit dans une matière, où la liste EST le contenu. Cinq dans la vue « tout »,
+ * qui empile fiches et contrôles : seize lignes d'un coup y faisaient deux
+ * écrans et demi, alors qu'on y vient pour chercher, pas pour parcourir. */
+const PAR_PAGE = 6;
+const PAR_PAGE_TOUT = 5;
+
+function parPage() {
+  return matiereOuverte ? PAR_PAGE : PAR_PAGE_TOUT;
+}
 
 const archives = {
   fiches: { recherche: '', matiere: '', tout: false },
@@ -1003,8 +1087,11 @@ function dessinerArchive(genre, elements, sousTitre) {
   liste.innerHTML = '';
   $('vide-' + genre).hidden = elements.length > 0;
 
-  // Chercher et filtrer n'a de sens qu'au-delà d'une poignée d'éléments.
-  const outils = elements.length > PAR_PAGE;
+  // Chercher et filtrer ne sert que dans la vue « tout », et seulement au-delà
+  // d'une poignée d'éléments : dans une matière, le filtre par matière n'a plus
+  // rien à filtrer.
+  const dansTout = $('recherche-' + genre).dataset.tout === 'oui';
+  const outils = dansTout && elements.length > PAR_PAGE_TOUT;
   $('recherche-' + genre).hidden = !outils;
   $('filtres-' + genre).hidden = !outils;
   if (outils) dessinerFiltres(genre, elements);
@@ -1025,7 +1112,7 @@ function dessinerArchive(genre, elements, sousTitre) {
     return elements.length;
   }
 
-  const visibles = reglages.tout ? retenus : retenus.slice(0, PAR_PAGE);
+  const visibles = reglages.tout ? retenus : retenus.slice(0, parPage());
   let moisCourant = null;
   visibles.forEach((e) => {
     const mois = moisDe(e.le);
@@ -1041,13 +1128,13 @@ function dessinerArchive(genre, elements, sousTitre) {
 
   const reste = retenus.length - visibles.length;
   plus.hidden = reste <= 0 && !reglages.tout;
-  if (reglages.tout && retenus.length > PAR_PAGE) {
+  if (reglages.tout && retenus.length > parPage()) {
     plus.hidden = false;
     plus.textContent = 'Réduire la liste';
-    plus.onclick = () => { reglages.tout = false; dessinerEspace(); };
+    plus.onclick = () => { reglages.tout = false; dessinerMatiere(); };
   } else if (reste > 0) {
     plus.textContent = 'Voir les ' + reste + ' autres';
-    plus.onclick = () => { reglages.tout = true; dessinerEspace(); };
+    plus.onclick = () => { reglages.tout = true; dessinerMatiere(); };
   }
   return retenus.length;
 }
@@ -1081,7 +1168,7 @@ function dessinerFiltres(genre, elements) {
     bouton.onclick = () => {
       reglages.matiere = reglages.matiere === cle ? '' : cle;
       reglages.tout = false;
-      dessinerEspace();
+      dessinerMatiere();
     };
     return bouton;
   };
@@ -1099,12 +1186,19 @@ function ligneArchive(e, sousTitre) {
   bouton.className = 'ligne-archive';
   bouton.dataset.teinte = teinteMatiere(e.session.matiere);
 
-  // La pastille porte la matière : sa couleur et son code se lisent avant le
-  // titre, et donnent à la ligne un point d'ancrage plutôt qu'un filet.
+  // La pastille porte la couleur de la matière — un point d'ancrage plutôt
+  // qu'un filet. Elle en dit le code dans la vue « tout » ; dans une matière,
+  // elle dit le jour, car répéter « SVT » sous le titre « SVT » n'apprend rien.
   const pastille = document.createElement('span');
   pastille.className = 'ligne-archive-pastille';
-  pastille.textContent = codeMatiere(e.session.matiere);
-  pastille.setAttribute('aria-label', nomMatiere(e.session.matiere));
+  if (matiereOuverte) {
+    pastille.textContent = new Date(e.le).getDate();
+    pastille.dataset.jour = 'oui';
+    pastille.setAttribute('aria-hidden', 'true');
+  } else {
+    pastille.textContent = codeMatiere(e.session.matiere);
+    pastille.setAttribute('aria-label', nomMatiere(e.session.matiere));
+  }
 
   const corps = document.createElement('span');
   corps.className = 'ligne-archive-corps';
@@ -1165,7 +1259,7 @@ function visiblesArchive(genre, elements) {
     if (!cherche) return true;
     return sansAccent(e.titre + ' ' + nomMatiere(e.session.matiere)).includes(cherche);
   });
-  return reglages.tout ? retenus : retenus.slice(0, PAR_PAGE);
+  return reglages.tout ? retenus : retenus.slice(0, parPage());
 }
 
 /* La frise : huit semaines, un carré par jour. Pas de compte de jours
@@ -3029,6 +3123,8 @@ document.addEventListener('DOMContentLoaded', () => {
     montrer('ecran-accueil');
   };
   $('bouton-espace-nouveau').onclick = () => demarrerSession();
+  $('bouton-tout-voir').onclick = () => ouvrirMatiere(null);
+  $('retour-etagere').onclick = () => { dessinerEspace(); montrer('ecran-espace'); };
 
   const changerMois = (pas) => {
     moisAffiche = new Date(moisAffiche.getFullYear(), moisAffiche.getMonth() + pas, 1);
@@ -3040,7 +3136,7 @@ document.addEventListener('DOMContentLoaded', () => {
     $('recherche-' + genre).oninput = (evenement) => {
       archives[genre].recherche = evenement.target.value;
       archives[genre].tout = false;
-      dessinerEspace();
+      dessinerMatiere();
       // Redessiner remplace le champ dans le DOM des filtres voisins, pas le
       // champ lui-même : le focus et le curseur ne bougent pas.
       $('recherche-' + genre).focus();

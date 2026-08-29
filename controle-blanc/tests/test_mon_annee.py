@@ -99,31 +99,6 @@ def test_une_notion_qui_revient_est_comptee_et_signalee():
     assert 'data-insistante="oui"' in STYLE or "[data-insistante=\"oui\"]" in STYLE
 
 
-def test_le_classeur_n_ouvre_qu_une_pile_a_la_fois():
-    """Tout empilé, la page dépassait trois écrans et grandissait à chaque
-    contrôle passé. Les intercalaires la rendent indépendante de l'historique."""
-    espace = PAGE[PAGE.index('id="ecran-espace"') : PAGE.index('id="ecran-contexte"')]
-    panneaux = re.findall(r'id="(panneau-[a-z]+)"[^>]*>', espace)
-    assert len(panneaux) == 4, f"quatre piles attendues, trouvé {panneaux}"
-
-    # Un seul panneau part visible ; les autres portent « hidden » dans le HTML,
-    # pour que rien ne s'empile avant même que le script tourne.
-    ouverts = [p for p in panneaux if f'id="{p}" role="tabpanel" aria-labelledby="onglet-{p[8:]}" tabindex="0">' in espace]
-    assert len(ouverts) == 1, f"une seule pile doit être ouverte au départ, trouvé {ouverts}"
-
-    assert 'role="tablist"' in espace, "la barre d'intercalaires n'est pas un tablist"
-    for attendu in ('role="tabpanel"', "aria-labelledby="):
-        assert attendu in espace, f"« {attendu} » manque"
-
-
-def test_les_onglets_se_parcourent_au_clavier():
-    """Une barre d'onglets où la tabulation traverse les quatre boutons est une
-    barre d'onglets ratée : on y entre une fois, puis on circule aux flèches."""
-    assert "ArrowLeft" in CODE_NU and "ArrowRight" in CODE_NU
-    assert "bouton.tabIndex = actif ? 0 : -1" in CODE_NU
-    assert 'setAttribute(\'aria-selected\'' in CODE_NU
-
-
 def test_rien_n_est_cache_derriere_un_mecanisme():
     """La carte se retournait pour montrer la frise.
 
@@ -137,22 +112,6 @@ def test_rien_n_est_cache_derriere_un_mecanisme():
     carte = PAGE[PAGE.index('id="carte-annee"') : PAGE.index('id="prochain"')]
     assert 'id="frise-regularite"' in carte, "la frise n'est pas sur la carte"
     assert 'id="carte-chiffres"' in carte, "les chiffres ne sont pas sur la carte"
-
-
-def test_les_notions_se_rangent_par_matiere():
-    """Sept notions à la file, c'est une liste qu'on ne lit pas.
-
-    Elles se rangent en tiroirs par matière — sauf celles qui sont revenues
-    plusieurs fois : les enfermer reviendrait à cacher la seule chose que cette
-    section avait à dire.
-    """
-    assert "const recurrentes = notions.filter((n) => n.fois > 1)" in CODE_NU
-    assert "parMatiere" in CODE_NU, "aucun regroupement par matière"
-    assert "'groupe'" in CODE_NU and ".groupe {" in STYLE, "le tiroir n'existe pas"
-    # Celles qui reviennent sont posées en tête, avant les tiroirs — mais en
-    # nombre borné : au-delà de quelques-unes, une liste d'alertes n'alerte plus.
-    assert CODE_NU.index("enTete.forEach") < CODE_NU.index("parMatiere.forEach")
-    assert "const TETE_MAX" in CODE_NU, "les notions en tête ne sont pas bornées"
 
 
 def test_l_archive_est_faite_pour_une_annee_entiere():
@@ -174,9 +133,40 @@ def test_l_archive_est_faite_pour_une_annee_entiere():
 
 def test_rien_dans_l_espace_ne_grandit_sans_fin():
     """Chaque liste est bornée, sinon la page s'allonge avec l'année."""
-    assert ".slice(0, PAR_PAGE)" in CODE_NU, "l'archive n'est pas coupée"
-    assert "const TETE_MAX" in CODE_NU, "les notions récurrentes ne sont pas bornées"
+    assert ".slice(0, parPage())" in CODE_NU, "l'archive n'est pas coupée"
+    assert ".slice(0, 3)" in CODE_NU, "les notions montrées en tête ne sont pas bornées"
     assert "SEMAINES_FRISE" in CODE_NU, "la frise n'est pas bornée"
+    # L'étagère est bornée par le nombre de matières du programme, pas par le
+    # travail de l'élève : elle ne grandit pas avec l'année.
+    assert "function matieres" in CODE_NU
+
+
+def test_la_matiere_est_la_structure_de_la_page():
+    """Tout ce que l'élève possède appartient à une matière : ses cours, ses
+    fiches, ses contrôles, ses notions fragiles.
+
+    Elle n'était qu'une puce de filtre, et tout le reste vivait derrière quatre
+    onglets — en arrivant, on voyait son prénom et une échéance, jamais son
+    année. Une tuile par matière la montre d'un coup, et l'ouvre.
+    """
+    assert 'id="etagere"' in PAGE, "pas d'étagère de matières"
+    assert 'id="ecran-matiere"' in PAGE, "une matière ne s'ouvre nulle part"
+    assert "function dessinerEtagere" in CODE_NU
+    assert "function ouvrirMatiere" in CODE_NU
+    assert "intercalaire" not in PAGE, "les onglets sont revenus"
+    # Une tuile dit ce qu'elle contient : sans compte ni échéance, elle n'est
+    # qu'un bouton de plus.
+    tuile = CODE_NU[CODE_NU.index("function dessinerEtagere") :][:2600]
+    for attendu in ("tuile-chiffres", "tuile-echeance", "tuile-revoir"):
+        assert attendu in tuile, f"la tuile ne montre pas « {attendu} »"
+
+
+def test_l_agenda_reste_atteignable_sans_encombrer():
+    """La prochaine échéance est déjà en haut de page : le calendrier complet
+    sert à planifier, pas à consulter. Il se replie, à un geste."""
+    assert 'id="pan-agenda"' in PAGE
+    agenda = PAGE[PAGE.index('id="pan-agenda"') - 60 : PAGE.index('id="mois-grille"')]
+    assert "<details" in agenda, "l'agenda est déplié en permanence"
 
 
 def test_une_fiche_remplace_celle_qu_elle_refait():
