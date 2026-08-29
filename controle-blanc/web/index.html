@@ -5,21 +5,41 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#fbf7f2">
 <meta name="theme-color" content="#17130e" media="(prefers-color-scheme: dark)">
-<meta name="description" content="Passe le contrôle avant le contrôle.">
-<title>Le contrôle avant le contrôle</title>
+<meta name="description" content="Repère : passe le contrôle avant le contrôle. Photographie ton cours, teste-toi dessus, vois ce qui te manque.">
+<title>Repère — le contrôle avant le contrôle</title>
 <link rel="stylesheet" href="/polices.css">
 <link rel="stylesheet" href="/styles.css">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>📝</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8.5' fill='%23a86e14'/><rect x='13.6' y='12.9' width='12.6' height='6.2' rx='3.1' fill='white' fill-opacity='.26'/><g stroke='white' stroke-linecap='round' fill='none'><path d='M11 7v18' stroke-width='1.5' stroke-opacity='.45'/><path d='M15 9.4h11M15 22.6h7.5' stroke-width='2' stroke-opacity='.45'/><path d='M15 16h11' stroke-width='2.4'/></g></svg>">
 </head>
 <body>
 
+<!-- Le glyphe de la marque, défini une fois. « Repère » : le filet de marge
+     d'une page, trois lignes, et celle qu'on est venu relire — surlignée.
+     Les couleurs viennent des variables, donc il suit le thème. -->
+<svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
+  <symbol id="glyphe-repere" viewBox="0 0 32 32">
+    <rect width="32" height="32" rx="8.5" fill="var(--accent)"/>
+    <rect x="13.6" y="12.9" width="12.6" height="6.2" rx="3.1" fill="var(--sur-accent)" fill-opacity=".26"/>
+    <g stroke="var(--sur-accent)" stroke-linecap="round" fill="none">
+      <path d="M11 7v18" stroke-width="1.5" stroke-opacity=".45"/>
+      <path d="M15 9.4h11M15 22.6h7.5" stroke-width="2" stroke-opacity=".45"/>
+      <path d="M15 16h11" stroke-width="2.4"/>
+    </g>
+  </symbol>
+</svg>
+
 <header id="bandeau" hidden>
   <button type="button" id="bouton-accueil" class="lien-bandeau" aria-label="Revenir à ma session">
-    <span id="bandeau-matiere">Mon contrôle</span>
+    <svg class="logo-marque logo-bandeau" aria-hidden="true" focusable="false"><use href="#glyphe-repere"/></svg>
+    <span id="bandeau-matiere">Repère</span>
   </button>
   <div class="bandeau-droite">
     <span id="bandeau-compte" class="compte-a-rebours"></span>
-    <button type="button" id="bouton-espace" class="bouton-espace" aria-label="Ouvrir mon année">Mon année</button>
+    <button type="button" id="bouton-espace" class="rond-perso rond-perso-bandeau"
+            aria-label="Ouvrir ma page">
+      <span class="rond-perso-embleme" id="bandeau-embleme">✏️</span>
+      <span class="rond-perso-pastille" id="bandeau-pastille" hidden></span>
+    </button>
   </div>
 </header>
 
@@ -29,7 +49,10 @@
 <section id="ecran-accueil" class="ecran ecran-accueil" hidden>
 
   <div class="hero">
-    <p class="marque">Contrôle blanc</p>
+    <p class="marque">
+      <svg class="logo-marque" aria-hidden="true" focusable="false"><use href="#glyphe-repere"/></svg>
+      <span>Repère</span>
+    </p>
     <h1>Passe le contrôle<br><em>avant</em> le contrôle.</h1>
     <p class="chapeau">
       Photographie ton cours. Passe un vrai contrôle dessus. Découvre ce qui te manque
@@ -46,21 +69,25 @@
     </figure>
 
     <div class="hero-actions">
-      <button type="button" class="principal" id="bouton-commencer">Commencer</button>
+      <div class="hero-rangee">
+        <button type="button" class="principal" id="bouton-commencer">Commencer</button>
+        <!-- L'accès à sa page : un rond, pas une bannière. Il porte l'emblème
+             que l'élève a choisi, une pastille quand quelque chose l'attend, et
+             deux mots dessous — sans eux, un rond n'annonce rien. -->
+        <span class="acces-perso" id="acces-perso" hidden>
+          <button type="button" class="rond-perso" id="bouton-ma-page"
+                  aria-label="Ouvrir ma page">
+            <span class="rond-perso-embleme" id="rond-embleme">✏️</span>
+            <span class="rond-perso-pastille" id="rond-pastille" hidden></span>
+          </button>
+          <span class="acces-perso-mot" aria-hidden="true">ma page</span>
+        </span>
+      </div>
       <button type="button" class="discret" id="bouton-reprendre" hidden>Reprendre où j’en étais</button>
     </div>
     <p class="mention">Sans compte, sans mot de passe. Tout reste dans ton téléphone.</p>
     <p class="mention alerte-demo" id="mention-demo" hidden>Mode démonstration : contenus d’exemple, rien n’est analysé.</p>
   </div>
-
-  <!-- La porte vers l'espace personnel. Elle n'apparaît que s'il y a quelque
-       chose derrière, et dit alors ce qu'elle contient. -->
-  <button type="button" class="porte" id="bouton-mon-annee" hidden>
-    <span class="porte-eyebrow">Ton espace</span>
-    <span class="porte-titre" id="porte-titre">Mon année</span>
-    <span class="porte-detail" id="porte-detail"></span>
-    <span class="porte-fleche" aria-hidden="true">→</span>
-  </button>
 
   <!-- Ce que le produit fabrique, en vrai et manipulable. Le décrire ne suffit
        pas : un paquet de cartes qu'on fait glisser se comprend en une seconde. -->
@@ -151,7 +178,10 @@
   </section>
 
   <footer class="pied a-reveler">
-    <p class="pied-marque">Contrôle blanc</p>
+    <p class="pied-marque">
+      <svg class="logo-marque logo-pied" aria-hidden="true" focusable="false"><use href="#glyphe-repere"/></svg>
+      <span>Repère</span>
+    </p>
     <p>Rien à installer, rien à créer. Tu gardes un lien, tu reviens quand tu veux.</p>
     <p>Tes photos et ton cours restent dans ton téléphone.</p>
   </footer>

@@ -1,4 +1,4 @@
-/* Contrôle blanc — application d’une seule page.
+/* Repère — application d’une seule page.
  *
  * L’état vit dans le navigateur (localStorage), pas sur le serveur : pas de compte,
  * pas de mot de passe, aucune donnée personnelle. Le lien de reprise (?s=…) est la
@@ -70,10 +70,10 @@ function charger(sessionId) {
   }
 }
 
-/* ---------------------------------------------------------- mon année --- */
+/* ------------------------------------------------------------- ma page --- */
 
 /*
- * « Mon année » rassemble tout ce que l'élève a fait : son agenda, ses fiches,
+ * « Ma page » rassemble tout ce que l'élève a fait : son agenda, ses fiches,
  * ses contrôles blancs, et surtout ce qui ne tient pas encore.
  *
  * Ce n'est pas un profil de réseau social : pas de compte, pas de public, rien
@@ -363,7 +363,7 @@ function garderCarte(valeurs) {
   try { localStorage.setItem(CLE_CARTE, JSON.stringify(valeurs)); } catch (e) { /* quota plein */ }
 }
 
-/* --- Le rendu de « Mon année » ------------------------------------------
+/* --- Le rendu de « Ma page » ------------------------------------------
  *
  * Tout empilé, la page faisait plus de trois écrans de haut sur un téléphone —
  * et elle grandissait à chaque contrôle passé. Elle tient maintenant en une
@@ -563,35 +563,44 @@ function dessinerMatiereRevoir(sessions, cle) {
   }
 }
 
-/* La porte vers l'espace personnel, sur l'accueil. Elle ne s'affiche que s'il
- * y a quelque chose derrière, et dit alors ce qu'on y trouvera : une porte sans
- * indice sur ce qu'elle cache ne s'ouvre pas. */
-function dessinerPorte() {
-  const porte = $('bouton-mon-annee');
+/* Le rond d'accès à sa page. Il remplace une bannière large : un rond porte
+ * l'emblème que l'élève a choisi, se pose partout, et se remarque sans occuper
+ * la largeur d'un écran.
+ *
+ * Sa pastille dit qu'il y a quelque chose à faire — un contrôle dans trois
+ * jours au plus, ou une notion déjà revenue. Pas un compteur d'articles non
+ * lus : seulement ce qui mérite qu'on ouvre.
+ */
+function dessinerRonds() {
   const sessions = toutesLesSessions();
-  const echeances = prochainesEcheances(sessions);
-  if (!sessions.length && !echeances.length && !rendezVous().length) {
-    porte.hidden = true;
-    return;
-  }
-  porte.hidden = false;
+  const quelqueChose = sessions.length || rendezVous().length;
+  $('acces-perso').hidden = !quelqueChose;
 
   const mienne = carte();
-  $('porte-titre').textContent = mienne.prenom ? 'L’année de ' + mienne.prenom : 'Mon année';
+  const echeances = prochainesEcheances(sessions);
+  const presse = echeances.length && joursAvant(echeances[0].date) <= 3;
+  const insistantes = notionsQuiReviennent(sessions).filter((n) => n.fois > 1).length;
+  const alerte = presse || insistantes > 0;
 
-  const morceaux = [];
-  if (echeances.length) {
-    const jours = joursAvant(echeances[0].date);
-    morceaux.push(nomMatiere(echeances[0].matiere)
-      + (jours === 0 ? ' aujourd’hui' : jours === 1 ? ' demain' : ' dans ' + jours + ' jours'));
-  }
-  const fiches = toutesLesFiches(sessions).length;
-  if (fiches) morceaux.push(fiches + (fiches > 1 ? ' fiches' : ' fiche'));
-  const aRevoir = notionsQuiReviennent(sessions).length;
-  if (aRevoir) morceaux.push(aRevoir + ' à revoir');
-  $('porte-detail').textContent = morceaux.length
-    ? morceaux.join(' · ')
-    : 'Ton agenda, tes fiches, tes contrôles.';
+  [['rond-embleme', 'rond-pastille'], ['bandeau-embleme', 'bandeau-pastille']].forEach(
+    ([embleme, pastille]) => {
+      $(embleme).textContent = mienne.embleme || EMBLEMES[0];
+      $(pastille).hidden = !alerte;
+      $(pastille).dataset.urgence = presse ? 'haute' : 'basse';
+    });
+
+  // « dans 1 jours » : la pastille se lit à la voix, elle doit se dire.
+  const jours = presse ? joursAvant(echeances[0].date) : null;
+  const quoi = presse
+    ? 'contrôle ' + (jours <= 0 ? 'aujourd’hui' : jours === 1 ? 'demain' : 'dans ' + jours + ' jours')
+    : (insistantes ? insistantes + (insistantes > 1 ? ' notions' : ' notion') + ' à revoir' : '');
+  const nom = mienne.prenom ? 'la page de ' + mienne.prenom : 'ma page';
+  const etiquette = 'Ouvrir ' + nom + (quoi ? ' — ' + quoi : '');
+  $('bouton-ma-page').setAttribute('aria-label', etiquette);
+  // Depuis sa page, le même rond ramène à la séance : il ne doit pas s'annoncer
+  // comme la porte de la page où l'on se trouve déjà.
+  $('bouton-espace').setAttribute('aria-label',
+    $('bouton-espace').dataset.retour === 'oui' ? 'Revenir à ma séance' : etiquette);
 }
 
 /* --- La carte, deux faces ------------------------------------------------ */
@@ -1320,7 +1329,7 @@ function dessinerRegularite(sessions) {
 
 /* --- Rouvrir ce qu'on retrouve ------------------------------------------ */
 
-/* Ouvrir depuis « Mon année » change de séance : l'état courant devient celui
+/* Ouvrir depuis « Ma page » change de séance : l'état courant devient celui
  * qu'on rouvre, pages du cahier comprises — sans quoi les vignettes d'une
  * fiche pointeraient vers les photos d'un autre cours. */
 async function ouvrirSession(sessionId, ensuite) {
@@ -1477,17 +1486,23 @@ function montrer(id) {
 
 function majBandeau(idEcran) {
   const bandeau = $('bandeau');
-  // « Mon année » se consulte même sans séance en cours : elle relit l'historique.
+  // « Ma page » et l'écran d'une matière se consultent même sans séance en
+  // cours : ils relisent l'historique. Sans ce cas, le bandeau — donc la
+  // marque, donc le rond — disparaissait sur l'écran d'une matière.
+  const dansMaPage = idEcran === 'ecran-espace' || idEcran === 'ecran-matiere';
   const dansEspace = idEcran === 'ecran-espace';
-  if (idEcran === 'ecran-accueil' || (!etat && !dansEspace)) { bandeau.hidden = true; return; }
+  if (idEcran === 'ecran-accueil' || (!etat && !dansMaPage)) { bandeau.hidden = true; return; }
   bandeau.hidden = false;
+  // Le bandeau se cale sur la largeur de l'écran qu'il coiffe.
+  bandeau.dataset.large = dansMaPage ? 'oui' : 'non';
   const matiere = etat && (config.matieres.find((m) => m.cle === etat.matiere) || {}).nom;
-  $('bandeau-matiere').textContent = dansEspace ? 'Contrôle blanc' : (matiere || 'Mon contrôle');
+  $('bandeau-matiere').textContent = dansMaPage ? 'Repère' : (matiere || 'Repère');
   $('bandeau-compte').textContent = etat ? texteCompteARebours() : '';
-  $('bandeau-compte').hidden = dansEspace || !etat || !etat.dateControle;
-  // Depuis « Mon année », le bouton du bandeau ramène à la séance en cours.
-  $('bouton-espace').textContent = dansEspace ? 'Ma séance' : 'Mon année';
+  $('bandeau-compte').hidden = dansMaPage || !etat || !etat.dateControle;
+  // Depuis sa page, le rond ramène à la séance en cours.
+  $('bouton-espace').dataset.retour = dansEspace ? 'oui' : 'non';
   $('bouton-espace').hidden = dansEspace && !etat;
+  dessinerRonds();
 }
 
 function joursAvantControle() {
@@ -1576,7 +1591,7 @@ async function initialiser() {
   if (derniere && charger(derniere)) {
     $('bouton-reprendre').hidden = false;
   }
-  dessinerPorte();
+  dessinerRonds();
   montrer('ecran-accueil');
   armerRevelations();
   armerCopie();
@@ -3127,7 +3142,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   $('bouton-commencer').onclick = () => demarrerSession();
   $('bouton-commencer-bas').onclick = () => demarrerSession();
-  $('bouton-mon-annee').onclick = () => ouvrirEspace();
+  $('bouton-ma-page').onclick = () => ouvrirEspace();
   $('bouton-espace').onclick = () => {
     if (document.getElementById('ecran-espace').hidden) return ouvrirEspace();
     if (etat) reprendre();

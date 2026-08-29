@@ -1,4 +1,4 @@
-"""API du contrôle blanc.
+"""API de Repère.
 
 Une seule page web côté élève ; ici, les quelques routes qu'elle appelle.
 
@@ -52,7 +52,7 @@ async def cycle_de_vie(_: FastAPI):
     yield
 
 
-app = FastAPI(title="Contrôle blanc", docs_url=None, redoc_url=None, lifespan=cycle_de_vie)
+app = FastAPI(title="Repère", docs_url=None, redoc_url=None, lifespan=cycle_de_vie)
 
 
 @app.exception_handler(store.QuotaDepasse)
@@ -365,7 +365,7 @@ def tableau_de_bord(token: str = "") -> HTMLResponse:
 
     page_html = f"""<!doctype html><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Contrôle blanc — mesures du test</title>
+<title>Repère — mesures du test</title>
 <style>
  body {{ font: 16px/1.5 system-ui, sans-serif; margin: 0; padding: 24px; max-width: 720px;
         background: #faf9f7; color: #1c1a17; }}
@@ -379,7 +379,7 @@ def tableau_de_bord(token: str = "") -> HTMLResponse:
  .cle td.v {{ color: #b4530a; font-size: 1.3rem; }}
  ul {{ padding-left: 18px; }} li {{ margin-bottom: 10px; font-size: .9rem; }}
 </style>
-<h1>Contrôle blanc — mesures du test</h1>
+<h1>Repère — mesures du test</h1>
 <h2>Les trois chiffres qui décident</h2>
 <table>
  {ligne("Liens ouverts", m["ouvertures"], "sessions distinctes")}

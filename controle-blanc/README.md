@@ -1,4 +1,4 @@
-# Contrôle blanc
+# Repère
 
 > Passe le contrôle avant le contrôle.
 
@@ -8,6 +8,11 @@ cours, puis des fiches ciblées sur ce qu'il a raté.
 
 On ne vend pas des fiches de révision. On vend le fait de s'être déjà trompé une fois,
 sur ses notions à lui, avant le jour J.
+
+**Le nom.** Un repère, c'est ce que la correction rend : pas une note — le cahier des
+charges les interdit — mais l'endroit de son propre cours où aller relire. Le logo le
+dessine : un filet de marge, trois lignes, et celle qu'on est venu retrouver. « Contrôle
+blanc » reste le nom de l'épreuve, pas celui du site.
 
 ---
 

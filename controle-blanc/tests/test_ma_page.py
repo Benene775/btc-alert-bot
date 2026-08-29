@@ -1,4 +1,4 @@
-"""« Mon année » : le classeur de l'élève, et ce qu'il ne doit jamais devenir.
+"""« Ma page » : le classeur de l'élève, et ce qu'il ne doit jamais devenir.
 
 La page ressemble à un profil, et c'est exactement le piège. Le cahier des
 charges interdit les comptes — les testeurs sont mineurs — et interdit la note.
@@ -16,7 +16,7 @@ PAGE = (WEB / "index.html").read_text(encoding="utf-8")
 SCRIPT = (WEB / "app.js").read_text(encoding="utf-8")
 STYLE = (WEB / "styles.css").read_text(encoding="utf-8")
 
-DEBUT = SCRIPT.index("/* ---------------------------------------------------------- mon année --- */")
+DEBUT = SCRIPT.index("/* ------------------------------------------------------------- ma page --- */")
 FIN = SCRIPT.index("/* ------------------------------------------------------- pages du cahier --- */")
 CODE = SCRIPT[DEBUT:FIN]
 
@@ -69,7 +69,7 @@ def test_aucun_compte_n_apparait():
     minuscules = PAGE.lower()
     espace = minuscules[minuscules.index('id="ecran-espace"') : minuscules.index('id="ecran-contexte"')]
     for mot in interdits:
-        assert mot not in espace, f"« {mot} » apparaît dans Mon année"
+        assert mot not in espace, f"« {mot} » apparaît dans Ma page"
 
 
 def test_rien_qui_ressemble_a_une_note_ni_a_un_classement():
@@ -78,7 +78,7 @@ def test_rien_qui_ressemble_a_une_note_ni_a_un_classement():
     espace = PAGE[PAGE.index('id="ecran-espace"') : PAGE.index('id="ecran-contexte"')]
     for motif in (r"/20", r"\bscore\b", r"\bnote\b", r"%", r"\bclassement\b",
                   r"\bpoints\b", r"\bniveau \d", r"\bbadge\b", r"\bsérie\b"):
-        assert not re.search(motif, espace, re.I), f"« {motif} » apparaît dans Mon année"
+        assert not re.search(motif, espace, re.I), f"« {motif} » apparaît dans Ma page"
     # Une série, ce sont des jours consécutifs comptés puis remis à zéro : c'est
     # la mécanique qui punit un jour manqué. On vérifie qu'elle n'existe pas.
     for mecanique in ("serie", "streak", "affilée", "affilee", "consecutif", "consécutif"):

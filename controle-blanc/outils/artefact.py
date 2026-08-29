@@ -70,20 +70,29 @@ def main() -> int:
     donnees = (DEMO / f"{arguments.contenu}.js").read_text(encoding="utf-8")
     faux = (DEMO / "faux-serveur.js").read_text(encoding="utf-8")
 
+    # Le favicon est repris tel quel de la page : c'est une data-URI, donc il
+    # traverse sans requête. Sans lui, le navigateur va chercher /favicon.ico et
+    # se prend un 404 — invisible pour l'élève, mais c'est une requête sortante
+    # dans une page qui promet de n'en faire aucune.
+    icone = re.search(r'<link rel="icon" href="[^"]+">', html)
+    if not icone:
+        raise SystemExit("index.html n'a plus de favicon")
+
     corps = html.split("<body>", 1)[1].split("</body>", 1)[0]
     corps = corps.replace('<script src="/app.js"></script>', "").strip()
     corps = corps.replace("Mode démonstration : contenus d'exemple, rien n'est analysé.", MENTION)
 
     page = (
         # Sans cette balise, un serveur statique qui n'annonce pas de jeu de
-        # caractères fait rendre « contrôle » en « contrÃ´le ». La plateforme
+        # caractères fait rendre « Repère » en « RepÃ¨re ». La plateforme
         # d'artefacts fournit le sien, pas un hébergement quelconque.
         '<meta charset="utf-8">\n'
         # Les deux démonstrations portaient le même titre : dans une galerie
         # d'artefacts, elles apparaissaient comme deux entrées identiques et
         # rien ne disait laquelle contenait quel cours.
-        f"<title>Contrôle blanc — {TITRES.get(arguments.contenu, arguments.contenu.capitalize())}</title>\n"
+        f"<title>Repère — {TITRES.get(arguments.contenu, arguments.contenu.capitalize())}</title>\n"
         '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n'
+        f"{icone.group(0)}\n"
         f"<style>\n{polices}\n{styles}\n</style>\n\n{corps}\n\n"
         f"<script>\n{donnees}\n\n{commun}\n\n{faux}\n\n{app}\n</script>\n"
     )
