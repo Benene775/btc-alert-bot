@@ -869,22 +869,25 @@ function dessinerMois(sessions) {
 function dessinerJourChoisi(sessions) {
   const boite = $('jour-detail');
   boite.innerHTML = '';
+
+  // Sans jour choisi, il n'y a pas de fiche : l'invite va sous le calendrier,
+  // là où l'oeil arrive après avoir parcouru le mois.
   if (!jourChoisi) {
-    const invite = document.createElement('p');
-    invite.className = 'panneau-vide';
     const prochaines = prochainesEcheances(sessions);
-    invite.textContent = prochaines.length
+    $('agenda-invite').textContent = prochaines.length
       ? 'Touche un jour pour voir ou ajouter un contrôle.'
       : 'Touche le jour de ton prochain contrôle pour l’ajouter.';
-    boite.appendChild(invite);
+    fermerFicheJour();
     return;
   }
 
+  $('agenda-invite').textContent = '';
   const date = new Date(jourChoisi + 'T00:00:00');
-  const titre = document.createElement('p');
-  titre.className = 'jour-detail-titre';
-  titre.textContent = date.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
-  boite.appendChild(titre);
+  // La date titre la fiche : elle est dans l'en-tête, à côté de la croix, et
+  // pas une ligne de plus dans le corps.
+  $('fiche-jour-date').textContent =
+    date.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+  ouvrirFicheJour();
 
   const evenements = evenementsDuJour(jourChoisi, sessions);
   evenements.forEach((e) => {
@@ -932,14 +935,26 @@ function dessinerJourChoisi(sessions) {
   boite.appendChild(formulaireRendezVous());
 }
 
+/* Le formulaire de la fiche du jour.
+ *
+ * Il tenait sur une ligne — un menu de matières et « Ajouter » — parce qu'il
+ * vivait coincé sous le calendrier. Dans la fiche il a la place de demander ce
+ * qu'on sait vraiment d'un contrôle à venir : la matière, et ce qui tombe. Cette
+ * seconde information existait déjà dans les données (« note ») et s'affichait
+ * dans la ligne du rendez-vous, mais rien ne permettait de la saisir : le
+ * contrôle annonçait donc toujours « Cours pas encore photographié ».
+ */
 function formulaireRendezVous() {
   const forme = document.createElement('form');
   forme.className = 'ajout-rv';
 
-  const etiquette = document.createElement('label');
-  etiquette.className = 'masque';
-  etiquette.setAttribute('for', 'rv-matiere');
-  etiquette.textContent = 'Matière du contrôle';
+  const titre = document.createElement('p');
+  titre.className = 'ajout-rv-titre';
+  titre.textContent = 'Ajouter un contrôle';
+
+  const etiquetteMatiere = document.createElement('label');
+  etiquetteMatiere.setAttribute('for', 'rv-matiere');
+  etiquetteMatiere.textContent = 'La matière';
 
   const choix = document.createElement('select');
   choix.id = 'rv-matiere';
@@ -951,18 +966,29 @@ function formulaireRendezVous() {
   });
   if (etat && etat.matiere) choix.value = etat.matiere;
 
+  const etiquetteNote = document.createElement('label');
+  etiquetteNote.setAttribute('for', 'rv-note');
+  etiquetteNote.textContent = 'Ce qui tombe';
+
+  const note = document.createElement('input');
+  note.type = 'text';
+  note.id = 'rv-note';
+  note.maxLength = 80;
+  note.autocomplete = 'off';
+  note.placeholder = 'Chapitre 3, les fonctions…';
+
   const valider = document.createElement('button');
   valider.type = 'submit';
-  valider.className = 'ajout-rv-valider';
+  valider.className = 'principal ajout-rv-valider';
   valider.textContent = 'Ajouter';
 
   forme.onsubmit = (evenement) => {
     evenement.preventDefault();
-    ajouterRendezVous(jourChoisi, choix.value, '');
+    ajouterRendezVous(jourChoisi, choix.value, note.value.trim());
     dessinerEspace();
   };
 
-  forme.append(etiquette, choix, valider);
+  forme.append(titre, etiquetteMatiere, choix, etiquetteNote, note, valider);
   return forme;
 }
 
@@ -1023,6 +1049,13 @@ function basculerAgenda() {
 
   porte.setAttribute('aria-expanded', ouvre ? 'true' : 'false');
   $('frise-invite-mot').textContent = ouvre ? 'Replier l’agenda' : 'Ouvrir l’agenda';
+  // Ouvert, l'agenda est seul : la feuille de style efface tout le reste de la
+  // page tant que cet attribut est là. On est venu poser une date.
+  if (ouvre) $('ecran-espace').dataset.agenda = 'ouvert';
+  else delete $('ecran-espace').dataset.agenda;
+  // Refermer l'agenda referme la fiche du jour avec lui : elle n'a plus de
+  // calendrier derrière elle.
+  if (!ouvre) { jourChoisi = null; fermerFicheJour(); }
 
   if (ouvre) {
     bloc.hidden = false;
@@ -1043,6 +1076,39 @@ function basculerAgenda() {
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     bloc.removeEventListener('transitionend', finir);
     bloc.hidden = true;
+  }
+}
+
+/* La fiche du jour, sur le côté droit.
+ *
+ * Même mécanique que le dépli de l'agenda : on retire « hidden » d'abord, on
+ * laisse passer une trame, puis on pose l'état ouvert que la feuille de style
+ * anime. Sans ça, un bloc display:none ne glisse pas, il apparaît.
+ */
+function ouvrirFicheJour() {
+  const fiche = $('fiche-jour');
+  if (fiche.dataset.ouverte === 'oui') return;
+  fiche.hidden = false;
+  $('ecran-espace').dataset.fiche = 'ouverte';
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    fiche.dataset.ouverte = 'oui';
+  }));
+}
+
+function fermerFicheJour() {
+  const fiche = $('fiche-jour');
+  if (fiche.hidden) return;
+  delete fiche.dataset.ouverte;
+  delete $('ecran-espace').dataset.fiche;
+  const finir = (evenement) => {
+    if (evenement.target !== fiche) return;
+    fiche.removeEventListener('transitionend', finir);
+    if (fiche.dataset.ouverte !== 'oui') fiche.hidden = true;
+  };
+  fiche.addEventListener('transitionend', finir);
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    fiche.removeEventListener('transitionend', finir);
+    fiche.hidden = true;
   }
 }
 
@@ -1905,6 +1971,13 @@ function tracer(type, details = {}) {
 
 function montrer(id) {
   ecrans().forEach((section) => { section.hidden = section.id !== id; });
+  // La fiche du jour vit hors des écrans — sinon « position: fixed » se cale
+  // sur la section, qui porte un transform. Elle ne se cache donc pas avec eux :
+  // on la referme à la main en quittant sa page.
+  if (id !== 'ecran-espace' && !$('fiche-jour').hidden) {
+    jourChoisi = null;
+    fermerFicheJour();
+  }
   // L'ambiance dépend du moment : on révise au chaud, on se teste au froid.
   document.documentElement.dataset.ecran = id.replace('ecran-', '');
   window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
@@ -3706,6 +3779,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   $('embleme').onclick = basculerAtelier;
   $('bouton-agenda').onclick = basculerAgenda;
+  $('fermer-fiche-jour').onclick = () => { jourChoisi = null; dessinerEspace(); };
   $('bouton-reprendre').onclick = () => {
     const derniere = localStorage.getItem(CLE_DERNIERE);
     const trouve = derniere && charger(derniere);
@@ -3747,7 +3821,9 @@ document.addEventListener('DOMContentLoaded', () => {
   $('page-precedente').onclick = (e) => { e.stopPropagation(); cahierOuvert.rang -= 1; dessinerCahier(); };
   $('page-suivante').onclick = (e) => { e.stopPropagation(); cahierOuvert.rang += 1; dessinerCahier(); };
   document.addEventListener('keydown', (evenement) => {
-    if (evenement.key === 'Escape' && !$('visionneuse').hidden) fermerCahier();
+    if (evenement.key !== 'Escape') return;
+    if (!$('visionneuse').hidden) return fermerCahier();
+    if (!$('fiche-jour').hidden) { jourChoisi = null; dessinerEspace(); }
   });
 
   $('bouton-tout-afficher').onclick = () => {

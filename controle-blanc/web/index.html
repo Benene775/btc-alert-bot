@@ -354,6 +354,10 @@
         <span class="frise" id="frise-regularite" aria-hidden="true"></span>
         <span class="frise-pied">
           <span class="frise-legende" id="frise-legende"></span>
+          <!-- Une fois ouvert, la frise s'efface et sa légende n'a plus rien à
+               légender : ce titre prend sa place, pour que la barre garde un
+               nom à gauche et le repli à droite. -->
+          <span class="frise-titre">Ton agenda</span>
           <span class="frise-invite">
             <span class="frise-invite-mot" id="frise-invite-mot">Ouvrir l’agenda</span>
             <span class="pan-compte" id="compte-agenda"></span>
@@ -374,7 +378,7 @@
             <span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span>
           </div>
           <div class="mois" id="mois-grille"></div>
-          <div class="jour-detail" id="jour-detail"></div>
+          <p class="agenda-invite" id="agenda-invite"></p>
         </div>
       </div>
     </div>
@@ -624,6 +628,25 @@
 <!-- Le cahier de l’élève, en grand.
      Les pages ne sortent jamais du téléphone : elles sont relues depuis le
      stockage du navigateur, jamais redemandées au serveur. -->
+<!-- La fiche du jour. Elle ne vit pas sous le calendrier — où elle poussait la
+   grille vers le haut à chaque clic — mais sur le côté droit de la page, à
+   hauteur constante. On y lit ce qui est déjà posé ce jour-là, et on y ajoute
+   un contrôle.
+
+   Elle est posée hors de « ecran-espace », à côté de la visionneuse : la
+   section porte un transform, ce qui en fait le bloc conteneur des positions
+   fixes. Dedans, « right: 0 » collait le tiroir au bord de la colonne de
+   lecture et non à celui de la page. -->
+<aside class="fiche-jour" id="fiche-jour" hidden aria-label="Le jour choisi">
+  <div class="fiche-jour-tete">
+    <p class="fiche-jour-date" id="fiche-jour-date"></p>
+    <button type="button" class="fiche-jour-fermer" id="fermer-fiche-jour"
+            aria-label="Fermer la fiche du jour">×</button>
+  </div>
+  <div class="jour-detail" id="jour-detail"></div>
+</aside>
+
+
 <div id="visionneuse" class="visionneuse" hidden>
   <div class="visionneuse-barre">
     <span id="legende-page" class="legende-page"></span>

@@ -269,3 +269,69 @@ def test_les_pages_d_une_seance_disparue_sont_effacees():
     oublier = SCRIPT[SCRIPT.index("function oublierSession") :]
     oublier = oublier[: oublier.index("\n}\n")]
     assert "oublierPages" in oublier
+
+
+def test_ouvert_l_agenda_est_seul():
+    """On ouvre l'agenda pour poser une date, pas pour relire son année. Tout
+    ce qui entoure le calendrier s'efface — la carte d'identité, les chiffres,
+    la prochaine échéance, l'étagère, les boutons du bas. L'attribut est posé
+    par le script : sans lui la page reste entière."""
+    mode = '#ecran-espace[data-agenda="ouvert"]'
+    autour = (".annee-haut", ".annee-chiffres", ".frise", ".frise-legende",
+              ".espace-haut-droite", "#pan-matieres", "#bouton-espace-nouveau",
+              "#bouton-quitter-espace", ".pied-compte")
+    for quoi in autour:
+        assert f"{mode} {quoi}" in STYLE, f"« {quoi} » reste visible sous l'agenda"
+    assert "dataset.agenda = 'ouvert'" in SCRIPT, "le script ne pose jamais le mode"
+
+    # Seul, le calendrier ne prend pas les 1120 px de la page : à cette largeur
+    # les cases faisaient 200 px de côté et le mois se lisait comme un mur.
+    assert f"{mode} .carte-annee {{ max-width:" in STYLE
+
+
+def test_un_jour_cliqué_ouvre_sa_fiche_sur_le_cote():
+    """Le détail du jour vivait sous le calendrier : chaque clic poussait la
+    grille vers le haut, et la date qu'on venait de viser sautait sous le
+    doigt. C'est maintenant un tiroir, à droite de la page."""
+    assert 'id="fiche-jour"' in PAGE
+    fiche = PAGE[PAGE.index('id="fiche-jour"') : PAGE.index('id="visionneuse"')]
+    assert 'id="jour-detail"' in fiche, "le détail du jour n'est pas dans la fiche"
+    assert 'id="fiche-jour-date"' in fiche, "la fiche ne porte pas sa date"
+    assert 'id="fermer-fiche-jour"' in fiche, "on ne peut pas la refermer"
+
+    # Elle vit HORS de « ecran-espace » : la section porte un transform, ce qui
+    # en fait le bloc conteneur des positions fixes. Dedans, « right: 0 »
+    # collait le tiroir au bord de la colonne et non à celui de la page.
+    espace = PAGE[PAGE.index('id="ecran-espace"') : PAGE.index('id="ecran-matiere"')]
+    assert 'id="fiche-jour"' not in espace, \
+        "la fiche est dans l'écran : « position: fixed » se calera sur lui"
+    # Et donc rien ne la cache au changement d'écran : le script s'en charge.
+    montrer = SCRIPT[SCRIPT.index("function montrer(id)"):]
+    montrer = montrer[: montrer.index("\n}\n")]
+    assert "fermerFicheJour" in montrer, "la fiche survit au changement d'écran"
+
+
+def test_la_fiche_du_jour_demande_ce_qui_tombe():
+    """« note » existait dans les données et s'affichait dans la ligne du
+    rendez-vous, mais aucun champ ne permettait de la saisir : un contrôle posé
+    à la main annonçait donc toujours « Cours pas encore photographié »."""
+    forme = SCRIPT[SCRIPT.index("function formulaireRendezVous"):]
+    forme = forme[: forme.index("\n}\n")]
+    assert "'rv-note'" in forme, "on ne peut toujours pas dire ce qui tombe"
+    assert "ajouterRendezVous(jourChoisi, choix.value, note.value.trim())" in forme, \
+        "la note est saisie mais jetée"
+
+
+def test_au_telephone_la_fiche_vient_du_bas():
+    """« À droite » n'existe pas sur un téléphone : un tiroir latéral de 88 vw
+    recouvrait le calendrier pour y montrer deux champs. La fiche vient du bas,
+    haute de ce qu'elle contient, et le mois reste visible au-dessus."""
+    etroit = STYLE[STYLE.index("@media (max-width: 899px)"):]
+    etroit = etroit[: etroit.index("\n}\n")]
+    assert ".fiche-jour" in etroit
+    assert "translateY(100%)" in etroit, "la fiche arrive encore par le côté"
+
+    # Et au large, la page se pousse pour ne pas passer dessous.
+    large = STYLE[STYLE.index("@media (min-width: 900px)") :]
+    assert '#ecran-espace[data-fiche="ouverte"]' in large, \
+        "le tiroir recouvre le calendrier au lieu de lui faire de la place"

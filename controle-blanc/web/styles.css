@@ -2720,6 +2720,149 @@ h1 {
 .frise-porte[aria-expanded="true"] .frise-chevron { transform: rotate(180deg); }
 .frise-porte[aria-expanded="true"] .frise-invite { color: var(--accent); }
 
+/* Ouvert, l'agenda est seul. Tout ce qui l'entoure sur la page — la carte
+   d'identité, les chiffres, la prochaine échéance, l'étagère, les boutons du
+   bas — s'efface : on est venu poser une date, pas relire son année. C'est
+   l'attribut posé par le script qui commande, jamais la feuille de style
+   seule : sans lui, la page reste entière. */
+#ecran-espace[data-agenda="ouvert"] .annee-haut,
+#ecran-espace[data-agenda="ouvert"] .annee-chiffres,
+#ecran-espace[data-agenda="ouvert"] .frise,
+#ecran-espace[data-agenda="ouvert"] .frise-legende,
+#ecran-espace[data-agenda="ouvert"] .espace-haut-droite,
+#ecran-espace[data-agenda="ouvert"] #pan-matieres,
+#ecran-espace[data-agenda="ouvert"] #bouton-espace-nouveau,
+#ecran-espace[data-agenda="ouvert"] #bouton-quitter-espace,
+#ecran-espace[data-agenda="ouvert"] .pied-compte { display: none; }
+
+/* Le titre ne paraît qu'ouvert : fermé, c'est la légende de la frise qui
+   occupe cette place. */
+.frise-titre {
+  font-family: var(--mono);
+  font-size: .58rem;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  color: var(--accent);
+  display: none;
+}
+
+#ecran-espace[data-agenda="ouvert"] .frise-titre { display: inline; }
+
+/* Seul, l'agenda quitte la moitié gauche — mais il ne prend pas toute la page
+   pour autant : à 1120 px les cases du mois faisaient 200 px de côté et le
+   calendrier se lisait comme un mur. */
+#ecran-espace[data-agenda="ouvert"] .espace-haut { display: block; }
+#ecran-espace[data-agenda="ouvert"] .carte-annee { max-width: 720px; }
+
+/* La porte n'a plus de frise à survoler : plus de fond au survol non plus,
+   sinon un grand rectangle ambré s'allume sous le titre. */
+#ecran-espace[data-agenda="ouvert"] .frise-porte:hover { background: none; }
+
+/* L'invite sous le calendrier, quand aucun jour n'est choisi. */
+.agenda-invite {
+  margin: var(--e2) 0 0;
+  color: var(--encre-douce);
+  font-size: .9rem;
+}
+
+/* --- La fiche du jour ----------------------------------------------------
+ *
+ * Elle vivait sous le calendrier : chaque clic sur un jour poussait la grille
+ * vers le haut, et la date qu'on venait de viser sautait sous le doigt. Elle
+ * est maintenant un tiroir sur le côté droit de la page — le calendrier ne
+ * bouge plus, et ce qu'on écrit reste à côté de ce qu'on a cliqué.
+ */
+.fiche-jour {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(360px, 88vw);
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: var(--e2);
+  padding: var(--e4) var(--e3) var(--e3);
+  background: var(--carte);
+  border-left: 1px solid var(--trait);
+  box-shadow: -18px 0 44px -28px color-mix(in srgb, var(--encre) 55%, transparent);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  transform: translateX(100%);
+  transition: transform .34s cubic-bezier(.2, .7, .3, 1);
+}
+
+.fiche-jour[data-ouverte="oui"] { transform: none; }
+
+/* Le tiroir se pose SUR la page : sans place faite, il recouvrait samedi et
+   dimanche. Au-dessus de 900 px on décale le contenu de sa largeur ; en
+   dessous, il n'y a de toute façon pas la place de mettre les deux côte à côte
+   et il prend le bas de l'écran (voir plus bas). */
+@media (min-width: 900px) {
+  #ecran-espace[data-fiche="ouverte"] {
+    padding-right: 380px;
+    transition: padding-right .34s cubic-bezier(.2, .7, .3, 1);
+  }
+}
+
+.fiche-jour-tete {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--e2);
+}
+
+.fiche-jour-date {
+  flex: 1;
+  margin: 0;
+  font-family: var(--titre);
+  font-weight: 600;
+  font-size: 1.14rem;
+  line-height: 1.2;
+  /* « mercredi 5 août » sort de la base : c'est une date, pas un nom propre. */
+  text-transform: none;
+}
+
+.fiche-jour-fermer {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  margin: -4px -4px 0 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--encre-douce);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.fiche-jour-fermer:hover { background: color-mix(in srgb, var(--encre) 8%, transparent); }
+
+/* Au téléphone, « à droite » n'existe pas : un tiroir de 88 vw recouvrait le
+   calendrier pour y montrer deux champs, et l'écran était blanc aux trois
+   quarts. La fiche vient donc du bas, haute de ce qu'elle contient — le mois
+   reste visible au-dessus, ce qui est tout l'intérêt d'avoir sorti le détail
+   de sous la grille. */
+@media (max-width: 899px) {
+  .fiche-jour {
+    top: auto;
+    left: 0;
+    right: 0;
+    width: auto;
+    max-height: 76vh;
+    border-left: 0;
+    border-top: 1px solid var(--trait);
+    border-radius: var(--rayon-carte) var(--rayon-carte) 0 0;
+    padding-bottom: max(var(--e3), env(safe-area-inset-bottom));
+    box-shadow: 0 -18px 44px -26px color-mix(in srgb, var(--encre) 55%, transparent);
+    transform: translateY(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fiche-jour { transition: none; }
+}
+
 /* Le dépli. La hauteur s'anime par la grille (0fr → 1fr) : pas de mesure en
    JavaScript, donc rien à recalculer quand le mois change de nombre de
    semaines. */
@@ -3251,7 +3394,44 @@ h1 {
   line-height: 1;
 }
 
-.ajout-rv { display: flex; gap: 6px; margin-top: 2px; }
+/* Dans la fiche, le formulaire a la place de se déplier : un titre, deux
+   champs étiquetés, un bouton pleine largeur. */
+.ajout-rv {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: var(--e2);
+  padding-top: var(--e2);
+  border-top: 1px solid var(--trait);
+}
+
+.ajout-rv-titre {
+  font-family: var(--mono);
+  font-size: .62rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--encre-douce);
+  margin: 0 0 2px;
+}
+
+.ajout-rv label {
+  font-size: .82rem;
+  color: var(--encre-douce);
+  margin-top: 4px;
+}
+
+.ajout-rv .ajout-rv-valider { margin-top: var(--e2); }
+
+/* Dans la fiche, le détail commence en haut : c'est l'en-tête qui porte la
+   date, il n'y a rien à décaler. Et quand le jour est vide, le formulaire est
+   seul — son filet de séparation ne sépare alors de rien. */
+.fiche-jour .jour-detail { margin-top: 0; }
+
+.fiche-jour .jour-detail > .ajout-rv:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
 
 .ajout-rv select {
   flex: 1;
