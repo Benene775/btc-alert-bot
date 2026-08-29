@@ -49,7 +49,12 @@ function ouvrirDemo(email) {
   sessionDemo.email = email;
   sessionDemo.compte = ouvert.compte;
   garderEntreeDemo();
-  semerLePasse('cb.' + ouvert.compte + '.');
+  // Le classeur factice : dix cours déjà faits, pour que la page perso montre
+  // quelque chose. Sur le site public on veut l'inverse — un compte neuf, comme
+  // pour un vrai élève qui arrive. D'où le drapeau posé par artefact.py --vierge.
+  if (typeof DEMO_VIERGE === 'undefined' || !DEMO_VIERGE) {
+    semerLePasse('cb.' + ouvert.compte + '.');
+  }
   return { connecte: true, email, compte: ouvert.compte,
            prenom: ouvert.prenom || '', niveau: ouvert.niveau || '' };
 }

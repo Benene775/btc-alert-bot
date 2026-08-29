@@ -59,6 +59,9 @@ def main() -> int:
     analyseur.add_argument("sortie", nargs="?", default=str(RACINE / "controle-blanc-demo.html"))
     analyseur.add_argument("--contenu", default="histoire", choices=contenus_disponibles(),
                            help="le jeu de contenus à embarquer")
+    analyseur.add_argument("--vierge", action="store_true",
+                           help="pas de classeur pré-rempli : le compte s'ouvre vide, "
+                                "comme pour un élève qui arrive")
     arguments = analyseur.parse_args()
     sortie = Path(arguments.sortie)
 
@@ -78,6 +81,10 @@ def main() -> int:
     if not icone:
         raise SystemExit("index.html n'a plus de favicon")
 
+    # Lu par faux-serveur.js au moment de l'inscription : avec ce drapeau, aucun
+    # classeur factice n'est semé et l'élève arrive sur une page perso vide.
+    vierge = "const DEMO_VIERGE = true;\n\n" if arguments.vierge else ""
+
     corps = html.split("<body>", 1)[1].split("</body>", 1)[0]
     corps = corps.replace('<script src="/app.js"></script>', "").strip()
     corps = corps.replace("Mode démonstration : contenus d'exemple, rien n'est analysé.", MENTION)
@@ -94,7 +101,7 @@ def main() -> int:
         '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n'
         f"{icone.group(0)}\n"
         f"<style>\n{polices}\n{styles}\n</style>\n\n{corps}\n\n"
-        f"<script>\n{donnees}\n\n{commun}\n\n{faux}\n\n{app}\n</script>\n"
+        f"<script>\n{vierge}{donnees}\n\n{commun}\n\n{faux}\n\n{app}\n</script>\n"
     )
 
     externes = re.findall(r'(?:src|href)=["\']https?://', page) + re.findall(r"url\(https?://", page)

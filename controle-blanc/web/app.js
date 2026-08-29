@@ -121,6 +121,21 @@ function toutesLesSessions() {
   return sessions.sort((a, b) => String(b.creeLe).localeCompare(String(a.creeLe)));
 }
 
+/* Ce que l'élève a réellement fait.
+ *
+ * S'inscrire ouvre une séance avant même qu'on ait demandé la matière. Sa page
+ * affichait donc, dès la première seconde, une tuile « Matière à préciser » avec
+ * zéro fiche, et « 1 cours » à côté de « 0 matière » — deux chiffres qui se
+ * contredisent sous les yeux de quelqu'un qui n'a encore rien fait.
+ *
+ * menageSessions() balaie ces départs, mais seulement au chargement suivant :
+ * la page ne peut pas attendre jusque-là pour dire la vérité. Elle lit donc les
+ * séances qui portent quelque chose — un chapitre, une fiche ou un contrôle.
+ */
+function sessionsFaites() {
+  return toutesLesSessions().filter((session) => poids(session) > 0);
+}
+
 /* --- L'étagère des matières ----------------------------------------------
  *
  * Tout ce que l'élève possède appartient à une matière : ses cours, ses fiches,
@@ -416,7 +431,7 @@ let matiereOuverte = null;
 let revoirDeplie = false;
 
 function dessinerEspace() {
-  const sessions = toutesLesSessions();
+  const sessions = sessionsFaites();
   dessinerCarteEleve(sessions);
   dessinerRevientCourt(sessions);
   dessinerEtagere(sessions);
@@ -508,7 +523,7 @@ function ouvrirMatiere(cle) {
 }
 
 function dessinerMatiere() {
-  const sessions = toutesLesSessions();
+  const sessions = sessionsFaites();
   const cle = matiereOuverte;
   const tete = $('matiere-tete');
   tete.innerHTML = '';
@@ -595,9 +610,10 @@ function dessinerMatiereRevoir(sessions, cle) {
  * lus : seulement ce qui mérite qu'on ouvre.
  */
 function dessinerRonds() {
-  const sessions = toutesLesSessions();
-  const quelqueChose = sessions.length || rendezVous().length;
-  $('acces-perso').hidden = !quelqueChose;
+  const sessions = sessionsFaites();
+  // Connecté, on a une page — même vide. Sans ça, l'élève qui s'inscrit et
+  // revient plus tard n'a plus aucun moyen de l'ouvrir depuis l'accueil.
+  $('acces-perso').hidden = !compte;
 
   const mienne = carte();
   const echeances = prochainesEcheances(sessions);

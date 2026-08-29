@@ -1,17 +1,19 @@
-"""Le site statique des démonstrations, et ce qu'il ne doit pas casser.
+"""Le site public, et ce qu'il ne doit pas casser.
+
+Ce qu'il est : une page. La racine EST Repère, pas un sommaire, et le compte
+s'ouvre vide — comme pour un élève qui arrive. Deux choses ont été retirées en
+cours de route pour ça : une page de choix entre deux matières, et le classeur
+pré-rempli de dix cours.
 
 Trois pannes réelles sont derrière ces tests.
 
-1. La page de choix embarquait `styles.css` en entier : 200 Ko pour deux liens,
-   et une hauteur de 32 000 px, parce que des règles écrites pour les écrans du
-   produit s'appliquaient à ce qui traînait là.
-2. Le favicon est une data-URI qui contient du SVG, donc des « > ». L'extraire
+1. Le favicon est une data-URI qui contient du SVG, donc des « > ». L'extraire
    en coupant au premier « > » tronquait l'attribut, et le navigateur avalait
    alors tout le <head> — feuille de style comprise. La page s'affichait nue.
-3. La politique de sécurité de `netlify.toml` interdisait `blob:` aux images :
+2. La politique de sécurité de `netlify.toml` interdisait `blob:` aux images :
    la page marchait, mais les vignettes du cahier disparaissaient — la promesse
    du produit, cassée en silence.
-4. La publication lance `site.py _site` depuis la racine du dépôt. Ce chemin
+3. La publication lance `site.py _site` depuis la racine du dépôt. Ce chemin
    relatif était interprété depuis `controle-blanc/`, et la fabrication mourait
    sur un `FileNotFoundError`. En local on passait toujours un chemin absolu :
    invisible ici, fatal sur la machine de GitHub. D'où un test qui appelle
@@ -38,40 +40,43 @@ def construire(dossier: Path) -> dict[str, str]:
     return {f.name: f.read_text(encoding="utf-8") for f in dossier.glob("*.html")}
 
 
-def test_le_site_se_fabrique_avec_ses_trois_pages():
+def test_le_site_est_une_page_et_c_est_repere():
+    """Le premier jet posait un sommaire à la racine : on envoyait le lien à
+    quelqu'un, et il tombait sur un menu au lieu du produit."""
     with tempfile.TemporaryDirectory() as dossier:
         pages = construire(Path(dossier))
-    assert set(pages) == {"index.html", "espagnol.html", "histoire.html"}
-    assert "<title>Repère — Espagnol</title>" in pages["espagnol.html"]
-    assert "<title>Repère — Histoire</title>" in pages["histoire.html"]
-    for cible in ("espagnol.html", "histoire.html"):
-        assert f'href="{cible}"' in pages["index.html"], f"pas de lien vers {cible}"
+    assert set(pages) == {"index.html"}
+    index = pages["index.html"]
+    # La vraie page d'accueil de Repère, pas une page fabriquée pour l'occasion.
+    assert 'id="ecran-accueil"' in index
+    assert "Passe le contrôle" in index
+    assert 'id="ecran-connexion"' in index, "on doit pouvoir s'inscrire"
 
 
-def test_la_page_de_choix_a_bien_sa_feuille_de_style():
-    """Le favicon truncated avalait le <head> : la page sortait sans style, et
-    rien ne le signalait — elle s'affichait, simplement moche."""
+def test_le_compte_s_ouvre_vide():
+    """Un visiteur doit voir ce que verra un élève : rien. Le classeur factice
+    de dix cours sert aux démonstrations envoyées à la main, pas au site."""
     with tempfile.TemporaryDirectory() as dossier:
         index = construire(Path(dossier))["index.html"]
-    assert index.count("<style>") == 1 and index.count("</style>") == 1
-    style = index[index.index("<style>"):index.index("</style>")]
-    # Les jetons de couleur doivent y être : sans eux, le logo tombe en noir.
-    assert "--papier:" in style and "--accent:" in style
-    assert ".hall-carte" in style
-    # Et le <link> du favicon doit être entier.
-    lien = re.search(r'<link rel="icon" href="[^"]*">', index)
-    assert lien and lien.group(0).endswith('</svg>">'), "le favicon est tronqué"
+    assert "const DEMO_VIERGE = true" in index
+    # Le semis existe toujours dans le code — il est simplement débranché.
+    assert "semerLePasse" in index
+    assert "DEMO_VIERGE" in index.split("function ouvrirDemo")[1][:900], \
+        "le semis n'est pas conditionné"
 
 
-def test_la_page_de_choix_n_embarque_pas_toute_l_application():
-    """3 000 lignes de CSS écrites pour les écrans du produit n'ont rien à faire
-    sur une page à deux liens — et elles y font des dégâts."""
-    with tempfile.TemporaryDirectory() as dossier:
-        index = construire(Path(dossier))["index.html"]
-    poids = len(index.encode("utf-8")) / 1024
-    assert poids < 130, f"la page de choix pèse {poids:.0f} Ko"
-    for regle in (".ecran {", ".carte-fiche", "#scene", ".rond-perso"):
-        assert regle not in index, f"« {regle} » vient de l'application"
+def test_une_seance_qui_n_a_rien_ne_s_affiche_pas():
+    """S'inscrire ouvre une séance avant qu'on ait demandé la matière. La page
+    perso montrait donc « Matière à préciser · 0 fiche », et « 1 cours » à côté
+    de « 0 matière » — deux chiffres qui se contredisent devant quelqu'un qui
+    n'a encore rien fait."""
+    script = (RACINE / "web" / "app.js").read_text(encoding="utf-8")
+    assert "function sessionsFaites" in script
+    for dessin in ("function dessinerEspace", "function dessinerMatiere",
+                   "function dessinerRonds"):
+        bloc = script[script.index(dessin):]
+        bloc = bloc[: bloc.index("\n}\n")]
+        assert "sessionsFaites()" in bloc, f"« {dessin} » lit encore les séances vides"
 
 
 def test_le_site_n_appelle_personne():
@@ -124,9 +129,8 @@ def test_la_fabrication_marche_comme_la_publication_l_appelle(tmp_path, monkeypa
 
     produit = tmp_path / "_site"
     assert produit.is_dir(), "le dossier de sortie n'est pas là où on l'a demandé"
-    for page in ("index.html", "espagnol.html", "histoire.html"):
-        assert (produit / page).exists(), f"{page} manque"
-        assert (produit / page).stat().st_size > 1000
+    assert (produit / "index.html").exists(), "index.html manque"
+    assert (produit / "index.html").stat().st_size > 100_000
 
 
 def test_le_workflow_appelle_l_outil_comme_le_test_le_verifie():
