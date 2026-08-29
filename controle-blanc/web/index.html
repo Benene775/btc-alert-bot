@@ -628,6 +628,13 @@
 <!-- Le cahier de l’élève, en grand.
      Les pages ne sortent jamais du téléphone : elles sont relues depuis le
      stockage du navigateur, jamais redemandées au serveur. -->
+<!-- L'aperçu au survol d'une date occupée : ce que sera l'épreuve, en une
+     ligne par contrôle. Il vit hors des écrans pour la même raison que la fiche
+     du jour — « position: fixed » se calerait sinon sur une section qui porte
+     un transform — et il est unique : un aperçu par case en ferait trente et un
+     à tenir à jour. -->
+<div class="apercu-jour" id="apercu-jour" role="tooltip" hidden></div>
+
 <!-- La fiche du jour. Elle ne vit pas sous le calendrier — où elle poussait la
    grille vers le haut à chaque clic — mais sur le côté droit de la page, à
    hauteur constante. On y lit ce qui est déjà posé ce jour-là, et on y ajoute

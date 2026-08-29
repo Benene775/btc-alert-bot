@@ -763,6 +763,20 @@ function cleJour(d) {
 
 /* Tout ce qui tombe un jour donné : les dates posées à la main et les séances
  * déjà ouvertes. Une séance qui reprend une date saisie la remplace. */
+/* Ce qu'on dit d'un contrôle en une ligne.
+ *
+ * La fiche du jour et l'aperçu au survol s'en servent tous les deux : deux
+ * formulations pour le même rendez-vous finiraient par se contredire, et c'est
+ * le genre d'écart que personne ne remarque avant un élève.
+ */
+function resumeEvenement(e) {
+  if (e.source === 'session') {
+    if (!e.chapitres) return 'Séance commencée';
+    return e.chapitres + (e.chapitres > 1 ? ' chapitres prêts' : ' chapitre prêt');
+  }
+  return e.note || 'Cours pas encore photographié';
+}
+
 function evenementsDuJour(jour, sessions) {
   const desSessions = sessions
     .filter((s) => s.dateControle === jour)
@@ -848,6 +862,7 @@ function dessinerMois(sessions) {
     jour.setAttribute('aria-label', date.toLocaleDateString('fr-FR',
       { weekday: 'long', day: 'numeric', month: 'long' })
       + (evenements.length ? ' — ' + evenements.length + ' contrôle(s)' : ''));
+    if (evenements.length) jour._evenements = evenements;
 
     const chiffre = document.createElement('span');
     chiffre.className = 'jour-chiffre';
@@ -861,7 +876,7 @@ function dessinerMois(sessions) {
       jour.appendChild(points);
     }
 
-    jour.onclick = () => { jourChoisi = cle; dessinerEspace(); };
+    jour.onclick = () => { cacherApercuJour(); jourChoisi = cle; dessinerEspace(); };
     grille.appendChild(jour);
   }
 }
@@ -902,9 +917,7 @@ function dessinerJourChoisi(sessions) {
     corps.appendChild(nom);
     const etat = document.createElement('p');
     etat.className = 'rendez-vous-etat';
-    etat.textContent = e.source === 'session'
-      ? (e.chapitres ? e.chapitres + (e.chapitres > 1 ? ' chapitres prêts' : ' chapitre prêt') : 'Séance commencée')
-      : (e.note || 'Cours pas encore photographié');
+    etat.textContent = resumeEvenement(e);
     corps.appendChild(etat);
     ligne.appendChild(corps);
 
@@ -1070,7 +1083,7 @@ function basculerAgenda(ouvre) {
   else delete $('ecran-espace').dataset.agenda;
   // Refermer l'agenda referme la fiche du jour avec lui : elle n'a plus de
   // calendrier derrière elle.
-  if (!ouvre) { jourChoisi = null; fermerFicheJour(); }
+  if (!ouvre) { jourChoisi = null; fermerFicheJour(); cacherApercuJour(); }
 
   if (ouvre) {
     bloc.hidden = false;
@@ -1092,6 +1105,90 @@ function basculerAgenda(ouvre) {
     bloc.removeEventListener('transitionend', finir);
     bloc.hidden = true;
   }
+}
+
+/* L'aperçu au survol d'une date occupée.
+ *
+ * Une pastille sur une case dit qu'il se passe quelque chose ce jour-là, pas
+ * quoi. Le survol le dit sans rien ouvrir : la matière, et en une ligne ce que
+ * sera l'épreuve. Cliquer reste le geste qui ouvre la fiche complète.
+ *
+ * Un seul élément pour tout le mois, déplacé sous la case survolée : un aperçu
+ * par case en ferait trente et un à construire et à tenir à jour.
+ *
+ * Au doigt il n'y a pas de survol — et il n'en faut pas : toucher la case ouvre
+ * déjà la fiche, qui dit tout. L'aperçu est donc un supplément à la souris, et
+ * au clavier, où il suit le focus.
+ */
+const APERCU_LIGNES = 3;
+
+function texteApercu(evenements) {
+  const apercu = $('apercu-jour');
+  apercu.innerHTML = '';
+
+  if (evenements.length > 1) {
+    const combien = document.createElement('p');
+    combien.className = 'apercu-jour-combien';
+    combien.textContent = evenements.length + ' contrôles ce jour-là';
+    apercu.appendChild(combien);
+  }
+
+  evenements.slice(0, APERCU_LIGNES).forEach((e) => {
+    const ligne = document.createElement('p');
+    ligne.className = 'apercu-jour-ligne';
+    const matiere = document.createElement('b');
+    matiere.textContent = nomMatiere(e.matiere);
+    const detail = document.createElement('span');
+    detail.textContent = resumeEvenement(e);
+    ligne.append(matiere, detail);
+    apercu.appendChild(ligne);
+  });
+
+  const reste = evenements.length - APERCU_LIGNES;
+  if (reste > 0) {
+    const encore = document.createElement('p');
+    encore.className = 'apercu-jour-encore';
+    encore.textContent = reste > 1 ? 'et ' + reste + ' autres' : 'et un autre';
+    apercu.appendChild(encore);
+  }
+}
+
+function montrerApercuJour(cellule) {
+  const evenements = cellule._evenements;
+  if (!evenements || !evenements.length) return;
+  // La fiche du jour dit déjà tout ce que l'aperçu dirait : le doubler par
+  // dessus est du bruit. Cliquer redessine la grille sous le curseur, ce qui
+  // relance un « pointerover » — sans cette garde, l'aperçu revenait aussitôt.
+  // Les AUTRES jours restent survolables : jeter un oeil ailleurs pendant
+  // qu'une fiche est ouverte est justement utile.
+  if (cellule.dataset.jour === jourChoisi && !$('fiche-jour').hidden) return;
+  const apercu = $('apercu-jour');
+  texteApercu(evenements);
+
+  // On mesure après avoir rempli : la hauteur dépend du nombre de contrôles.
+  apercu.hidden = false;
+  const case_ = cellule.getBoundingClientRect();
+  const boite = apercu.getBoundingClientRect();
+  const large = document.documentElement.clientWidth;
+
+  // Centré sur la case, mais jamais hors de l'écran : les cases du lundi et du
+  // dimanche sont contre les bords.
+  let x = case_.left + case_.width / 2 - boite.width / 2;
+  x = Math.max(8, Math.min(x, large - boite.width - 8));
+  // Au-dessus de la case ; en dessous s'il n'y a pas la place au-dessus.
+  let y = case_.top - boite.height - 10;
+  apercu.dataset.sens = 'haut';
+  if (y < 8) { y = case_.bottom + 10; apercu.dataset.sens = 'bas'; }
+
+  apercu.style.left = Math.round(x) + 'px';
+  apercu.style.top = Math.round(y) + 'px';
+  requestAnimationFrame(() => { apercu.dataset.vu = 'oui'; });
+}
+
+function cacherApercuJour() {
+  const apercu = $('apercu-jour');
+  delete apercu.dataset.vu;
+  apercu.hidden = true;
 }
 
 /* La fiche du jour, sur le côté droit.
@@ -3799,6 +3896,32 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   $('embleme').onclick = basculerAtelier;
   $('bouton-agenda').onclick = () => basculerAgenda();
+
+  // Un seul écouteur sur la grille, pas un par case : le mois se redessine à
+  // chaque ajout, à chaque changement de mois, et des écouteurs posés case par
+  // case se multiplieraient sans que rien ne les retire.
+  const grille = $('mois-grille');
+  const survolable = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  if (survolable) {
+    grille.addEventListener('pointerover', (evenement) => {
+      const case_ = evenement.target.closest('.jour');
+      if (case_ && !case_.contains(evenement.relatedTarget)) montrerApercuJour(case_);
+    });
+    grille.addEventListener('pointerout', (evenement) => {
+      const case_ = evenement.target.closest('.jour');
+      if (case_ && !case_.contains(evenement.relatedTarget)) cacherApercuJour();
+    });
+  }
+  // Au clavier, l'aperçu suit le focus : sans ça, tabuler dans le mois ne dit
+  // rien de ce que les pastilles annoncent.
+  grille.addEventListener('focusin', (evenement) => {
+    const case_ = evenement.target.closest('.jour');
+    if (case_) montrerApercuJour(case_);
+  });
+  grille.addEventListener('focusout', cacherApercuJour);
+  // Le mois qui défile sous un aperçu resté ouvert le laisserait flotter à côté
+  // d'une case qui n'est plus là.
+  grille.addEventListener('scroll', cacherApercuJour, { passive: true });
   $('fermer-fiche-jour').onclick = () => { jourChoisi = null; dessinerEspace(); };
   $('bouton-reprendre').onclick = () => {
     const derniere = localStorage.getItem(CLE_DERNIERE);

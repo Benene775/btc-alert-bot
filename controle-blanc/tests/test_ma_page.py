@@ -384,3 +384,83 @@ def test_quitter_sa_page_referme_l_agenda():
     assert "if (typeof ouvre !== 'boolean')" in SCRIPT, \
         "un PointerEvent passerait pour « ouvrir »"
     assert "$('bouton-agenda').onclick = () => basculerAgenda();" in SCRIPT
+
+
+def test_survoler_une_date_dit_ce_que_sera_l_epreuve():
+    """Une pastille sur une case dit qu'il se passe quelque chose ce jour-là,
+    pas quoi. Le survol le dit sans rien ouvrir : la matière, et en une ligne
+    ce que sera l'épreuve."""
+    assert 'id="apercu-jour"' in PAGE
+    assert 'role="tooltip"' in PAGE[PAGE.index('id="apercu-jour"') - 90 : PAGE.index('id="apercu-jour"') + 40]
+
+    # Hors des écrans, comme la fiche : « position: fixed » se calerait sinon
+    # sur une section qui porte un transform.
+    espace = PAGE[PAGE.index('id="ecran-espace"') : PAGE.index('id="ecran-matiere"')]
+    assert 'id="apercu-jour"' not in espace
+
+    # Il ne prend jamais le pointeur : survoler ne doit pas empêcher de cliquer
+    # la case qui est dessous.
+    regle = STYLE[STYLE.index(".apercu-jour {") :]
+    regle = regle[: regle.index("}")]
+    assert "pointer-events: none" in regle
+    assert "position: fixed" in regle
+
+
+def test_plusieurs_controles_le_meme_jour_tiennent_dans_l_apercu():
+    """Trois matières le même jour, ça arrive — et cinq en fin de trimestre.
+    L'aperçu les compte, en montre trois, et dit combien restent."""
+    bloc = SCRIPT[SCRIPT.index("function texteApercu"):]
+    bloc = bloc[: bloc.index("\n}\n")]
+    assert "evenements.length > 1" in bloc, "le nombre n'est annoncé nulle part"
+    assert "contrôles ce jour-là" in bloc
+    assert "APERCU_LIGNES" in bloc, "rien ne borne le nombre de lignes"
+    assert "'et un autre'" in bloc and "'et ' + reste + ' autres'" in bloc, \
+        "le reste n'est pas annoncé, ou toujours au pluriel"
+
+
+def test_l_apercu_reste_dans_l_ecran():
+    """Les cases du lundi et du dimanche touchent les bords, et celles de la
+    première ligne touchent le haut : un aperçu centré sans bornes sortirait de
+    l'écran, où personne ne peut le lire."""
+    bloc = SCRIPT[SCRIPT.index("function montrerApercuJour"):]
+    bloc = bloc[: bloc.index("\n}\n")]
+    assert "Math.max(8, Math.min(x," in bloc, "rien ne borne l'aperçu à gauche et à droite"
+    assert "if (y < 8)" in bloc, "l'aperçu peut sortir par le haut"
+    assert "case_.bottom" in bloc, "faute de place au-dessus, rien ne le repose dessous"
+
+
+def test_l_apercu_ne_double_pas_la_fiche_qu_il_annonce():
+    """Cliquer redessine la grille sous le curseur, ce qui relance un
+    « pointerover » : sans garde, l'aperçu revenait par-dessus la fiche qu'on
+    venait d'ouvrir, pour y répéter la même chose en plus court."""
+    bloc = SCRIPT[SCRIPT.index("function montrerApercuJour"):]
+    bloc = bloc[: bloc.index("\n}\n")]
+    assert "cellule.dataset.jour === jourChoisi" in bloc
+    assert "!$('fiche-jour').hidden" in bloc
+    # Mais seulement pour CE jour : jeter un oeil ailleurs reste utile.
+    assert "$('fiche-jour').hidden) return;" in bloc
+
+
+def test_le_resume_d_un_controle_ne_s_ecrit_qu_une_fois():
+    """La fiche du jour et l'aperçu disent la même chose du même rendez-vous.
+    Deux formulations finiraient par se contredire, et c'est le genre d'écart
+    que personne ne remarque avant un élève."""
+    assert "function resumeEvenement" in SCRIPT
+    # Les appels, pas la définition — qui contient la même chaîne.
+    appels = SCRIPT.count("= resumeEvenement(e)")
+    assert appels == 2, f"{appels} appel(s) : un des deux endroits réécrit le résumé"
+    resume = SCRIPT[SCRIPT.index("function resumeEvenement"):]
+    resume = resume[: resume.index("\n}\n")]
+    assert "chapitres prêts" in resume and "Cours pas encore photographié" in resume
+
+
+def test_un_seul_ecouteur_pour_tout_le_mois():
+    """Le mois se redessine à chaque ajout et à chaque changement de mois. Des
+    écouteurs posés case par case se multiplieraient sans que rien ne les
+    retire — trente et un de plus à chaque dessin."""
+    bloc = SCRIPT[SCRIPT.index("const grille = $('mois-grille');"):]
+    bloc = bloc[: bloc.index("grille.addEventListener('scroll'")]
+    assert "grille.addEventListener('pointerover'" in bloc
+    assert "evenement.target.closest('.jour')" in bloc, "l'écouteur n'est pas délégué"
+    # Et au clavier, l'aperçu suit le focus.
+    assert "grille.addEventListener('focusin'" in bloc

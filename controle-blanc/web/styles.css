@@ -2765,6 +2765,77 @@ h1 {
   font-size: .9rem;
 }
 
+/* --- L'aperçu au survol d'une date -------------------------------------
+ *
+ * Une pastille sur une case dit qu'il se passe quelque chose ce jour-là, pas
+ * quoi. L'aperçu le dit sans rien ouvrir. Il ne prend jamais le pointeur :
+ * survoler ne doit pas empêcher de cliquer la case qui est dessous.
+ */
+.apercu-jour {
+  position: fixed;
+  z-index: 45;
+  max-width: min(280px, 82vw);
+  padding: 10px 13px;
+  border-radius: var(--rayon);
+  background: var(--carte);
+  border: 1px solid var(--trait);
+  box-shadow: var(--ombre-carte);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(3px);
+  transition: opacity .16s ease, transform .16s ease;
+}
+
+.apercu-jour[data-vu="oui"] { opacity: 1; transform: none; }
+.apercu-jour[data-sens="bas"] { transform: translateY(-3px); }
+.apercu-jour[data-sens="bas"][data-vu="oui"] { transform: none; }
+
+.apercu-jour-combien {
+  margin: 0 0 6px;
+  font-family: var(--mono);
+  font-size: .6rem;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.apercu-jour-ligne {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.35;
+}
+
+.apercu-jour-ligne + .apercu-jour-ligne {
+  margin-top: 7px;
+  padding-top: 7px;
+  border-top: 1px solid var(--trait);
+}
+
+.apercu-jour-ligne b { font-size: .88rem; font-weight: 700; }
+
+.apercu-jour-ligne span {
+  font-size: .8rem;
+  color: var(--encre-douce);
+  /* « Ce qui tombe » peut être long : deux lignes, puis on coupe. L'aperçu est
+     un aperçu — la fiche du jour dit tout. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.apercu-jour-encore {
+  margin: 7px 0 0;
+  font-size: .78rem;
+  color: var(--encre-douce);
+  font-style: italic;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .apercu-jour { transition: none; }
+}
+
 /* --- La fiche du jour ----------------------------------------------------
  *
  * Elle vivait sous le calendrier : chaque clic sur un jour poussait la grille
