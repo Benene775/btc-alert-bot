@@ -59,6 +59,15 @@
       pendant qu’il est encore temps de le réviser.
     </p>
 
+    <figure class="copie" aria-label="Extrait d’une copie corrigée">
+      <div class="copie-marge"><span class="copie-numero">3</span></div>
+      <div class="copie-corps seyes">
+        <p class="copie-question">Qu’appelle-t-on une « guerre totale » ?</p>
+        <p class="copie-reponse">C’est quand tout le pays travaille pour la guerre, pas seulement les soldats.</p>
+        <p class="copie-note">Juste. Il manque un exemple — ton cours en donne deux, partie III.</p>
+      </div>
+    </figure>
+
     <div class="hero-actions">
       <div class="hero-rangee">
         <button type="button" class="principal" id="bouton-commencer">Commencer</button>
@@ -79,126 +88,10 @@
     <p class="mention alerte-demo" id="mention-demo" hidden>Mode démonstration : contenus d’exemple, rien n’est analysé.</p>
   </div>
 
-  <!-- LE CONTRÔLE ÉCLAIR — le produit joué avant l'inscription.
-       Décrire ce que fait Repère prenait quatre blocs de texte que personne ne
-       lit sur un téléphone. Le faire prend quarante secondes. Tout est écrit
-       dans la page : aucune requête, aucun modèle appelé, donc rien à payer par
-       visiteur. Rien n'est masqué ici : si le script n'arme jamais le contrôle,
-       la carte se lit quand même — l'extrait, les trois questions et leurs
-       corrections — au lieu de laisser un cadre vide. -->
-  <section class="bloc bloc-eclair a-reveler">
-    <p class="titre-bloc">Essaie sans t’inscrire</p>
-    <div class="eclair" id="eclair">
-
-      <header class="eclair-tete">
-        <p class="eclair-titre">Un cours que tu n’as jamais lu.<br>Trois questions dessus.</p>
-        <p class="eclair-annonce" id="eclair-annonce">Quarante secondes, rien à créer — et tu verras
-          exactement ce que Repère te rend à la fin.</p>
-        <ol class="eclair-jauge" id="eclair-jauge" hidden>
-          <li data-etat="attente"></li>
-          <li data-etat="attente"></li>
-          <li data-etat="attente"></li>
-        </ol>
-      </header>
-
-      <!-- L'extrait reste consultable pendant les questions : c'est le geste
-           même du produit — on retourne toujours à SON cours, jamais à une
-           fiche écrite par quelqu'un d'autre. -->
-      <figure class="eclair-cours" id="eclair-cours">
-        <figcaption class="eclair-etiquette">
-          <span class="eclair-matiere">Histoire · 3<sup>e</sup></span>
-          <span class="eclair-source">extrait de cours</span>
-        </figcaption>
-        <div class="eclair-feuille seyes">
-          <h3>III. Une guerre totale</h3>
-          <p>À partir de 1915, la guerre ne se joue plus seulement au front. Les usines se
-            convertissent à l’armement, et les femmes y remplacent les hommes partis se battre.
-            L’État emprunte auprès des civils, rationne la nourriture et surveille les journaux
-            pour tenir le moral. Toute la société est mise au service de la guerre.</p>
-        </div>
-      </figure>
-
-      <button type="button" class="eclair-rouvrir" id="eclair-rouvrir" hidden>
-        <span aria-hidden="true" id="eclair-fleche">↑</span>
-        <span id="eclair-rouvrir-mot">Relire le cours</span>
-      </button>
-
-      <ol class="eclair-questions" id="eclair-questions">
-
-        <li class="eclair-q"
-            data-notion="Ce que veut dire « guerre totale »"
-            data-ou="dernière phrase de l’extrait">
-          <p class="eclair-enonce">
-            <span class="eclair-rang" aria-hidden="true">1</span>
-            Dans ce cours, « guerre totale » désigne quoi ?
-          </p>
-          <div class="eclair-choix" role="group" aria-label="Question 1">
-            <button type="button" data-juste="non"
-              data-note="C’est la définition de « mondiale ». « Totale » ne parle pas de l’étendue de la guerre, mais de tout ce que le pays y engage.">
-              Une guerre qui s’étend au monde entier</button>
-            <button type="button" data-juste="oui"
-              data-note="Oui, et le cours le dit en une phrase : « toute la société est mise au service de la guerre ».">
-              Une guerre où le pays entier est mobilisé, pas seulement l’armée</button>
-            <button type="button" data-juste="non"
-              data-note="Ça, c’est la violence de masse — un autre point du chapitre. « Totale » désigne la mobilisation, pas l’absence de règles.">
-              Une guerre menée sans aucune règle</button>
-          </div>
-        </li>
-
-        <li class="eclair-q"
-            data-notion="La mobilisation de l’arrière"
-            data-ou="deuxième phrase de l’extrait">
-          <p class="eclair-enonce">
-            <span class="eclair-rang" aria-hidden="true">2</span>
-            Qu’est-ce qui, dans l’extrait, montre que l’arrière est mobilisé ?
-          </p>
-          <div class="eclair-choix" role="group" aria-label="Question 2">
-            <button type="button" data-juste="non"
-              data-note="Les tranchées, c’est le front. L’arrière, c’est tout ce qui continue loin des combats — et le cours en donne un exemple précis.">
-              Les soldats s’enterrent dans les tranchées</button>
-            <button type="button" data-juste="oui"
-              data-note="Oui. C’est l’exemple le plus demandé au contrôle : l’usine devient un lieu d’effort de guerre.">
-              Les femmes travaillent dans les usines d’armement</button>
-            <button type="button" data-juste="non"
-              data-note="Les alliances, c’est le déclenchement de 1914 — avant cet extrait. Ici, on parle de ce que la guerre fait au pays.">
-              Les alliances se transforment en deux blocs</button>
-          </div>
-        </li>
-
-        <li class="eclair-q"
-            data-notion="Le rôle de la propagande"
-            data-ou="troisième phrase de l’extrait">
-          <p class="eclair-enonce">
-            <span class="eclair-rang" aria-hidden="true">3</span>
-            Pourquoi l’État surveille-t-il les journaux ?
-          </p>
-          <div class="eclair-choix" role="group" aria-label="Question 3">
-            <button type="button" data-juste="non"
-              data-note="Le rationnement, dans ce cours, concerne la nourriture. La surveillance des journaux a un autre but, écrit juste à côté.">
-              Pour économiser le papier, qui est rationné</button>
-            <button type="button" data-juste="oui"
-              data-note="Oui : « pour tenir le moral ». Le mot attendu au contrôle, c’est propagande — il n’est pas dans l’extrait, mais c’est celui-là qu’on cherche.">
-              Pour empêcher la population de se décourager</button>
-            <button type="button" data-juste="non"
-              data-note="Rien dans le cours ne le dit. Au contrôle, une réponse inventée coûte plus cher qu’une réponse courte.">
-              Parce que les journalistes étaient partis au front</button>
-          </div>
-        </li>
-
-      </ol>
-
-      <!-- Le verdict. C'est ici que Repère se sépare de tout le reste : à
-           l'endroit exact où un quiz afficherait « 2/3 », on nomme les notions
-           fragiles et l'endroit du cours où les relire. -->
-      <div class="eclair-verdict" id="eclair-verdict" hidden aria-live="polite"></div>
-
-    </div>
-  </section>
-
   <!-- Ce que le produit fabrique, en vrai et manipulable. Le décrire ne suffit
        pas : un paquet de cartes qu'on fait glisser se comprend en une seconde. -->
   <section class="bloc bloc-apercu a-reveler">
-    <p class="titre-bloc">Et voilà ce qu’il te rend</p>
+    <p class="titre-bloc">Ta fiche, en vrai</p>
     <div class="apercu">
       <p class="apercu-invite">Fais glisser →</p>
       <div class="paquet-apercu">
@@ -229,33 +122,49 @@
     </div>
   </section>
 
-  <!-- Trois lignes, pas trois paragraphes : ce qui change quand c'est TON cours
-       et non l'extrait qu'on vient de te prêter. -->
   <section class="bloc a-reveler">
-    <p class="titre-bloc">Sur ton cours à toi</p>
+    <p class="titre-bloc">Comment ça marche</p>
     <ol class="deroule">
       <li>
         <span class="deroule-numero">1</span>
         <div>
-          <h3>Tu photographies tes pages</h3>
-          <p>Plusieurs d’un coup, écriture à la main comprise. Si une photo est illisible, on te le dit tout de suite.</p>
+          <h3>Tu photographies ton cours</h3>
+          <p>Plusieurs pages d’un coup, écriture à la main comprise. Si une photo est illisible, on te le dit tout de suite.</p>
         </div>
       </li>
       <li>
         <span class="deroule-numero">2</span>
         <div>
-          <h3>Les questions sortent de tes pages</h3>
-          <p>Au format réel de la matière, chronométré, sans retour en arrière. Ce qui tombe au contrôle, c’est ce que ton prof a écrit — pas un cours moyen.</p>
+          <h3>Tu passes le contrôle blanc</h3>
+          <p>Au format réel de la matière, chronométré, sans retour en arrière. Comme le jour J, mais sans conséquence.</p>
         </div>
       </li>
       <li>
         <span class="deroule-numero">3</span>
         <div>
-          <h3>Ce que tu rates revient</h3>
-          <p>Les notions manquées te sont reposées les jours suivants, autrement. C’est comme ça qu’elles rentrent.</p>
+          <h3>Tu vois ce qui te manque</h3>
+          <p>Pour chaque réponse : ce qui manquait, et à quel endroit de <em>ton</em> cours le relire. Puis une fiche courte sur ces notions-là.</p>
         </div>
       </li>
     </ol>
+  </section>
+
+  <section class="bloc bande a-reveler">
+    <p class="titre-bloc">Pourquoi ça marche mieux qu’une fiche</p>
+    <div class="arguments">
+      <div class="argument">
+        <h3>C’est ton cours, pas un cours</h3>
+        <p>Ce qui tombe au contrôle, c’est ce que ton prof a écrit au tableau. Les questions viennent de tes pages à toi.</p>
+      </div>
+      <div class="argument">
+        <h3>Ce que tu rates revient</h3>
+        <p>Les notions que tu manques aujourd’hui te sont reposées demain, autrement. C’est comme ça qu’elles rentrent.</p>
+      </div>
+      <div class="argument">
+        <h3>Aucune note</h3>
+        <p>Jamais de « tu aurais 12 ». Juste les trois notions sur lesquelles tu es fragile, et où les retravailler.</p>
+      </div>
+    </div>
   </section>
 
   <!-- Qui lit jusqu'ici doit avoir où cliquer : une page qui se termine sur un
