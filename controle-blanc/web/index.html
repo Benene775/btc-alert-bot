@@ -85,7 +85,7 @@
       </div>
       <button type="button" class="discret" id="bouton-reprendre" hidden>Reprendre où j’en étais</button>
     </div>
-    <p class="mention">Sans compte, sans mot de passe. Tout reste dans ton téléphone.</p>
+    <p class="mention">Ton adresse mail suffit — pas de mot de passe. Ton cours reste dans ton téléphone.</p>
     <p class="mention alerte-demo" id="mention-demo" hidden>Mode démonstration : contenus d’exemple, rien n’est analysé.</p>
   </div>
 
@@ -174,7 +174,7 @@
     <p class="fin-titre">Ton prochain contrôle, c’est quand ?</p>
     <p class="fin-texte">Prends ton cours en photo. Dix minutes, et tu sais ce qui te manque.</p>
     <button type="button" class="principal" id="bouton-commencer-bas">Commencer</button>
-    <p class="mention">Sans compte. Rien ne sort de ton téléphone.</p>
+    <p class="mention">Une adresse, un code, c’est tout. Ton cours ne sort pas de ton téléphone.</p>
   </section>
 
   <footer class="pied a-reveler">
@@ -182,13 +182,69 @@
       <svg class="logo-marque logo-pied" aria-hidden="true" focusable="false"><use href="#glyphe-repere"/></svg>
       <span>Repère</span>
     </p>
-    <p>Rien à installer, rien à créer. Tu gardes un lien, tu reviens quand tu veux.</p>
+    <p>Rien à installer. Tu entres avec ton adresse mail, sans mot de passe.</p>
     <p>Tes photos et ton cours restent dans ton téléphone.</p>
   </footer>
 
 </section>
 
-<!-- MON ANNÉE — tout ce que l’élève a déjà fait, relu depuis son téléphone -->
+<!-- ENTRÉE — une adresse mail, un code reçu dessus, pas de mot de passe -->
+<section id="ecran-connexion" class="ecran ecran-connexion" hidden>
+
+  <!-- Ici la marque est grande : c'est le seul écran où l'élève confie quelque
+       chose, et il doit voir à qui. -->
+  <div class="entree-marque">
+    <svg class="logo-geant" aria-hidden="true" focusable="false"><use href="#glyphe-repere"/></svg>
+    <p class="entree-nom">Repère</p>
+    <p class="entree-accroche">Passe le contrôle avant le contrôle.</p>
+  </div>
+
+  <div class="entree-carte seyes">
+
+    <!-- Volet 1 : l'adresse. Connexion et inscription sont le même geste — une
+         adresse inconnue crée le compte, une adresse connue le retrouve. Deux
+         onglets ne feraient que demander à l'élève de savoir où il en est. -->
+    <form class="entree-volet" id="volet-adresse" novalidate>
+      <h2 class="entree-titre">Entre avec ton adresse mail</h2>
+      <p class="entree-aide">On t’envoie un code à six chiffres. Pas de mot de passe à retenir.</p>
+      <label for="champ-email">Ton adresse mail</label>
+      <input type="email" id="champ-email" name="email" required
+             autocomplete="email" inputmode="email" enterkeyhint="send"
+             spellcheck="false" autocapitalize="off" placeholder="prenom@exemple.fr">
+      <p class="entree-erreur" id="erreur-email" role="alert" hidden></p>
+      <button type="submit" class="principal" id="bouton-envoyer-code">Recevoir mon code</button>
+      <p class="entree-mention">
+        Ton adresse sert à te reconnaître, à rien d’autre. Pas de publicité,
+        rien de transmis. Tu peux tout effacer en un clic depuis ta page.
+      </p>
+    </form>
+
+    <!-- Volet 2 : le code. Six cases feraient joli et se colleraient mal ; un
+         seul champ numérique accepte le collage depuis la boîte mail. -->
+    <form class="entree-volet" id="volet-code" hidden novalidate>
+      <h2 class="entree-titre">Ton code est parti</h2>
+      <p class="entree-aide">
+        Regarde dans <b id="rappel-email"></b> — et dans les indésirables, ça arrive.
+      </p>
+      <label for="champ-code">Le code à six chiffres</label>
+      <input type="text" id="champ-code" name="code" required maxlength="6"
+             class="champ-code" inputmode="numeric" pattern="[0-9]*"
+             autocomplete="one-time-code" enterkeyhint="go" placeholder="••••••">
+      <p class="entree-erreur" id="erreur-code" role="alert" hidden></p>
+      <p class="entree-demo" id="code-demonstration" hidden></p>
+      <button type="submit" class="principal" id="bouton-entrer">Entrer</button>
+      <div class="entree-liens">
+        <button type="button" class="lien-nu" id="bouton-renvoyer">Renvoyer le code</button>
+        <button type="button" class="lien-nu" id="bouton-changer-adresse">Changer d’adresse</button>
+      </div>
+    </form>
+
+  </div>
+
+  <button type="button" class="discret" id="bouton-quitter-connexion">Revenir à l’accueil</button>
+</section>
+
+<!-- MA PAGE — tout ce que l’élève a déjà fait, relu depuis son téléphone -->
 <section id="ecran-espace" class="ecran ecran-espace" hidden>
 
   <!-- Une seule carte, rien de caché. Le retournement était un mécanisme en
@@ -271,6 +327,16 @@
 
   <button type="button" class="principal" id="bouton-espace-nouveau">Photographier un nouveau cours</button>
   <button type="button" class="discret" id="bouton-quitter-espace">Revenir</button>
+
+  <!-- Le compte, en bas et en petit : on n'ouvre pas le site pour le gérer.
+       Effacer est à côté de sortir, parce que c'est là qu'on le cherche. -->
+  <div class="pied-compte">
+    <p class="pied-compte-adresse" id="compte-adresse"></p>
+    <div class="pied-compte-liens">
+      <button type="button" class="lien-nu" id="bouton-sortir">Se déconnecter</button>
+      <button type="button" class="lien-nu lien-danger" id="bouton-effacer-compte">Effacer mon compte</button>
+    </div>
+  </div>
 </section>
 
 <!-- LA VUE D'UNE MATIÈRE — tout ce qu'elle contient, sans onglet à deviner.

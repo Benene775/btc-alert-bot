@@ -72,3 +72,38 @@ PRIX_USD_PAR_MTOK = {
     "cache_ecriture": 6.25,
     "cache_lecture": 0.50,
 }
+
+
+# --- Entrée par adresse mail ------------------------------------------------
+# On n'enregistre pas de mot de passe : l'élève donne son adresse, reçoit un
+# code à six chiffres, et entre avec. Sans accès à sa boîte, personne n'entre —
+# et il n'y a aucun mot de passe d'enfant à se faire voler.
+
+DUREE_CODE_MINUTES = _int("CB_DUREE_CODE_MINUTES", 10)
+# Cinq essais, puis le code est brûlé : six chiffres se devinent en un million
+# de coups, pas en cinq.
+MAX_ESSAIS_CODE = _int("CB_MAX_ESSAIS_CODE", 5)
+# Un code par minute et par adresse, quinze par heure : de quoi renvoyer un code
+# perdu, pas de quoi se servir du serveur pour inonder une boîte mail.
+DELAI_ENTRE_CODES_SECONDES = _int("CB_DELAI_CODES", 60)
+MAX_CODES_PAR_HEURE = _int("CB_MAX_CODES_HEURE", 15)
+# Et cinquante par heure et par machine : la limite par adresse ne dit rien de
+# celui qui arrose mille adresses différentes. Derrière un proxy, régler
+# CB_PROXY_DE_CONFIANCE=1 pour lire X-Forwarded-For au lieu de l'IP du proxy.
+MAX_CODES_PAR_HEURE_ET_SOURCE = _int("CB_MAX_CODES_HEURE_SOURCE", 50)
+PROXY_DE_CONFIANCE = _flag("CB_PROXY_DE_CONFIANCE", default=False)
+# Une rentrée scolaire tient dans trente jours de connexion.
+DUREE_JETON_JOURS = _int("CB_DUREE_JETON_JOURS", 30)
+
+# Envoi du courrier. Sans serveur SMTP configuré, le code part dans les
+# journaux : ça suffit en développement, jamais en production.
+SMTP_HOTE = os.environ.get("CB_SMTP_HOTE", "").strip()
+SMTP_PORT = _int("CB_SMTP_PORT", 587)
+SMTP_UTILISATEUR = os.environ.get("CB_SMTP_UTILISATEUR", "").strip()
+SMTP_MOT_DE_PASSE = os.environ.get("CB_SMTP_MOT_DE_PASSE", "")
+SMTP_EXPEDITEUR = os.environ.get("CB_SMTP_EXPEDITEUR", "Repère <ne-pas-repondre@localhost>").strip()
+
+# Renvoyer le code dans la réponse HTTP, pour cliquer dans le parcours sans
+# serveur de courrier. C'est la porte grande ouverte : réservé à la
+# démonstration, et refusé dès qu'un SMTP est configuré.
+AUTH_CODE_EN_CLAIR = _flag("CB_AUTH_CODE_EN_CLAIR", default=DEMO_MODE) and not SMTP_HOTE

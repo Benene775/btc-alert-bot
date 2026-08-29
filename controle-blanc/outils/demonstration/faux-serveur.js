@@ -14,6 +14,37 @@ const DELAIS = {
 
 const corrigesEnMemoire = {};
 
+/* Le « compte » de la démonstration.
+   Le vrai produit garde un cookie HttpOnly, que le serveur pose et relit. Ici il
+   n'y a pas de serveur : on garde donc l'équivalent dans le navigateur, sinon un
+   simple rafraîchissement remettrait dehors — ce que le produit ne fait pas. */
+const CLE_ENTREE_DEMO = 'cb.demo.entre';
+
+const sessionDemo = { email: '', code: null, compte: null };
+try {
+  const garde = JSON.parse(localStorage.getItem(CLE_ENTREE_DEMO) || 'null');
+  if (garde && garde.compte) { sessionDemo.email = garde.email; sessionDemo.compte = garde.compte; }
+} catch (e) { /* stockage refusé : on redemandera d'entrer */ }
+
+function garderEntreeDemo() {
+  try {
+    if (sessionDemo.compte) {
+      localStorage.setItem(CLE_ENTREE_DEMO,
+        JSON.stringify({ email: sessionDemo.email, compte: sessionDemo.compte }));
+    } else {
+      localStorage.removeItem(CLE_ENTREE_DEMO);
+    }
+  } catch (e) { /* idem */ }
+}
+
+/* Un identifiant stable pour une adresse : la même adresse doit rouvrir le même
+   classeur, sinon rentrer deux fois donne deux classeurs vides. */
+function empreinteCourte(texte) {
+  let n = 0;
+  for (let i = 0; i < texte.length; i++) n = (n * 31 + texte.charCodeAt(i)) >>> 0;
+  return n.toString(36);
+}
+
 function pause(ms) { return new Promise((resoudre) => setTimeout(resoudre, ms)); }
 
 function identifiantAleatoire() {
@@ -35,6 +66,63 @@ async function api(chemin, options = {}) {
   if (chemin === '/api/config') {
     return { matieres: MATIERES, niveaux: NIVEAUX, mode_demonstration: true,
              max_photos: 12, matiere_par_defaut: MATIERE_PAR_DEFAUT };
+  }
+
+  /* --- L'entrée -----------------------------------------------------------
+     La démonstration joue le vrai parcours : on donne une adresse, on reçoit un
+     code, on entre avec. Le code s'affiche à l'écran, puisqu'il n'y a pas de
+     serveur de courrier — c'est exactement ce que fait le vrai serveur quand
+     CB_AUTH_CODE_EN_CLAIR est actif.
+
+     Ce qu'on ne rejoue pas : la cadence d'envoi, les cinq essais, l'expiration.
+     Ce sont des refus, et une démonstration qui refuse n'apprend rien à qui
+     l'essaie. Ils sont tenus par les tests du serveur. */
+  if (chemin === '/api/auth/moi') {
+    return sessionDemo.compte
+      ? { connecte: true, email: sessionDemo.email, compte: sessionDemo.compte }
+      : { connecte: false };
+  }
+
+  if (chemin === '/api/auth/code') {
+    const email = (corps && corps.email || '').trim().toLowerCase();
+    if (!/^[^@\s]+@[^@\s.]+(\.[^@\s.]+)+$/.test(email)) {
+      const refus = new ErreurApi('Cette adresse ne ressemble pas à une adresse mail.', 'auth');
+      refus.attendre = 0;
+      throw refus;
+    }
+    sessionDemo.email = email;
+    sessionDemo.code = String(Math.floor(Math.random() * 1000000)).padStart(6, '0');
+    return { envoye: true, expire_dans_minutes: 10, renvoi_dans_secondes: 15,
+             code_demonstration: sessionDemo.code };
+  }
+
+  if (chemin === '/api/auth/entrer') {
+    if (!corps || String(corps.code).replace(/\D/g, '') !== sessionDemo.code) {
+      const refus = new ErreurApi('Ce code ne correspond pas.', 'auth');
+      refus.attendre = 0;
+      throw refus;
+    }
+    // Le même compte pour la même adresse : l'élève qui ressort et rerentre
+    // doit retrouver son classeur, comme sur le vrai serveur.
+    sessionDemo.compte = 'demo' + empreinteCourte(sessionDemo.email);
+    sessionDemo.code = null;
+    // Le classeur factice est semé sous le préfixe du compte, sans quoi la page
+    // perso s'ouvrirait vide et la démonstration ne démontrerait rien.
+    semerLePasse('cb.' + sessionDemo.compte + '.');
+    garderEntreeDemo();
+    return { connecte: true, email: sessionDemo.email, compte: sessionDemo.compte };
+  }
+
+  if (chemin === '/api/auth/sortir') {
+    sessionDemo.compte = null;
+    garderEntreeDemo();
+    return { connecte: false };
+  }
+
+  if (chemin === '/api/auth/supprimer') {
+    sessionDemo.compte = null;
+    garderEntreeDemo();
+    return { supprime: true };
   }
 
   if (chemin === '/api/session' && options.method === 'POST') {

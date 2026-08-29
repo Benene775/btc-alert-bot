@@ -520,7 +520,7 @@ label {
   color: var(--encre-douce);
 }
 
-select, input[type="date"], textarea {
+select, input[type="date"], input[type="email"], input[type="text"], textarea {
   width: 100%;
   min-height: 54px;
   padding: 14px 16px;
@@ -1814,6 +1814,181 @@ h1 {
   background: linear-gradient(to right,
     transparent 48%, color-mix(in srgb, var(--encre) 5%, transparent) 50%, transparent 52%);
   border-radius: inherit;
+}
+
+/* --- L'entrée : une adresse mail, un code reçu dessus ---------------------
+ *
+ * Un seul écran, deux volets. Connexion et inscription sont le même geste : une
+ * adresse inconnue crée le compte, une adresse connue le retrouve. Deux onglets
+ * ne feraient que demander à l'élève de savoir où il en est.
+ *
+ * C'est le seul écran où il confie quelque chose. La marque y est donc grande —
+ * 72 px contre 32 ailleurs — parce qu'on ne donne pas son adresse à un logo
+ * qu'on distingue à peine.
+ */
+.ecran-connexion {
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--e4);
+  padding-top: var(--e5);
+}
+
+.entree-marque {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 2px;
+}
+
+.logo-geant {
+  width: 72px;
+  height: 72px;
+  border-radius: 19px;
+  box-shadow: 0 2px 4px color-mix(in srgb, var(--encre) 12%, transparent),
+              0 18px 36px -18px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+.entree-nom {
+  margin: 14px 0 0;
+  font-family: var(--titre);
+  font-weight: 600;
+  font-size: 1.7rem;
+  letter-spacing: -.015em;
+  color: var(--encre);
+}
+
+.entree-accroche {
+  margin: 0;
+  font-size: .92rem;
+  color: var(--encre-douce);
+}
+
+.entree-carte {
+  width: 100%;
+  /* « background-color », pas le raccourci : « .seyes » pose la réglure en
+     background-image, et le raccourci l'effacerait. */
+  background-color: var(--carte);
+  border: 1px solid var(--trait);
+  border-radius: var(--rayon-grand, 20px);
+  box-shadow: var(--ombre-carte);
+  padding: var(--e4);
+}
+
+.entree-volet { display: block; }
+.entree-volet[hidden] { display: none; }
+
+.entree-titre {
+  margin: 0;
+  font-family: var(--titre);
+  font-size: 1.22rem;
+  font-weight: 600;
+  letter-spacing: -.01em;
+}
+
+.entree-aide {
+  margin: 8px 0 0;
+  font-size: .88rem;
+  line-height: 1.5;
+  color: var(--encre-douce);
+}
+
+.entree-carte .principal { margin-top: var(--e3); width: 100%; }
+
+/* Le code se lit à voix haute depuis un téléphone posé à côté : il faut des
+   chiffres larges, espacés, et non proportionnels pour qu'ils ne dansent pas. */
+.champ-code {
+  font-family: var(--mono);
+  font-size: 1.6rem;
+  letter-spacing: .34em;
+  text-align: center;
+  padding-left: 16px;
+  padding-right: 0;
+  text-indent: .34em;
+}
+
+.entree-erreur {
+  margin: 10px 0 0;
+  font-size: .87rem;
+  line-height: 1.45;
+  color: var(--rouge);
+}
+
+/* Le code affiché à l'écran n'existe qu'en démonstration : il se présente donc
+   comme un panneau de chantier, pas comme une partie du produit. */
+.entree-demo {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--accent-doux);
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: .82rem;
+  line-height: 1.5;
+}
+
+.entree-liens {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--e2);
+  margin-top: var(--e3);
+}
+
+.entree-mention {
+  margin: var(--e3) 0 0;
+  font-size: .78rem;
+  line-height: 1.5;
+  color: var(--encre-douce);
+}
+
+.lien-nu {
+  background: none;
+  border: 0;
+  padding: 6px 0;
+  min-height: 0;
+  font: inherit;
+  font-size: .85rem;
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.lien-nu[disabled] { color: var(--encre-douce); text-decoration: none; cursor: default; }
+.lien-danger { color: var(--rouge); }
+
+/* Le compte, tout en bas de sa page : on n'ouvre pas le site pour le gérer.
+   Tenu sur une ligne — c'est de la plomberie, et l'élève est venu pour ses
+   fiches. Une deuxième ligne ici, c'est un écran de moins pour le contenu. */
+.pied-compte {
+  margin-top: var(--e4);
+  padding-top: 14px;
+  border-top: 1px solid var(--trait);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px var(--e2);
+}
+
+.pied-compte-adresse {
+  margin: 0;
+  font-size: .76rem;
+  color: var(--encre-douce);
+  overflow-wrap: anywhere;
+}
+
+.pied-compte-liens { display: flex; gap: var(--e3); }
+.pied-compte .lien-nu { font-size: .78rem; padding: 2px 0; }
+
+@media (min-width: 660px) {
+  .ecran-connexion { padding-top: var(--e6); }
+  .logo-geant { width: 84px; height: 84px; border-radius: 22px; }
+  .entree-nom { font-size: 2rem; }
+  .entree-carte { padding: var(--e5); }
 }
 
 /* --- La marque ------------------------------------------------------------

@@ -9,6 +9,18 @@ from __future__ import annotations
 from pydantic import BaseModel, Field
 
 
+class DemandeCode(BaseModel):
+    """L'adresse, et rien d'autre. On ne demande ni nom, ni classe, ni âge :
+    ce qu'on ne collecte pas ne peut ni fuiter ni être réclamé."""
+
+    email: str = Field(max_length=320)
+
+
+class DemandeEntree(BaseModel):
+    email: str = Field(max_length=320)
+    code: str = Field(max_length=16)
+
+
 class Chapitre(BaseModel):
     titre: str = ""
     notions: list[str] = Field(default_factory=list)

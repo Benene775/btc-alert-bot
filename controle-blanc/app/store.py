@@ -7,14 +7,20 @@ Ce qu'on garde ici, et pourquoi :
     attendues avant que l'élève ait répondu) ;
   - des événements anonymes pour les trois métriques du test.
 
+  - depuis l'entrée par mail : une adresse par compte, et rien d'autre. Pas de
+    mot de passe — on n'en demande pas — donc rien à voler qui ouvre autre chose.
+    Le code à six chiffres et le jeton de connexion ne sont gardés que hachés.
+
 Ce qu'on ne garde pas : les photos du cours (traitées en mémoire puis jetées),
 le texte du cours, les réponses de l'élève, ses fiches. Tout ça vit dans son
-navigateur. Pas de compte, pas de mot de passe, pas de donnée personnelle.
+navigateur.
 """
 
 from __future__ import annotations
 
+import hashlib
 import json
+import re
 import secrets
 import sqlite3
 import threading
@@ -61,6 +67,43 @@ CREATE TABLE IF NOT EXISTS evenements (
 CREATE INDEX IF NOT EXISTS idx_evenements_session ON evenements (session_id, type);
 CREATE INDEX IF NOT EXISTS idx_evenements_jour ON evenements (jour);
 
+CREATE TABLE IF NOT EXISTS comptes (
+    id      TEXT PRIMARY KEY,
+    email   TEXT NOT NULL UNIQUE,
+    cree_le TEXT NOT NULL,
+    vu_le   TEXT NOT NULL
+);
+
+-- Un seul code vivant par adresse : en demander un deuxième annule le premier.
+-- L'empreinte, jamais le code : une base volée ne doit pas ouvrir les boîtes.
+CREATE TABLE IF NOT EXISTS codes (
+    email      TEXT PRIMARY KEY,
+    empreinte  TEXT NOT NULL,
+    expire_le  TEXT NOT NULL,
+    essais     INTEGER NOT NULL DEFAULT 0,
+    demande_le TEXT NOT NULL
+);
+
+-- Compte les demandes par adresse pour la limite horaire. Purgé avec l'âge.
+CREATE TABLE IF NOT EXISTS demandes_code (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    email      TEXT NOT NULL,
+    source     TEXT NOT NULL DEFAULT '',
+    horodatage TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_demandes_email ON demandes_code (email, horodatage);
+CREATE INDEX IF NOT EXISTS idx_demandes_source ON demandes_code (source, horodatage);
+
+-- Le jeton de connexion, haché lui aussi : il vaut le compte.
+CREATE TABLE IF NOT EXISTS jetons (
+    empreinte TEXT PRIMARY KEY,
+    compte_id TEXT NOT NULL,
+    cree_le   TEXT NOT NULL,
+    expire_le TEXT NOT NULL,
+    vu_le     TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_jetons_compte ON jetons (compte_id);
+
 CREATE TABLE IF NOT EXISTS corriges (
     controle_id TEXT PRIMARY KEY,
     session_id  TEXT NOT NULL,
@@ -80,6 +123,16 @@ def aujourdhui() -> str:
 
 def _init(conn: sqlite3.Connection) -> None:
     conn.executescript(SCHEMA)
+    # Les séances d'avant l'entrée par mail n'ont pas de colonne compte_id.
+    # SQLite n'a pas d'« ADD COLUMN IF NOT EXISTS » : on regarde d'abord.
+    colonnes = {ligne[1] for ligne in conn.execute("PRAGMA table_info(sessions)")}
+    if "compte_id" not in colonnes:
+        conn.execute("ALTER TABLE sessions ADD COLUMN compte_id TEXT")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_sessions_compte ON sessions (compte_id)")
+    demandes = {ligne[1] for ligne in conn.execute("PRAGMA table_info(demandes_code)")}
+    if demandes and "source" not in demandes:
+        conn.execute("ALTER TABLE demandes_code ADD COLUMN source TEXT NOT NULL DEFAULT ''")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_demandes_source ON demandes_code (source, horodatage)")
     conn.commit()
 
 
@@ -118,20 +171,32 @@ def reinitialiser_pour_tests() -> None:
 
 # --- Sessions --------------------------------------------------------------
 
-def creer_session() -> str:
+def creer_session(compte_id: str) -> str:
     identifiant = secrets.token_urlsafe(9)
     with curseur() as cur:
         cur.execute(
-            "INSERT INTO sessions (id, cree_le, vu_le) VALUES (?, ?, ?)",
-            (identifiant, maintenant(), maintenant()),
+            "INSERT INTO sessions (id, cree_le, vu_le, compte_id) VALUES (?, ?, ?, ?)",
+            (identifiant, maintenant(), maintenant(), compte_id),
         )
     return identifiant
 
 
-def session_existe(session_id: str) -> bool:
+def session_existe(session_id: str, compte_id: str | None = None) -> bool:
+    """Sans compte_id, la question est « cette séance existe-t-elle ». Avec, elle
+    devient « est-elle à ce compte » : le lien de reprise d'un camarade ne doit
+    pas ouvrir son cours. Les séances d'avant l'entrée par mail n'ont pas de
+    compte : la première personne qui les rouvre se les approprie."""
     with curseur() as cur:
-        cur.execute("SELECT 1 FROM sessions WHERE id = ?", (session_id,))
-        return cur.fetchone() is not None
+        cur.execute("SELECT compte_id FROM sessions WHERE id = ?", (session_id,))
+        ligne = cur.fetchone()
+        if ligne is None:
+            return False
+        if compte_id is None:
+            return True
+        if ligne["compte_id"] is None:
+            cur.execute("UPDATE sessions SET compte_id = ? WHERE id = ?", (compte_id, session_id))
+            return True
+        return ligne["compte_id"] == compte_id
 
 
 def toucher_session(session_id: str, **champs: Any) -> None:
@@ -142,6 +207,210 @@ def toucher_session(session_id: str, **champs: Any) -> None:
         cur.execute("UPDATE sessions SET vu_le = ? WHERE id = ?", (maintenant(), session_id))
         for cle, valeur in maj.items():
             cur.execute(f"UPDATE sessions SET {cle} = ? WHERE id = ?", (valeur, session_id))
+
+
+# --- Comptes, codes, jetons -------------------------------------------------
+#
+# Trois règles, et tout le reste en découle :
+#   1. On ne stocke jamais un secret en clair. Le code à six chiffres et le
+#      jeton de connexion sont hachés ; la base volée n'ouvre aucune boîte.
+#   2. On ne dit jamais si une adresse est connue. « Un code est parti » est la
+#      seule réponse possible, sinon le formulaire devient un annuaire d'élèves.
+#   3. On borne tout : cinq essais par code, un code par minute, quinze par
+#      heure. Sans ça, six chiffres se devinent et une boîte mail se noie.
+
+class ErreurAuth(Exception):
+    """Refus d'entrée, avec un message dicible à un élève."""
+
+    def __init__(self, message: str, genre: str = "refus", attendre: int = 0):
+        super().__init__(message)
+        self.message = message
+        self.genre = genre
+        self.attendre = attendre
+
+
+# Volontairement permissif : on valide la forme, pas l'existence. C'est le code
+# reçu qui prouve l'adresse — un motif trop strict ne fait que rejeter des
+# adresses valides et rares.
+MOTIF_EMAIL = re.compile(r"^[^@\s]{1,64}@[^@\s.]+(\.[^@\s.]+)+$")
+MAX_LONGUEUR_EMAIL = 254
+
+
+def normaliser_email(brut: str) -> str:
+    """Minuscules et espaces retirés : « Lina@Ex.Fr » et « lina@ex.fr » sont la
+    même personne, et deux comptes pour une élève, c'est son travail coupé en deux."""
+    email = (brut or "").strip().lower()
+    if len(email) > MAX_LONGUEUR_EMAIL or not MOTIF_EMAIL.match(email):
+        raise ErreurAuth("Cette adresse ne ressemble pas à une adresse mail.", "email")
+    return email
+
+
+def _empreinte(secret: str) -> str:
+    return hashlib.sha256(secret.encode("utf-8")).hexdigest()
+
+
+def _plus_tard(minutes: int = 0, jours: int = 0) -> str:
+    return (datetime.now(timezone.utc) + timedelta(minutes=minutes, days=jours)).isoformat(
+        timespec="seconds")
+
+
+def _expire(horodatage: str) -> bool:
+    return datetime.fromisoformat(horodatage) < datetime.now(timezone.utc)
+
+
+def preparer_code(email: str, source: str = "") -> str:
+    """Fabrique le code, l'enregistre haché, et rend le clair — une seule fois,
+    à l'appelant qui va l'envoyer par courrier. Il n'est plus lisible ensuite."""
+    _verifier_cadence(email, source)
+    # secrets, pas random : un code prévisible est un code déjà connu.
+    code = f"{secrets.randbelow(1_000_000):06d}"
+    with curseur() as cur:
+        cur.execute(
+            "INSERT OR REPLACE INTO codes (email, empreinte, expire_le, essais, demande_le)"
+            " VALUES (?, ?, ?, 0, ?)",
+            (email, _empreinte(code), _plus_tard(minutes=config.DUREE_CODE_MINUTES), maintenant()),
+        )
+        cur.execute("INSERT INTO demandes_code (email, source, horodatage) VALUES (?, ?, ?)",
+                    (email, source, maintenant()))
+    return code
+
+
+def _verifier_cadence(email: str, source: str = "") -> None:
+    depuis_une_heure = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
+    with curseur() as cur:
+        cur.execute("DELETE FROM demandes_code WHERE horodatage < ?", (depuis_une_heure,))
+        cur.execute("SELECT COUNT(*) AS n FROM demandes_code WHERE email = ?", (email,))
+        if int(cur.fetchone()["n"]) >= config.MAX_CODES_PAR_HEURE:
+            raise ErreurAuth(
+                "Trop de codes demandés pour cette adresse. Réessaie dans une heure.",
+                "cadence", 3600)
+        # La limite par adresse protège une boîte mail ; elle ne protège de rien
+        # contre quelqu'un qui arrose mille adresses différentes depuis la même
+        # machine. Ce sont nos courriers qui partiraient, et notre expéditeur qui
+        # finirait sur une liste noire.
+        if source:
+            cur.execute("SELECT COUNT(*) AS n FROM demandes_code WHERE source = ?", (source,))
+            if int(cur.fetchone()["n"]) >= config.MAX_CODES_PAR_HEURE_ET_SOURCE:
+                raise ErreurAuth(
+                    "Trop de codes demandés depuis cet appareil. Réessaie dans une heure.",
+                    "cadence", 3600)
+        cur.execute("SELECT demande_le FROM codes WHERE email = ?", (email,))
+        ligne = cur.fetchone()
+    if ligne:
+        ecoule = (datetime.now(timezone.utc)
+                  - datetime.fromisoformat(ligne["demande_le"])).total_seconds()
+        reste = int(config.DELAI_ENTRE_CODES_SECONDES - ecoule)
+        if reste > 0:
+            raise ErreurAuth(
+                f"Un code vient de partir. Attends {reste} seconde"
+                f"{'s' if reste > 1 else ''} avant d'en redemander un.",
+                "cadence", reste)
+
+
+def verifier_code(email: str, code: str) -> str:
+    """Rend l'identifiant du compte, créé au passage si l'adresse est nouvelle.
+    Le code est brûlé dans tous les cas : réussi, il a servi ; raté cinq fois,
+    il ne doit plus servir."""
+    propre = "".join(c for c in (code or "") if c.isdigit())
+    with curseur() as cur:
+        cur.execute("SELECT empreinte, expire_le, essais FROM codes WHERE email = ?", (email,))
+        ligne = cur.fetchone()
+        if ligne is None:
+            raise ErreurAuth("Aucun code en attente pour cette adresse. Redemandes-en un.", "absent")
+        if _expire(ligne["expire_le"]):
+            cur.execute("DELETE FROM codes WHERE email = ?", (email,))
+            raise ErreurAuth("Ce code a expiré. Redemandes-en un.", "expire")
+        if ligne["essais"] >= config.MAX_ESSAIS_CODE:
+            cur.execute("DELETE FROM codes WHERE email = ?", (email,))
+            raise ErreurAuth("Trop d'essais. Redemande un code.", "essais")
+        # compare_digest : le temps de comparaison ne doit rien dire du code.
+        if not secrets.compare_digest(ligne["empreinte"], _empreinte(propre)):
+            cur.execute("UPDATE codes SET essais = essais + 1 WHERE email = ?", (email,))
+            reste = config.MAX_ESSAIS_CODE - int(ligne["essais"]) - 1
+            raise ErreurAuth(
+                "Ce code ne correspond pas." + (f" Encore {reste} essai{'s' if reste > 1 else ''}."
+                                                if reste > 0 else " Redemande un code."),
+                "faux")
+        cur.execute("DELETE FROM codes WHERE email = ?", (email,))
+        cur.execute("SELECT id FROM comptes WHERE email = ?", (email,))
+        compte = cur.fetchone()
+        if compte:
+            cur.execute("UPDATE comptes SET vu_le = ? WHERE id = ?", (maintenant(), compte["id"]))
+            return compte["id"]
+        identifiant = secrets.token_urlsafe(9)
+        cur.execute("INSERT INTO comptes (id, email, cree_le, vu_le) VALUES (?, ?, ?, ?)",
+                    (identifiant, email, maintenant(), maintenant()))
+    return identifiant
+
+
+def ouvrir_jeton(compte_id: str) -> str:
+    jeton = secrets.token_urlsafe(32)
+    with curseur() as cur:
+        cur.execute(
+            "INSERT INTO jetons (empreinte, compte_id, cree_le, expire_le, vu_le)"
+            " VALUES (?, ?, ?, ?, ?)",
+            (_empreinte(jeton), compte_id, maintenant(),
+             _plus_tard(jours=config.DUREE_JETON_JOURS), maintenant()),
+        )
+    return jeton
+
+
+def compte_du_jeton(jeton: str | None) -> dict[str, str] | None:
+    if not jeton:
+        return None
+    with curseur() as cur:
+        cur.execute(
+            "SELECT c.id, c.email, j.expire_le FROM jetons j JOIN comptes c ON c.id = j.compte_id"
+            " WHERE j.empreinte = ?", (_empreinte(jeton),))
+        ligne = cur.fetchone()
+        if ligne is None:
+            return None
+        if _expire(ligne["expire_le"]):
+            cur.execute("DELETE FROM jetons WHERE empreinte = ?", (_empreinte(jeton),))
+            return None
+        cur.execute("UPDATE jetons SET vu_le = ? WHERE empreinte = ?",
+                    (maintenant(), _empreinte(jeton)))
+    return {"id": ligne["id"], "email": ligne["email"]}
+
+
+def fermer_jeton(jeton: str | None) -> None:
+    if not jeton:
+        return
+    with curseur() as cur:
+        cur.execute("DELETE FROM jetons WHERE empreinte = ?", (_empreinte(jeton),))
+
+
+def purger_auth() -> int:
+    """Codes expirés, jetons expirés, demandes trop vieilles. Rien de tout ça ne
+    sert plus, et une adresse gardée sans raison est une adresse de trop."""
+    maintenant_iso = maintenant()
+    vieux = (datetime.now(timezone.utc) - timedelta(hours=2)).isoformat()
+    with curseur() as cur:
+        cur.execute("DELETE FROM codes WHERE expire_le < ?", (maintenant_iso,))
+        efface = cur.rowcount
+        cur.execute("DELETE FROM jetons WHERE expire_le < ?", (maintenant_iso,))
+        efface += cur.rowcount
+        cur.execute("DELETE FROM demandes_code WHERE horodatage < ?", (vieux,))
+        efface += cur.rowcount
+    return efface
+
+
+def supprimer_compte(compte_id: str) -> None:
+    """Le droit à l'effacement, en une fonction : l'adresse part, les séances
+    aussi. Ce qui reste — usages et événements — ne porte aucun nom."""
+    with curseur() as cur:
+        cur.execute("SELECT id FROM sessions WHERE compte_id = ?", (compte_id,))
+        seances = [ligne["id"] for ligne in cur.fetchall()]
+        for seance in seances:
+            cur.execute("DELETE FROM corriges WHERE session_id = ?", (seance,))
+        cur.execute("DELETE FROM sessions WHERE compte_id = ?", (compte_id,))
+        cur.execute("DELETE FROM jetons WHERE compte_id = ?", (compte_id,))
+        cur.execute("SELECT email FROM comptes WHERE id = ?", (compte_id,))
+        ligne = cur.fetchone()
+        if ligne:
+            cur.execute("DELETE FROM codes WHERE email = ?", (ligne["email"],))
+            cur.execute("DELETE FROM demandes_code WHERE email = ?", (ligne["email"],))
+        cur.execute("DELETE FROM comptes WHERE id = ?", (compte_id,))
 
 
 # --- Quotas ----------------------------------------------------------------

@@ -45,12 +45,64 @@ Deux types de fiches, à ne pas confondre :
 | Contrainte | Comment |
 |---|---|
 | Une seule page, mobile d'abord | `web/index.html` — écrans successifs, une seule colonne, cibles tactiles ≥ 48 px |
-| Pas de compte, pas de mot de passe | Session = un identifiant aléatoire. Aucune donnée personnelle collectée |
+| Entrée par adresse mail, pas de mot de passe | Un code à six chiffres reçu par courrier. Le code et le jeton de connexion ne sont gardés que hachés (`app/store.py`) |
 | Stockage local | `localStorage` : cours, réponses, fiches. Le serveur ne stocke que des compteurs |
 | Reprise de session | Lien `?s=…` mis en avant sur l'écran de session, avec bouton « copier » |
 | Pas de note prédictive | Statuts qualitatifs (`acquis` / `partiel` / `à revoir`) + 3 notions fragiles. Aucun score, aucun `/20`, aucun pourcentage — vérifié par un test |
 | « Cette question me semble fausse » | Sur chaque question, pendant le contrôle **et** dans la correction. Remonte au tableau de bord ; la question ne pénalise pas l'élève |
 | Coût par usage | Quotas côté serveur, par jour et par session (`app/config.py`) |
+
+### L'entrée : une adresse mail, un code reçu dessus
+
+Pas de mot de passe. L'élève donne son adresse, reçoit six chiffres, les recopie.
+Connexion et inscription sont le même geste : une adresse inconnue crée le compte, une
+adresse connue le retrouve.
+
+Ce qui est tenu côté serveur (`app/store.py`, `app/main.py`, testé dans
+`tests/test_entree.py`) :
+
+| Risque | Ce qui l'arrête |
+|---|---|
+| Deviner le code | Cinq essais, puis le code est brûlé. Comparaison à temps constant |
+| Rejouer un code | Il est effacé dès qu'il a servi, et expire en 10 minutes |
+| Se servir du formulaire comme d'un annuaire | La réponse est identique pour une adresse connue et une adresse inconnue |
+| Inonder la boîte mail d'un camarade | Un code par minute et par adresse, quinze par heure |
+| Arroser mille adresses depuis une machine | Cinquante codes par heure et par machine (`X-Forwarded-For` lu seulement si `CB_PROXY_DE_CONFIANCE=1`) |
+| Voler le jeton depuis la page | Cookie `HttpOnly`, `SameSite=Lax`, `Secure` en HTTPS. Le script ne le lit jamais |
+| Lire la base volée | Code et jeton stockés hachés (SHA-256), jamais en clair |
+| Ouvrir le cours d'un camarade avec son lien `?s=…` | Une séance appartient à un compte ; les autres reçoivent un 404 |
+| Deux élèves sur la même tablette | Les clés du navigateur portent l'identifiant du compte (`cb.<compte>.…`) |
+
+Toutes les routes `/api` sauf `/api/config` et `/api/auth/*` exigent d'être entré — un
+test énumère l'application pour attraper celle qu'on ajouterait sans le garde-fou.
+
+**Le droit à l'effacement est un bouton**, en bas de sa page : l'adresse et les séances
+partent du serveur, et le classeur de ce navigateur part avec.
+
+### Envoyer les codes
+
+Sans `CB_SMTP_HOTE`, les codes partent dans les journaux — c'est fait pour le
+développement. `CB_AUTH_CODE_EN_CLAIR` les renvoie en plus dans la réponse HTTP pour
+cliquer dans le parcours sans serveur de courrier : **c'est la porte grande ouverte**, et
+le réglage se désactive tout seul dès qu'un SMTP est configuré.
+
+```
+CB_SMTP_HOTE=smtp.exemple.fr
+CB_SMTP_PORT=587
+CB_SMTP_UTILISATEUR=…
+CB_SMTP_MOT_DE_PASSE=…
+CB_SMTP_EXPEDITEUR="Repère <ne-pas-repondre@exemple.fr>"
+```
+
+### Ce qui reste à faire avant d'ouvrir à des mineurs
+
+Collecter l'adresse mail d'un collégien est un traitement de données personnelles. En
+France, le consentement du seul mineur ne vaut qu'à partir de 15 ans (article 8 du RGPD,
+article 45 de la loi Informatique et Libertés) ; en dessous, il faut aussi celui d'un
+titulaire de l'autorité parentale. Le code tient la partie technique — minimisation,
+effacement, pas de mot de passe, pas de transmission à un tiers. Restent à écrire :
+une politique de confidentialité, le recueil du consentement parental, et le registre
+des traitements.
 
 ### Aucune requête vers un tiers
 
@@ -64,8 +116,9 @@ refuse de produire un fichier à qui il manquerait des caractères.
 
 Elles transitent en mémoire jusqu'au modèle, puis disparaissent. Ce qui est gardé, c'est
 la transcription du cours — dans le navigateur de l'élève, pas sur le serveur. Côté
-serveur ne subsistent qu'un identifiant aléatoire, des compteurs d'usage, des événements
-anonymes, et le corrigé du contrôle en cours (purgé au bout de 30 jours).
+serveur ne subsistent que l'adresse mail du compte, un identifiant de séance aléatoire,
+des compteurs d'usage, des événements anonymes, et le corrigé du contrôle en cours
+(purgé au bout de 30 jours).
 
 Le corrigé reste côté serveur pour une raison simple : envoyé avec les questions, il
 serait lisible dans les outils de développement avant même que l'élève ait répondu.

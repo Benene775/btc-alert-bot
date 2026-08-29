@@ -1,8 +1,8 @@
 /* Repère — application d’une seule page.
  *
- * L’état vit dans le navigateur (localStorage), pas sur le serveur : pas de compte,
- * pas de mot de passe, aucune donnée personnelle. Le lien de reprise (?s=…) est la
- * seule chose à conserver.
+ * L’état vit dans le navigateur (localStorage), pas sur le serveur. Le serveur ne
+ * connaît de l’élève que son adresse mail : ni son cours, ni ses réponses, ni ses
+ * fiches. Pas de mot de passe non plus — on entre avec un code reçu par mail.
  *
  * Ce qui n’est PAS conservé : les photos. Elles servent à l’analyse puis disparaissent.
  * Ce qu’on garde, c’est la transcription du cours, qui tient dans quelques kilo-octets.
@@ -10,8 +10,33 @@
 
 'use strict';
 
-const CLE_ETAT = 'cb.session.';
-const CLE_DERNIERE = 'cb.derniere';
+/* Les clés du navigateur portent l’identifiant du compte.
+ *
+ * Sans ça, deux élèves qui se prêtent une tablette voient le classeur l’un de
+ * l’autre : leur travail est dans CE navigateur, pas sur le serveur, et rien ne
+ * l’y sépare. Le préfixe est posé une fois, après l’entrée et avant la première
+ * lecture — d’où des « let » et non des « const ».
+ *
+ * L’identifiant vient du serveur et ne dit rien de personne : l’adresse mail,
+ * elle, n’est jamais écrite dans le navigateur.
+ */
+let compte = null;             // { id, email } une fois entré
+let PREFIXE = 'cb.';
+let CLE_ETAT = PREFIXE + 'session.';
+let CLE_DERNIERE = PREFIXE + 'derniere';
+let CLE_CARTE = PREFIXE + 'carte';
+let CLE_AGENDA = PREFIXE + 'agenda';
+let BASE_PAGES = 'cb-pages';
+
+function attacherAuCompte(identifiant) {
+  PREFIXE = identifiant ? 'cb.' + identifiant + '.' : 'cb.';
+  CLE_ETAT = PREFIXE + 'session.';
+  CLE_DERNIERE = PREFIXE + 'derniere';
+  CLE_CARTE = PREFIXE + 'carte';
+  CLE_AGENDA = PREFIXE + 'agenda';
+  BASE_PAGES = identifiant ? 'cb-pages-' + identifiant : 'cb-pages';
+}
+
 const VERSION_ETAT = 1;
 const COTE_MAX_PHOTO = 1568;   // au-delà, le modèle redimensionne de toute façon
 const QUALITE_PHOTO = 0.82;
@@ -83,8 +108,6 @@ function charger(sessionId) {
  * index séparé : un index se désynchronise, et une séance supprimée y laisserait
  * une ligne fantôme. La source de vérité reste les sessions elles-mêmes.
  */
-const CLE_CARTE = 'cb.carte';
-
 function toutesLesSessions() {
   const sessions = [];
   let cles;
@@ -692,7 +715,6 @@ function dessinerProchain(sessions) {
  * celles des séances déjà commencées. Une date saisie devient une séance dès
  * qu'on photographie le cours ; elle n'est alors plus comptée deux fois.
  */
-const CLE_AGENDA = 'cb.agenda';
 
 function rendezVous() {
   try {
@@ -1357,6 +1379,9 @@ async function ouvrirControleGarde(sessionId, rang) {
 }
 
 function ouvrirEspace() {
+  // Sa page, c’est son classeur : sans compte, il n’y a pas de classeur à
+  // ouvrir — seulement celui du dernier élève passé sur ce navigateur.
+  if (!compte) return exigerEntree('espace');
   // Montrer AVANT de dessiner : un écran caché mesure zéro, et la frise, qui
   // se règle sur la largeur disponible, retombait sur son minimum.
   montrer('ecran-espace');
@@ -1373,7 +1398,6 @@ function ouvrirEspace() {
  * Elle ne quitte jamais l’appareil : IndexedDB est un stockage du navigateur,
  * au même titre que localStorage, et rien n’est réenvoyé au serveur.
  */
-const BASE_PAGES = 'cb-pages';
 
 function ouvrirBase() {
   return new Promise((resoudre, rejeter) => {
@@ -1432,6 +1456,204 @@ async function lirePages(sessionId) {
   }
 }
 
+/* ------------------------------------------------------------- entrée --- */
+
+/*
+ * On entre avec son adresse mail et un code reçu dessus. Pas de mot de passe :
+ * il n’y en a donc aucun à retenir, à réutiliser ailleurs, ni à se faire voler.
+ *
+ * Le jeton de connexion est un cookie HttpOnly : ce script ne peut pas le lire,
+ * et n’essaie pas. « Suis-je entré ? » est une question qu’on pose au serveur.
+ *
+ * Connexion et inscription sont le même geste. Une adresse inconnue crée le
+ * compte, une adresse connue le retrouve — l’élève n’a pas à savoir dans quel
+ * cas il est, et ne peut donc pas se tromper d’onglet.
+ */
+
+// Ce que l’élève voulait faire quand on lui a demandé d’entrer. On l’y ramène
+// après : une porte qui rend à l’accueil fait recommencer le geste.
+let apresEntree = null;
+
+async function qui() {
+  try { return await api('/api/auth/moi'); } catch (e) { return { connecte: false }; }
+}
+
+/* Demander l’entrée sans perdre le geste en cours. */
+function exigerEntree(suite) {
+  apresEntree = suite || null;
+  $('volet-adresse').hidden = false;
+  $('volet-code').hidden = true;
+  cacherErreursEntree();
+  montrer('ecran-connexion');
+  // Le focus va au champ : sur un téléphone, ça ouvre le clavier tout de suite.
+  setTimeout(() => $('champ-email').focus(), 60);
+}
+
+function cacherErreursEntree() {
+  $('erreur-email').hidden = true;
+  $('erreur-code').hidden = true;
+  $('code-demonstration').hidden = true;
+}
+
+function direErreurEntree(champ, texte) {
+  const boite = $(champ === 'email' ? 'erreur-email' : 'erreur-code');
+  boite.textContent = texte;
+  boite.hidden = false;
+}
+
+let emailEnCours = '';
+let minuteurRenvoi = null;
+
+async function demanderCode(email) {
+  const propre = (email || '').trim();
+  // Une validation côté navigateur, pour ne pas faire attendre un aller-retour
+  // sur une faute de frappe. Le serveur revalide : lui seul décide.
+  if (!/^[^@\s]+@[^@\s.]+(\.[^@\s.]+)+$/.test(propre)) {
+    direErreurEntree('email', 'Cette adresse ne ressemble pas à une adresse mail.');
+    return false;
+  }
+  const bouton = $('bouton-envoyer-code');
+  bouton.disabled = true;
+  bouton.textContent = 'On envoie…';
+  try {
+    const reponse = await envoyerJson('/api/auth/code', { email: propre });
+    emailEnCours = propre;
+    $('rappel-email').textContent = propre;
+    cacherErreursEntree();
+    $('volet-adresse').hidden = true;
+    $('volet-code').hidden = false;
+    $('champ-code').value = '';
+    setTimeout(() => $('champ-code').focus(), 60);
+    // En démonstration, le code s’affiche : il n’y a pas de serveur de courrier.
+    if (reponse.code_demonstration) {
+      $('code-demonstration').textContent =
+        'Démonstration : aucun mail n’est envoyé. Ton code est ' + reponse.code_demonstration + '.';
+      $('code-demonstration').hidden = false;
+    }
+    compteARebours(reponse.renvoi_dans_secondes || 60);
+    return true;
+  } catch (erreur) {
+    direErreurEntree('email', erreur.message);
+    if (erreur.attendre) compteARebours(erreur.attendre);
+    return false;
+  } finally {
+    bouton.disabled = false;
+    bouton.textContent = 'Recevoir mon code';
+  }
+}
+
+/* « Renvoyer le code » doit dire quand il redeviendra possible : un bouton qui
+   refuse sans expliquer donne l’impression que le site est cassé. */
+function compteARebours(secondes) {
+  const bouton = $('bouton-renvoyer');
+  clearInterval(minuteurRenvoi);
+  let reste = Math.max(0, Math.round(secondes));
+  const afficher = () => {
+    if (reste <= 0) {
+      clearInterval(minuteurRenvoi);
+      bouton.disabled = false;
+      bouton.textContent = 'Renvoyer le code';
+      return;
+    }
+    bouton.disabled = true;
+    bouton.textContent = 'Renvoyer le code (' + reste + ' s)';
+    reste -= 1;
+  };
+  afficher();
+  minuteurRenvoi = setInterval(afficher, 1000);
+}
+
+async function entrerAvecCode(code) {
+  const chiffres = (code || '').replace(/\D/g, '');
+  if (chiffres.length !== 6) {
+    direErreurEntree('code', 'Le code fait six chiffres.');
+    return;
+  }
+  const bouton = $('bouton-entrer');
+  bouton.disabled = true;
+  bouton.textContent = 'On vérifie…';
+  try {
+    const reponse = await envoyerJson('/api/auth/entrer', { email: emailEnCours, code: chiffres });
+    clearInterval(minuteurRenvoi);
+    await ouvrirLaPorte(reponse);
+  } catch (erreur) {
+    direErreurEntree('code', erreur.message);
+    $('champ-code').select();
+  } finally {
+    bouton.disabled = false;
+    bouton.textContent = 'Entrer';
+  }
+}
+
+/* Entré : on attache le navigateur au compte, on relit son classeur, et on le
+   ramène là où il allait. */
+async function ouvrirLaPorte(reponse) {
+  compte = { id: reponse.compte, email: reponse.email };
+  attacherAuCompte(compte.id);
+  majCompte();
+  menageSessions();
+  const suite = apresEntree;
+  apresEntree = null;
+  if (suite === 'espace') return ouvrirEspace();
+  if (suite && suite.agenda) return demarrerSession(suite.agenda);
+  return demarrerSession();
+}
+
+function majCompte() {
+  $('compte-adresse').textContent = compte ? compte.email : '';
+}
+
+async function sortir() {
+  try { await api('/api/auth/sortir', { method: 'POST' }); } catch (e) { /* déjà dehors */ }
+  oublierLeCompte();
+  message('À bientôt. Ton travail t’attend ici.');
+  montrer('ecran-accueil');
+}
+
+/* Sortir ne touche pas au classeur : il est rangé sous le préfixe du compte, et
+   l’élève le retrouve entier en revenant. Ce qu’on lâche, c’est la séance
+   ouverte en mémoire — pas ce qui est écrit. */
+function oublierLeCompte() {
+  compte = null;
+  etat = null;
+  photosDuCours = [];
+  attacherAuCompte(null);
+  $('bouton-reprendre').hidden = true;
+  dessinerRonds();
+}
+
+async function effacerLeCompte() {
+  if (!compte) return;
+  const sur = window.confirm(
+    'Effacer ton compte ?\n\n'
+    + 'Ton adresse et tes séances sont supprimées du serveur, et tout ce qui est '
+    + 'gardé dans ce navigateur — tes cours, tes fiches, tes contrôles — part avec. '
+    + 'C’est définitif.');
+  if (!sur) return;
+  const identifiant = compte.id;
+  try {
+    attendre('On efface tout…');
+    await api('/api/auth/supprimer', { method: 'POST' });
+    effacerLeNavigateur(identifiant);
+    fermerAttente();
+    oublierLeCompte();
+    message('Tout est effacé.');
+    montrer('ecran-accueil');
+  } catch (erreur) { fermerAttente(); gererErreur(erreur); }
+}
+
+/* Effacer côté serveur sans effacer ici laisserait tout le travail visible au
+   prochain qui entre avec la même adresse. */
+function effacerLeNavigateur(identifiant) {
+  const prefixe = 'cb.' + identifiant + '.';
+  try {
+    Object.keys(localStorage)
+      .filter((cle) => cle.indexOf(prefixe) === 0)
+      .forEach((cle) => localStorage.removeItem(cle));
+  } catch (e) { /* stockage indisponible */ }
+  try { indexedDB.deleteDatabase('cb-pages-' + identifiant); } catch (e) { /* idem */ }
+}
+
 /* ------------------------------------------------------------------ api --- */
 
 async function api(chemin, options = {}) {
@@ -1441,6 +1663,16 @@ async function api(chemin, options = {}) {
   let corps = {};
   try { corps = await reponse.json(); } catch (e) { /* réponse non JSON */ }
 
+  if (reponse.status === 401) {
+    // Le jeton a expiré, ou n’a jamais existé. On ne dit pas « erreur » : on
+    // rouvre la porte, ce que l’élève doit faire de toute façon.
+    throw new ErreurApi('Il faut entrer pour continuer.', 'entree');
+  }
+  if (reponse.status === 400 && corps.erreur === 'auth') {
+    const erreur = new ErreurApi(corps.message || 'Ça n’a pas marché.', 'auth');
+    erreur.attendre = corps.attendre || 0;
+    throw erreur;
+  }
   if (reponse.status === 404 && corps.detail === 'session inconnue') {
     throw new ErreurApi("Cette session n’existe plus sur le serveur. On en recommence une.", 'session');
   }
@@ -1457,6 +1689,7 @@ class ErreurApi extends Error {
   constructor(message, genre) {
     super(message);
     this.genre = genre;
+    this.attendre = 0;
   }
 }
 
@@ -1543,6 +1776,11 @@ function message(texte, ton = 'neutre', duree = 4200) {
 function gererErreur(erreur) {
   fermerAttente();
   if (erreur instanceof ErreurApi) {
+    // Sortir de session ne mérite pas un message rouge : on ramène à la porte.
+    if (erreur.genre === 'entree') {
+      oublierLeCompte();
+      return exigerEntree(null);
+    }
     message(erreur.message, erreur.genre === 'quota' ? 'neutre' : 'alerte', 7000);
     if (erreur.genre === 'session') demarrerSession();
     return;
@@ -1561,12 +1799,35 @@ async function initialiser() {
   remplirSelecteur($('champ-matiere'), config.matieres,
                    config.matiere_par_defaut || 'histoire-geographie');
 
+  // Qui est là, avant tout le reste : c'est le compte qui décide sous quel
+  // préfixe se trouve le classeur. Lire d'abord et attacher ensuite ferait
+  // lire celui de personne.
+  const moi = await qui();
+  if (moi.connecte) {
+    compte = { id: moi.compte, email: moi.email };
+    attacherAuCompte(compte.id);
+    majCompte();
+  }
+
+  const params = new URLSearchParams(location.search);
+  const depuisLien = params.get('s');
+
+  // Un lien de reprise pour quelqu'un qui n'est pas entré : on le garde sous le
+  // coude et on ouvre la porte. Sans ça, le lien reçu par mail se perdait dans
+  // l'accueil et il fallait le rouvrir après s'être connecté.
+  if (!compte) {
+    dessinerRonds();
+    montrer(depuisLien ? 'ecran-connexion' : 'ecran-accueil');
+    if (depuisLien) exigerEntree(null);
+    armerRevelations();
+    armerCopie();
+    return;
+  }
+
   // Avant de lire l'historique : deux séances jumelles n'ont aucune raison de
   // rester deux, et un départ abandonné n'a rien à montrer.
   menageSessions();
 
-  const params = new URLSearchParams(location.search);
-  const depuisLien = params.get('s');
   const derniere = localStorage.getItem(CLE_DERNIERE);
 
   if (depuisLien) {
@@ -1609,6 +1870,7 @@ function remplirSelecteur(selecteur, valeurs, defaut) {
 }
 
 async function demarrerSession(depuisAgenda = null) {
+  if (!compte) return exigerEntree(depuisAgenda ? { agenda: depuisAgenda } : 'session');
   try {
     attendre('On prépare ta session…');
     const info = await api('/api/session', { method: 'POST' });
@@ -3143,6 +3405,43 @@ document.addEventListener('DOMContentLoaded', () => {
   $('bouton-commencer').onclick = () => demarrerSession();
   $('bouton-commencer-bas').onclick = () => demarrerSession();
   $('bouton-ma-page').onclick = () => ouvrirEspace();
+
+  // --- L'entrée -----------------------------------------------------------
+  // Deux <form> plutôt que deux boutons : « Entrée » valide, le clavier des
+  // téléphones affiche « envoyer », et un gestionnaire de mots de passe sait
+  // quoi remplir. Rien de tout ça ne s'obtient avec un div et un onclick.
+  $('volet-adresse').onsubmit = (evenement) => {
+    evenement.preventDefault();
+    demanderCode($('champ-email').value);
+  };
+  $('volet-code').onsubmit = (evenement) => {
+    evenement.preventDefault();
+    entrerAvecCode($('champ-code').value);
+  };
+  // Le code arrive souvent par copier-coller depuis la boîte mail, avec des
+  // espaces. On nettoie à la frappe plutôt que de refuser à la validation.
+  $('champ-code').addEventListener('input', (evenement) => {
+    const propre = evenement.target.value.replace(/\D/g, '').slice(0, 6);
+    if (propre !== evenement.target.value) evenement.target.value = propre;
+    $('erreur-code').hidden = true;
+    if (propre.length === 6) entrerAvecCode(propre);
+  });
+  $('champ-email').addEventListener('input', () => { $('erreur-email').hidden = true; });
+  $('bouton-renvoyer').onclick = () => demanderCode(emailEnCours);
+  $('bouton-changer-adresse').onclick = () => {
+    clearInterval(minuteurRenvoi);
+    cacherErreursEntree();
+    $('volet-code').hidden = true;
+    $('volet-adresse').hidden = false;
+    $('champ-email').focus();
+  };
+  $('bouton-quitter-connexion').onclick = () => {
+    apresEntree = null;
+    clearInterval(minuteurRenvoi);
+    montrer('ecran-accueil');
+  };
+  $('bouton-sortir').onclick = () => sortir();
+  $('bouton-effacer-compte').onclick = () => effacerLeCompte();
   $('bouton-espace').onclick = () => {
     if (document.getElementById('ecran-espace').hidden) return ouvrirEspace();
     if (etat) reprendre();

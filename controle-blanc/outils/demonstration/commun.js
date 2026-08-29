@@ -23,15 +23,21 @@ const NIVEAUX = [
 
 /* --- Un passé pour la démonstration -------------------------------------
  *
- * « Mon année » ne montre rien tant que l'élève n'a rien fait — c'est normal
+ * « Ma page » ne montre rien tant que l'élève n'a rien fait — c'est normal
  * dans le produit, mais une démonstration vide ne démontre rien. On sème donc
  * quelques séances déjà faites, dans le même stockage que le vrai produit :
  * la page les relit sans savoir qu'elles viennent d'ici.
  *
- * Uniquement en démonstration, et une seule fois : si l'élève efface tout, on
- * ne lui réimpose pas un passé qui n'est pas le sien.
+ * Uniquement en démonstration, et une seule fois par compte : si l'élève efface
+ * tout, on ne lui réimpose pas un passé qui n'est pas le sien.
+ *
+ * Semé à l'entrée, pas au chargement : avant d'entrer, on ne sait pas encore
+ * sous quel préfixe ranger.
  */
-const CLE_SEMEE = "cb.demo.semee";
+/* Le préfixe arrive de l'appelant : depuis l'entrée par mail, le classeur d'un
+   élève est rangé sous « cb.<compte>. », et semer sous « cb. » remplirait un
+   classeur que personne ne lit. */
+const SUFFIXE_SEMEE = "demo.semee";
 
 function jourDecale(jours) {
   return new Date(Date.now() + jours * 86400000).toISOString();
@@ -143,9 +149,9 @@ const ANNEE_FACTICE = [
     ["Los museos madrileños", "Les œuvres sont sues, les auteurs moins."]]],
 ];
 
-function semerLePasse() {
+function semerLePasse(prefixe) {
   try {
-    if (localStorage.getItem(CLE_SEMEE)) return;
+    if (localStorage.getItem(prefixe + SUFFIXE_SEMEE)) return;
     ANNEE_FACTICE.forEach(([matiere, chapitre, dansJours, fragiles], rang) => {
       const decalage = Math.min(dansJours, 0) - 2;
       const fiches = [ficheFactice("Fiche de révision — " + chapitre, decalage - 1)];
@@ -165,10 +171,8 @@ function semerLePasse() {
         fiches,
         controles,
       });
-      localStorage.setItem("cb.session." + seance.sessionId, JSON.stringify(seance));
+      localStorage.setItem(prefixe + "session." + seance.sessionId, JSON.stringify(seance));
     });
-    localStorage.setItem(CLE_SEMEE, "1");
+    localStorage.setItem(prefixe + SUFFIXE_SEMEE, "1");
   } catch (e) { /* stockage refusé : la démonstration s'ouvrira vide */ }
 }
-
-semerLePasse();

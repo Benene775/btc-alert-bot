@@ -2,11 +2,14 @@
 
 Une seule page web côté élève ; ici, les quelques routes qu'elle appelle.
 
-Deux principes de découpage :
-- Le navigateur garde le cours, les réponses et les fiches. Pas de compte, pas de
-  mot de passe, aucune donnée personnelle côté serveur.
+Trois principes de découpage :
+- Le navigateur garde le cours, les réponses et les fiches. Le serveur n'en voit
+  rien, et n'en garde rien.
 - Sauf le corrigé du contrôle en cours : si on l'envoyait avec les questions,
   n'importe quel élève le lirait dans les outils de développement avant de répondre.
+- On entre par son adresse mail et un code reçu dessus. Pas de mot de passe :
+  il n'y a donc aucun mot de passe d'élève à se faire voler. Toutes les routes
+  /api sauf /api/config et /api/auth/* exigent d'être entré.
 """
 
 from __future__ import annotations
@@ -17,15 +20,17 @@ import uuid
 from contextlib import asynccontextmanager
 from typing import Any
 
-from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi import Cookie, Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import config, formats, llm, store
+from . import config, courrier, formats, llm, store
 from .schemas import (
     ContexteSession,
+    DemandeCode,
     DemandeControle,
     DemandeCorrection,
+    DemandeEntree,
     DemandeFiche,
     DemandeFicheCiblee,
     Evenement,
@@ -44,6 +49,19 @@ async def cycle_de_vie(_: FastAPI):
     supprimes = store.purger_corriges_anciens()
     if supprimes:
         logger.info("purge : %s corrigé(s) au-delà de la rétention supprimé(s)", supprimes)
+    perimes = store.purger_auth()
+    if perimes:
+        logger.info("purge : %s code(s) et jeton(s) périmé(s) supprimé(s)", perimes)
+    if not config.SMTP_HOTE:
+        logger.warning(
+            "AUCUN SERVEUR DE COURRIER : les codes d'entrée partent dans ces journaux. "
+            "Définir CB_SMTP_HOTE pour les envoyer vraiment."
+        )
+    if config.AUTH_CODE_EN_CLAIR:
+        logger.warning(
+            "CB_AUTH_CODE_EN_CLAIR : le code est renvoyé dans la réponse HTTP. "
+            "N'importe qui entre avec n'importe quelle adresse — démonstration seulement."
+        )
     if config.DEMO_MODE:
         logger.warning(
             "MODE DÉMONSTRATION : aucun appel au modèle, contenus factices. "
@@ -68,8 +86,127 @@ def gerer_modele(_: Request, exc: llm.ErreurModele) -> JSONResponse:
     return JSONResponse(status_code=503, content={"erreur": "modele", "message": str(exc)})
 
 
-def _session_valide(session_id: str) -> str:
-    if not session_id or not store.session_existe(session_id):
+@app.exception_handler(store.ErreurAuth)
+def gerer_auth(_: Request, exc: store.ErreurAuth) -> JSONResponse:
+    return JSONResponse(
+        status_code=400,
+        content={"erreur": "auth", "genre": exc.genre, "message": exc.message,
+                 "attendre": exc.attendre},
+    )
+
+
+# --- L'entrée : une adresse mail, un code reçu dessus -----------------------
+#
+# Pas de mot de passe. L'élève donne son adresse, reçoit six chiffres, les
+# recopie. Ce qu'on garde de lui tient en une ligne : son adresse. Le code et le
+# jeton ne sont stockés que hachés (voir store.py).
+#
+# Le jeton voyage dans un cookie HttpOnly : le script de la page ne peut pas le
+# lire, donc une faille d'affichage ne le donne pas. SameSite=Lax suffit — toutes
+# les écritures passent en POST, qu'un site tiers ne peut pas déclencher avec
+# le cookie.
+
+NOM_COOKIE = "cb_jeton"
+
+
+def _source(requete: Request) -> str:
+    """D'où vient la demande, pour la limite par machine.
+
+    Derrière un proxy, l'IP vue est celle du proxy : toutes les demandes se
+    ressembleraient, et la limite s'appliquerait à tout le monde d'un coup.
+    On ne lit X-Forwarded-For que si l'exploitant l'affirme (CB_PROXY_DE_CONFIANCE) :
+    sinon n'importe qui poserait l'en-tête et contournerait la limite en une ligne."""
+    if config.PROXY_DE_CONFIANCE:
+        transmis = requete.headers.get("x-forwarded-for", "")
+        if transmis:
+            return transmis.split(",")[0].strip()[:64]
+    return (requete.client.host if requete.client else "")[:64]
+
+
+def _poser_cookie(reponse: JSONResponse, jeton: str, requete: Request) -> None:
+    reponse.set_cookie(
+        NOM_COOKIE, jeton,
+        max_age=config.DUREE_JETON_JOURS * 86400,
+        httponly=True,
+        samesite="lax",
+        # En clair sur http://localhost pendant le développement ; jamais dès que
+        # le site est servi en https.
+        secure=requete.url.scheme == "https",
+        path="/",
+    )
+
+
+def compte_connecte(cb_jeton: str | None = Cookie(default=None)) -> dict[str, str]:
+    """Dépendance des routes protégées. 401 : la page renvoie vers l'entrée."""
+    compte = store.compte_du_jeton(cb_jeton)
+    if compte is None:
+        raise HTTPException(status_code=401, detail="entrée requise")
+    return compte
+
+
+@app.post("/api/auth/code")
+def demander_code(corps: DemandeCode, request: Request) -> dict[str, Any]:
+    """Envoie un code. Répond pareil que l'adresse soit connue ou non : sinon ce
+    formulaire devient un moyen de savoir qui est inscrit."""
+    email = store.normaliser_email(corps.email)
+    code = store.preparer_code(email, _source(request))
+    try:
+        courrier.envoyer_code(email, code)
+    except courrier.ErreurCourrier as erreur:
+        raise HTTPException(status_code=502, detail=str(erreur)) from erreur
+    reponse: dict[str, Any] = {
+        "envoye": True,
+        "expire_dans_minutes": config.DUREE_CODE_MINUTES,
+        "renvoi_dans_secondes": config.DELAI_ENTRE_CODES_SECONDES,
+    }
+    if config.AUTH_CODE_EN_CLAIR:
+        # Démonstration seulement : voir le garde-fou dans config.py.
+        reponse["code_demonstration"] = code
+    return reponse
+
+
+@app.post("/api/auth/entrer")
+def entrer(corps: DemandeEntree, request: Request) -> JSONResponse:
+    email = store.normaliser_email(corps.email)
+    compte_id = store.verifier_code(email, corps.code)
+    jeton = store.ouvrir_jeton(compte_id)
+    reponse = JSONResponse({"connecte": True, "email": email, "compte": compte_id})
+    _poser_cookie(reponse, jeton, request)
+    return reponse
+
+
+@app.get("/api/auth/moi")
+def qui_suis_je(cb_jeton: str | None = Cookie(default=None)) -> dict[str, Any]:
+    compte = store.compte_du_jeton(cb_jeton)
+    if compte is None:
+        return {"connecte": False}
+    return {"connecte": True, "email": compte["email"], "compte": compte["id"]}
+
+
+@app.post("/api/auth/sortir")
+def sortir(cb_jeton: str | None = Cookie(default=None)) -> JSONResponse:
+    store.fermer_jeton(cb_jeton)
+    reponse = JSONResponse({"connecte": False})
+    reponse.delete_cookie(NOM_COOKIE, path="/")
+    return reponse
+
+
+@app.post("/api/auth/supprimer")
+def supprimer(cb_jeton: str | None = Cookie(default=None),
+              compte: dict = Depends(compte_connecte)) -> JSONResponse:
+    """Le droit à l'effacement, à un clic. Il n'a pas à passer par un courrier
+    au responsable de traitement : c'est nous, et le bouton est dans la page."""
+    store.supprimer_compte(compte["id"])
+    reponse = JSONResponse({"supprime": True})
+    reponse.delete_cookie(NOM_COOKIE, path="/")
+    return reponse
+
+
+def _session_valide(session_id: str, compte: dict[str, str] | None = None) -> str:
+    """Une séance appartient à un compte. Sans ce contrôle, le lien de reprise
+    d'un camarade — neuf caractères — ouvrirait son cours et brûlerait ses quotas."""
+    compte_id = compte["id"] if compte else None
+    if not session_id or not store.session_existe(session_id, compte_id):
         raise HTTPException(status_code=404, detail="session inconnue")
     store.toucher_session(session_id)
     return session_id
@@ -99,16 +236,18 @@ def configuration() -> dict[str, Any]:
 # --- Session ----------------------------------------------------------------
 
 @app.post("/api/session")
-def nouvelle_session(request: Request) -> dict[str, Any]:
-    session_id = store.creer_session()
+def nouvelle_session(request: Request,
+                     compte: dict = Depends(compte_connecte)) -> dict[str, Any]:
+    session_id = store.creer_session(compte["id"])
     base = config.PUBLIC_BASE_URL or str(request.base_url).rstrip("/")
     store.enregistrer_evenement(session_id, "ouverture", {"origine": "creation"})
     return {"session_id": session_id, "lien_de_reprise": f"{base}/?s={session_id}"}
 
 
 @app.get("/api/session/{session_id}")
-def etat_session(session_id: str, request: Request) -> dict[str, Any]:
-    _session_valide(session_id)
+def etat_session(session_id: str, request: Request,
+                 compte: dict = Depends(compte_connecte)) -> dict[str, Any]:
+    _session_valide(session_id, compte)
     base = config.PUBLIC_BASE_URL or str(request.base_url).rstrip("/")
     return {
         "session_id": session_id,
@@ -118,8 +257,9 @@ def etat_session(session_id: str, request: Request) -> dict[str, Any]:
 
 
 @app.post("/api/session/contexte")
-def enregistrer_contexte(corps: ContexteSession) -> dict[str, str]:
-    _session_valide(corps.session_id)
+def enregistrer_contexte(corps: ContexteSession,
+                        compte: dict = Depends(compte_connecte)) -> dict[str, str]:
+    _session_valide(corps.session_id, compte)
     store.toucher_session(
         corps.session_id,
         niveau=corps.niveau,
@@ -130,8 +270,8 @@ def enregistrer_contexte(corps: ContexteSession) -> dict[str, str]:
 
 
 @app.post("/api/evenement")
-def evenement(corps: Evenement) -> dict[str, str]:
-    _session_valide(corps.session_id)
+def evenement(corps: Evenement, compte: dict = Depends(compte_connecte)) -> dict[str, str]:
+    _session_valide(corps.session_id, compte)
     store.enregistrer_evenement(corps.session_id, corps.type, corps.details)
     return {"etat": "ok"}
 
@@ -144,8 +284,9 @@ async def analyser(
     niveau: str = Form("3e"),
     matiere: str = Form(""),
     photos: list[UploadFile] = File(...),
+    compte: dict = Depends(compte_connecte),
 ) -> dict[str, Any]:
-    _session_valide(session_id)
+    _session_valide(session_id, compte)
     store.verifier_quota(session_id, "analyse")
 
     if not photos:
@@ -181,8 +322,9 @@ async def analyser(
 # --- Étape 3 et 6 : les fiches ---------------------------------------------
 
 @app.post("/api/fiche/generale")
-def creer_fiche_generale(corps: DemandeFiche) -> dict[str, Any]:
-    _session_valide(corps.session_id)
+def creer_fiche_generale(corps: DemandeFiche,
+                         compte: dict = Depends(compte_connecte)) -> dict[str, Any]:
+    _session_valide(corps.session_id, compte)
     store.verifier_quota(corps.session_id, "fiche_generale")
     fiche, usage = llm.fiche_generale(
         _chapitres_en_dicts(corps.chapitres), formats.nom_niveau(corps.niveau)
@@ -194,8 +336,9 @@ def creer_fiche_generale(corps: DemandeFiche) -> dict[str, Any]:
 
 
 @app.post("/api/fiche/ciblee")
-def creer_fiche_ciblee(corps: DemandeFicheCiblee) -> dict[str, Any]:
-    _session_valide(corps.session_id)
+def creer_fiche_ciblee(corps: DemandeFicheCiblee,
+                       compte: dict = Depends(compte_connecte)) -> dict[str, Any]:
+    _session_valide(corps.session_id, compte)
     store.verifier_quota(corps.session_id, "fiche_ciblee")
     fiche, usage = llm.fiche_ciblee(
         _chapitres_en_dicts(corps.chapitres),
@@ -214,8 +357,9 @@ CHAMPS_CORRIGE = ("points_attendus", "ou_dans_le_cours")
 
 
 @app.post("/api/controle")
-def creer_controle(corps: DemandeControle) -> dict[str, Any]:
-    _session_valide(corps.session_id)
+def creer_controle(corps: DemandeControle,
+                   compte: dict = Depends(compte_connecte)) -> dict[str, Any]:
+    _session_valide(corps.session_id, compte)
     store.verifier_quota(corps.session_id, "controle")
 
     fmt = formats.format_matiere(corps.matiere)
@@ -265,8 +409,9 @@ def creer_controle(corps: DemandeControle) -> dict[str, Any]:
 # --- Étape 5 : la correction commentée -------------------------------------
 
 @app.post("/api/correction")
-def corriger(corps: DemandeCorrection) -> dict[str, Any]:
-    _session_valide(corps.session_id)
+def corriger(corps: DemandeCorrection,
+             compte: dict = Depends(compte_connecte)) -> dict[str, Any]:
+    _session_valide(corps.session_id, compte)
     corrige = store.lire_corrige(corps.controle_id, corps.session_id)
     if not corrige:
         raise HTTPException(status_code=404, detail="contrôle introuvable ou expiré")
@@ -302,8 +447,9 @@ def corriger(corps: DemandeCorrection) -> dict[str, Any]:
 # --- « Cette question me semble fausse » ------------------------------------
 
 @app.post("/api/signalement")
-def signaler(corps: SignalementQuestion) -> dict[str, str]:
-    _session_valide(corps.session_id)
+def signaler(corps: SignalementQuestion,
+             compte: dict = Depends(compte_connecte)) -> dict[str, str]:
+    _session_valide(corps.session_id, compte)
     store.enregistrer_evenement(
         corps.session_id,
         "question_signalee",
