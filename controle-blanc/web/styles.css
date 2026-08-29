@@ -1422,9 +1422,86 @@ select {
  * autant qu'on veut. La différence doit se voir : ici, pas de compte à rebours,
  * pas de jauge qui se vide — trois traits qui se remplissent.
  */
-.quiz-chapeau { color: var(--encre-douce); font-size: .93rem; margin: 0 0 var(--e3); }
+/* Les trois façons de repasser un cours, côte à côte. Elles ne font pas la même
+   chose — reconnaître, rédiger, relire — et c'est justement pour ça qu'elles se
+   présentent ensemble : le choix est le geste. */
+.trio { display: grid; gap: var(--e2); grid-template-columns: 1fr; }
 
-#pan-quiz .secondaire { margin-top: 0; }
+.outil {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  grid-template-areas: "signe nom duree" "signe mot mot";
+  align-items: center;
+  gap: 2px var(--e2);
+  text-align: left;
+  padding: var(--e3);
+  border: 1.5px solid var(--trait);
+  border-radius: var(--rayon-carte);
+  background: var(--carte);
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  min-height: 84px;
+  transition: border-color .18s ease, transform .18s cubic-bezier(.2, .7, .3, 1);
+}
+
+.outil:hover { border-color: var(--accent); transform: translateY(-2px); }
+.outil:active { transform: scale(.99); }
+
+/* Le signe, dans la fonte de titrage : c'est la marque de l'outil, pas une
+   icône empruntée à un jeu de pictogrammes qui ne ressemble à rien d'ici. */
+.outil-signe {
+  grid-area: signe;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--accent-doux);
+  color: var(--accent);
+  font-family: var(--titre);
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+.outil-nom { grid-area: nom; font-family: var(--titre); font-weight: 600; font-size: 1.08rem; }
+
+.outil-mot {
+  grid-area: mot;
+  font-size: .85rem;
+  line-height: 1.4;
+  color: var(--encre-douce);
+}
+
+.outil-duree {
+  grid-area: duree;
+  font-family: var(--mono);
+  font-size: .62rem;
+  letter-spacing: .08em;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--papier);
+  color: var(--encre-douce);
+}
+
+/* À partir de 700 px les trois tiennent de front, et chacune se lit en colonne :
+   le signe au-dessus du nom, comme trois cartes posées. */
+@media (min-width: 700px) {
+  .trio { grid-template-columns: repeat(3, 1fr); }
+  .outil {
+    grid-template-columns: 1fr;
+    grid-template-areas: "signe" "nom" "mot" "duree";
+    align-items: start;
+    gap: var(--e1);
+    min-height: 190px;
+  }
+  .outil-duree { justify-self: start; margin-top: auto; }
+}
+
+.ecran-atelier { display: flex; flex-direction: column; }
+
+.quiz-chapeau { color: var(--encre-douce); font-size: .93rem; margin: 0 0 var(--e3); }
 
 .ecran-quiz { display: flex; flex-direction: column; }
 

@@ -2112,7 +2112,7 @@ function majBandeau(idEcran) {
   // liste, le bandeau — donc la marque et le rond — disparaissait chez un élève
   // qui vient repasser un cours sans avoir de séance ouverte.
   const dansMaPage = idEcran === 'ecran-espace' || idEcran === 'ecran-matiere'
-    || idEcran === 'ecran-quiz';
+    || idEcran === 'ecran-quiz' || idEcran === 'ecran-atelier';
   const dansEspace = idEcran === 'ecran-espace';
   if (idEcran === 'ecran-accueil' || (!etat && !dansMaPage)) { bandeau.hidden = true; return; }
   bandeau.hidden = false;
@@ -2781,13 +2781,13 @@ function garderFiche(type, contenu) {
 }
 
 
-async function demanderFicheGenerale() {
+async function demanderFicheGenerale(chapitres = null) {
   attendre('On prépare ta fiche…', 'Elle reprend ton cours, dans ton ordre à toi.');
   try {
     const fiche = await envoyerJson('/api/fiche/generale', {
       session_id: etat.sessionId,
       niveau: etat.niveau,
-      chapitres: chapitresRetenus(),
+      chapitres: chapitres || chapitresRetenus(),
     });
     fermerAttente();
     garderFiche('generale', fiche);
@@ -3419,6 +3419,36 @@ function suivreCartes() {
  * serveur reçoit un rang et dit ce qu'il en est.
  */
 let quizEnCours = null;
+let outilChoisi = 'quiz';
+
+/* Les trois façons de repasser un cours. Elles posent la même question — sur
+ * quoi ? — et ne font pas la même chose ensuite : le quiz fait reconnaître, le
+ * contrôle fait rédiger, la fiche fait relire. D'où un seul écran de choix et
+ * trois sorties, plutôt que trois écrans qui auraient divergé à la première
+ * retouche. */
+const OUTILS = {
+  quiz: {
+    etiquette: 'Quiz éclair',
+    titre: 'Tu repasses quoi ?',
+    chapeau: 'Des questions à choix multiple, tirées de tes pages. '
+      + 'Cinq minutes, et ça se refait autant que tu veux.',
+    bouton: 'Lancer le quiz',
+  },
+  controle: {
+    etiquette: 'Contrôle blanc',
+    titre: 'Tu te testes sur quoi ?',
+    chapeau: 'Un vrai sujet au format de la matière, chronométré, à rédiger. '
+      + 'C’est ce qui révèle ce que tu crois savoir.',
+    bouton: 'Passer le contrôle blanc',
+  },
+  fiche: {
+    etiquette: 'Fiche de révision',
+    titre: 'Tu révises quoi ?',
+    chapeau: 'Ton cours resserré, dans ton ordre à toi — pas un cours moyen '
+      + 'trouvé ailleurs.',
+    bouton: 'Écrire ma fiche',
+  },
+};
 
 /* Les cours photographiés, rangés par matière : c'est là-dedans qu'on choisit.
  *
@@ -3439,13 +3469,19 @@ function coursQuizzables() {
 
 function dessinerAccesQuiz() {
   const cours = coursQuizzables();
-  $('vide-quiz').hidden = cours.size > 0;
-  $('bouton-quiz').hidden = cours.size === 0;
+  $('vide-outils').hidden = cours.size > 0;
+  $('pan-outils').querySelector('.trio').hidden = cours.size === 0;
 }
 
-function ouvrirQuiz() {
+function ouvrirAtelier(outil) {
   const cours = coursQuizzables();
   if (!cours.size) return;
+  outilChoisi = outil;
+  const reglage = OUTILS[outil];
+  $('atelier-etiquette').textContent = reglage.etiquette;
+  $('atelier-titre').textContent = reglage.titre;
+  $('atelier-chapeau').textContent = reglage.chapeau;
+  $('bouton-lancer-atelier').textContent = reglage.bouton;
 
   const choix = $('quiz-matiere');
   choix.innerHTML = '';
@@ -3462,10 +3498,7 @@ function ouvrirQuiz() {
   if (prochaine && cours.has(prochaine.matiere)) choix.value = prochaine.matiere;
 
   dessinerChapitresQuiz();
-  $('quiz-choix').hidden = false;
-  $('quiz-jeu').hidden = true;
-  $('quiz-bilan').hidden = true;
-  montrer('ecran-quiz');
+  montrer('ecran-atelier');
 }
 
 /* Les chapitres de la matière choisie, tout coché. Une case par chapitre et par
@@ -3521,18 +3554,33 @@ function chapitresCochesQuiz() {
 
 function majLancerQuiz() {
   const pris = chapitresCochesQuiz();
-  $('bouton-lancer-quiz').disabled = pris.length === 0;
+  $('bouton-lancer-atelier').disabled = pris.length === 0;
   $('quiz-aide').textContent = pris.length
     ? 'Tout est coché : décoche ce que tu ne révises pas.'
     : 'Coche au moins un chapitre.';
 }
 
-async function lancerQuiz() {
+/* Le lancement, aiguillé vers l'outil choisi.
+ *
+ * Le contrôle et la fiche travaillent sur « etat » : il faut donc charger la
+ * séance choisie avant de les appeler. On leur passe les chapitres cochés en
+ * argument plutôt que de marquer « actif » dans la séance — sans quoi décocher
+ * un chapitre pour une fiche rapide amputerait le périmètre de la séance, et
+ * l'élève retrouverait son cours entamé sans savoir pourquoi.
+ */
+async function lancerAtelier() {
   const pris = chapitresCochesQuiz();
   if (!pris.length) return;
-  // Toutes les cases cochées viennent d'une séance : on rattache le quiz à la
-  // première, puisque c'est elle qui porte le quota et le corrigé.
   const session = pris[0].session;
+  const chapitres = pris.map((p) => p.chapitre);
+
+  if (outilChoisi === 'quiz') return lancerQuiz(session, chapitres);
+  await ouvrirSession(session.sessionId, () => {});
+  if (outilChoisi === 'fiche') return demanderFicheGenerale(chapitres);
+  return lancerControle([], chapitres);
+}
+
+async function lancerQuiz(session, chapitres) {
 
   attendre('On prépare ton quiz…', 'Des questions courtes, tirées de tes pages.');
   try {
@@ -3540,7 +3588,7 @@ async function lancerQuiz() {
       session_id: session.sessionId,
       niveau: session.niveau || '3e',
       matiere: $('quiz-matiere').value,
-      chapitres: pris.map((p) => p.chapitre),
+      chapitres,
     });
     fermerAttente();
     quizEnCours = {
@@ -3551,10 +3599,10 @@ async function lancerQuiz() {
       acquises: [],
       repondue: false,
     };
-    $('quiz-choix').hidden = true;
     $('quiz-bilan').hidden = true;
     $('quiz-jeu').hidden = false;
     dessinerQuestionQuiz();
+    montrer('ecran-quiz');
   } catch (e) { gererErreur(e); }
 }
 
@@ -3704,7 +3752,7 @@ function finirQuiz() {
 }
 
 
-async function lancerControle(notionsCiblees = []) {
+async function lancerControle(notionsCiblees = [], chapitres = null) {
   const notions = notionsCiblees;
   const dejaPoses = [];
   etat.controles.forEach((c) => (c.questions || []).forEach((q) => dejaPoses.push(q.enonce)));
@@ -3715,7 +3763,7 @@ async function lancerControle(notionsCiblees = []) {
       session_id: etat.sessionId,
       niveau: etat.niveau,
       matiere: etat.matiere,
-      chapitres: chapitresRetenus(),
+      chapitres: chapitres || chapitresRetenus(),
       notions_ciblees: notions,
       enonces_deja_poses: dejaPoses,
     });
@@ -4211,11 +4259,14 @@ document.addEventListener('DOMContentLoaded', () => {
   $('embleme').onclick = basculerAtelier;
   $('bouton-agenda').onclick = () => basculerAgenda();
 
-  $('bouton-quiz').onclick = ouvrirQuiz;
+  $('outil-quiz').onclick = () => ouvrirAtelier('quiz');
+  $('outil-controle').onclick = () => ouvrirAtelier('controle');
+  $('outil-fiche').onclick = () => ouvrirAtelier('fiche');
   $('quiz-matiere').onchange = dessinerChapitresQuiz;
-  $('bouton-lancer-quiz').onclick = lancerQuiz;
+  $('bouton-lancer-atelier').onclick = lancerAtelier;
   $('bouton-quiz-suivant').onclick = questionSuivanteQuiz;
-  $('bouton-quiz-refaire').onclick = ouvrirQuiz;
+  $('bouton-quiz-refaire').onclick = () => ouvrirAtelier('quiz');
+  $('atelier-retour').onclick = () => { montrer('ecran-espace'); dessinerEspace(); };
   $('quiz-retour').onclick = () => { montrer('ecran-espace'); dessinerEspace(); };
   $('bouton-quiz-fini').onclick = () => { montrer('ecran-espace'); dessinerEspace(); };
 

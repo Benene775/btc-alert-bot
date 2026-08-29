@@ -406,6 +406,39 @@
   </div>
   </div>
 
+  <!-- Les trois façons de repasser un cours déjà photographié. Elles ne font
+       pas la même chose : le quiz fait reconnaître, le contrôle fait rédiger,
+       la fiche fait relire. Les trois méritent donc d'être visibles ensemble —
+       et chacune ouvre sa page, où l'on choisit le cours. -->
+  <section class="pan" id="pan-outils">
+    <div class="pan-tete">
+      <h2 class="pan-titre">Repasser un cours</h2>
+    </div>
+    <div class="trio">
+      <button type="button" class="outil" id="outil-quiz">
+        <span class="outil-signe" aria-hidden="true">?</span>
+        <span class="outil-nom">Quiz éclair</span>
+        <span class="outil-mot">Des QCM courts. Pour faire tenir avant le jour J.</span>
+        <span class="outil-duree">5 min</span>
+      </button>
+      <button type="button" class="outil" id="outil-controle">
+        <span class="outil-signe" aria-hidden="true">✎</span>
+        <span class="outil-nom">Contrôle blanc</span>
+        <span class="outil-mot">Au format réel de la matière, chronométré, à rédiger.</span>
+        <span class="outil-duree">40 min</span>
+      </button>
+      <button type="button" class="outil" id="outil-fiche">
+        <span class="outil-signe" aria-hidden="true">▤</span>
+        <span class="outil-nom">Fiche de révision</span>
+        <span class="outil-mot">Ton cours resserré, dans ton ordre à toi.</span>
+        <span class="outil-duree">9 min</span>
+      </button>
+    </div>
+    <p class="pan-vide" id="vide-outils" hidden>
+      Photographie un cours d’abord : tout ça sort de tes pages, pas d’ailleurs.
+    </p>
+  </section>
+
   <!-- L'étagère : une année en un coup d'oeil, une tuile par matière. -->
   <section class="pan" id="pan-matieres">
     <div class="pan-tete">
@@ -416,25 +449,6 @@
     <p class="pan-vide" id="vide-matieres" hidden>Photographie ton premier cours : il s’installera ici.</p>
   </section>
 
-
-  <!-- Le quiz éclair : l'objet complémentaire du contrôle blanc. Le contrôle
-       fait rédiger, parce que rédiger révèle ce qu'on n'a pas compris ; le quiz
-       fait reconnaître, parce que la reconnaissance se répète — et c'est la
-       répétition qui fait tenir avant un gros contrôle. -->
-  <section class="pan" id="pan-quiz">
-    <div class="pan-tete">
-      <h2 class="pan-titre">Quiz éclair</h2>
-      <span class="pan-compte" id="quiz-duree">5 min</span>
-    </div>
-    <p class="quiz-chapeau">
-      Des questions à choix multiple sur un cours que tu as déjà photographié.
-      Plus court que le contrôle blanc, et ça se refait autant que tu veux.
-    </p>
-    <button type="button" class="secondaire" id="bouton-quiz">Choisir un cours à repasser</button>
-    <p class="pan-vide" id="vide-quiz" hidden>
-      Photographie un cours d’abord : le quiz sort de tes pages, pas d’ailleurs.
-    </p>
-  </section>
 
   <button type="button" class="principal" id="bouton-espace-nouveau">Photographier un nouveau cours</button>
   <button type="button" class="discret" id="bouton-quitter-espace">Revenir</button>
@@ -574,28 +588,30 @@
 </section>
 
 <!-- ÉTAPE 4 — le contrôle blanc -->
-<!-- LE QUIZ ÉCLAIR — choix du cours, puis les questions -->
+<!-- L'ATELIER — sur quel cours ? Un seul écran pour les trois outils : ils
+     posent la même question, et trois copies auraient divergé à la première
+     retouche. Le titre, la phrase et le bouton changent selon l'outil. -->
+<section id="ecran-atelier" class="ecran ecran-atelier" hidden>
+  <button type="button" class="retour" id="atelier-retour">← Ma page</button>
+  <p class="etape" id="atelier-etiquette"></p>
+  <h2 id="atelier-titre"></h2>
+  <p class="chapeau" id="atelier-chapeau"></p>
+
+  <label for="quiz-matiere">La matière</label>
+  <select id="quiz-matiere"></select>
+
+  <p class="quiz-etiquette">Les chapitres</p>
+  <div class="quiz-chapitres" id="quiz-chapitres"></div>
+
+  <p class="aide" id="quiz-aide">Tout est coché : décoche ce que tu ne révises pas.</p>
+  <button type="button" class="principal" id="bouton-lancer-atelier"></button>
+</section>
+
+<!-- LE QUIZ ÉCLAIR — les questions, puis le bilan -->
 <section id="ecran-quiz" class="ecran ecran-quiz" hidden>
 
   <button type="button" class="retour" id="quiz-retour">← Ma page</button>
 
-  <!-- Temps 1 : sur quoi. La matière, puis les chapitres — « réviser le
-       chapitre 3 » est une demande plus fréquente que « réviser l'année ». -->
-  <div class="quiz-choix" id="quiz-choix">
-    <p class="etape">Quiz éclair</p>
-    <h2>Tu repasses quoi ?</h2>
-
-    <label for="quiz-matiere">La matière</label>
-    <select id="quiz-matiere"></select>
-
-    <p class="quiz-etiquette" id="quiz-etiquette-chapitres">Les chapitres</p>
-    <div class="quiz-chapitres" id="quiz-chapitres"></div>
-
-    <p class="aide" id="quiz-aide">Tout est coché : décoche ce que tu ne révises pas.</p>
-    <button type="button" class="principal" id="bouton-lancer-quiz">Lancer le quiz</button>
-  </div>
-
-  <!-- Temps 2 : les questions, une par une. -->
   <div class="quiz-jeu" id="quiz-jeu" hidden>
     <div class="quiz-barre">
       <p class="quiz-titre" id="quiz-titre"></p>
@@ -608,7 +624,7 @@
     <button type="button" class="principal" id="bouton-quiz-suivant" hidden></button>
   </div>
 
-  <!-- Temps 3 : le bilan. Des notions, jamais une note. -->
+  <!-- Le bilan. Des notions, jamais une note. -->
   <div class="quiz-bilan" id="quiz-bilan" hidden>
     <p class="etape">Quiz terminé</p>
     <h2 id="quiz-bilan-titre"></h2>

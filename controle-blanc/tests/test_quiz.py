@@ -138,13 +138,45 @@ def test_le_bilan_du_quiz_ne_donne_pas_de_note():
     assert "Pas de note" in PAGE[PAGE.index('id="quiz-bilan"'):][:1200]
 
 
-def test_le_quiz_se_lance_depuis_sa_page():
-    """La section vit sur la page perso : c'est là qu'on décide de réviser."""
+def test_les_trois_outils_sont_visibles_ensemble_sur_sa_page():
+    """Le quiz fait reconnaître, le contrôle fait rédiger, la fiche fait
+    relire : trois choses différentes, et c'est pour ça qu'elles se présentent
+    ensemble. Le choix de l'outil est le geste."""
     espace = PAGE[PAGE.index('id="ecran-espace"') : PAGE.index('id="ecran-matiere"')]
-    assert 'id="pan-quiz"' in espace
-    assert 'id="bouton-quiz"' in espace
-    # Sans cours photographié, on le dit au lieu d'offrir un bouton mort.
-    assert 'id="vide-quiz"' in espace
+    assert 'id="pan-outils"' in espace
+    for outil in ("outil-quiz", "outil-controle", "outil-fiche"):
+        assert f'id="{outil}"' in espace, f"« {outil} » manque sur la page perso"
+    # Sans cours photographié, on le dit au lieu d'offrir trois boutons morts.
+    assert 'id="vide-outils"' in espace
     bloc = SCRIPT[SCRIPT.index("function dessinerAccesQuiz"):]
     bloc = bloc[: bloc.index("\n}\n")]
-    assert "$('vide-quiz').hidden" in bloc and "$('bouton-quiz').hidden" in bloc
+    assert "$('vide-outils').hidden" in bloc
+
+
+def test_les_trois_outils_partagent_un_seul_ecran_de_choix():
+    """Ils posent la même question — sur quoi ? — et ne diffèrent qu'ensuite.
+    Trois écrans de choix auraient divergé à la première retouche."""
+    assert 'id="ecran-atelier"' in PAGE
+    for champ in ("atelier-titre", "atelier-chapeau", "bouton-lancer-atelier",
+                  "quiz-matiere", "quiz-chapitres"):
+        assert f'id="{champ}"' in PAGE, f"« {champ} » manque à l'atelier"
+
+    assert "const OUTILS = {" in SCRIPT
+    for outil in ("quiz:", "controle:", "fiche:"):
+        assert outil in SCRIPT[SCRIPT.index("const OUTILS = {"):][:1400], outil
+
+    bloc = SCRIPT[SCRIPT.index("async function lancerAtelier"):]
+    bloc = bloc[: bloc.index("\n}\n")]
+    assert "lancerQuiz(" in bloc and "demanderFicheGenerale(" in bloc and "lancerControle(" in bloc
+
+
+def test_choisir_un_perimetre_n_ampute_pas_la_seance():
+    """Décocher un chapitre pour une fiche rapide ne doit pas rogner le
+    périmètre de la séance : l'élève retrouverait son cours entamé sans savoir
+    pourquoi. Les chapitres cochés passent en argument, ils ne marquent rien."""
+    bloc = SCRIPT[SCRIPT.index("async function lancerAtelier"):]
+    bloc = bloc[: bloc.index("\n}\n")]
+    assert ".actif" not in bloc, "l'atelier marque les chapitres de la séance"
+    assert "async function demanderFicheGenerale(chapitres = null)" in SCRIPT
+    assert "async function lancerControle(notionsCiblees = [], chapitres = null)" in SCRIPT
+    assert "chapitres: chapitres || chapitresRetenus()" in SCRIPT
