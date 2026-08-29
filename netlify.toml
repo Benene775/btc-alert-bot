@@ -1,0 +1,33 @@
+# Publie les démonstrations de Repère sur Netlify.
+#
+# Ce qui est publié : trois fichiers HTML autonomes (une page de choix et les
+# deux démonstrations). Aucun serveur, aucune clé d'API, aucune donnée d'élève.
+#
+# Ce qui n'est PAS publié : le produit. Repère a un serveur Python — comptes,
+# lecture des photos, correction, quotas — que Netlify ne peut pas héberger
+# (pas de processus long, pas de disque persistant pour SQLite). Voir
+# controle-blanc/README.md.
+#
+# Pour activer : « Add new site » → « Import an existing project », choisir ce
+# dépôt. Netlify lit ce fichier ; il n'y a rien à régler à la main.
+
+[build]
+  command = "python3 controle-blanc/outils/site.py _site"
+  publish = "_site"
+
+[build.environment]
+  PYTHON_VERSION = "3.11"
+
+# Les pages sont autonomes : rien à charger de l'extérieur, donc rien à
+# autoriser. Cette politique le dit au navigateur, pour qu'une injection ne
+# puisse rien appeler.
+#
+# « blob: » dans img-src n'est pas décoratif : les vignettes du cahier sont des
+# URL.createObjectURL. Sans lui, la page s'affiche mais les photos du cours
+# disparaissent — la promesse du produit, cassée en silence.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Content-Security-Policy = "default-src 'none'; img-src data: blob:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; font-src data:; base-uri 'none'; form-action 'none'"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "no-referrer"

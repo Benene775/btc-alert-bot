@@ -1,0 +1,3850 @@
+/* Repère — habillage.
+ *
+ * L'idée : une copie corrigée. Deux stylos, comme sur une vraie copie française —
+ * le bleu, c'est ce que l'élève écrit ; le rouge, c'est ce que le prof note dans
+ * la marge. Ici le rouge ne sanctionne pas, il renvoie au cours.
+ *
+ * Le bleu est donc l'accent, et le rouge est réservé aux corrections : il ne sert
+ * jamais de décoration. Les filets de marge à gauche des questions et des cartes
+ * de correction reprennent la marge d'une copie double.
+ *
+ * Mobile d'abord : une colonne, cibles tactiles >= 48 px, rien qui déborde.
+ */
+
+/* --- Jetons ------------------------------------------------------------- */
+
+:root {
+  /* Le papier de la fiche, partout. L'application entière se lit le soir sous
+     une lampe, pas sous les néons d'une salle de classe. */
+  --papier: #fbf7f2;
+  --carte: #fffdfa;
+  --encre: #241e17;
+  --encre-douce: #7a6a5a;
+  --trait: #ebe1d4;
+  --trait-fort: #d8c9b6;
+
+  /* Le stylo de l'élève. */
+  --accent: #9a6410;
+  --accent-doux: #f7edda;
+  /* Ce qui s'écrit SUR l'accent : blanc ici, encre sombre en mode sombre, où
+     l'ambre est trop clair pour porter du blanc (2,2:1 — illisible). */
+  --sur-accent: #ffffff;
+  --surligneur: rgba(255, 196, 60, .5);
+  /* La lueur qui suit le curseur. Assez pour se sentir, pas assez pour
+     passer devant le texte qu'elle traverse. */
+  --lueur: rgba(255, 196, 60, .22);
+  /* Le stylo de l'élève reste bleu même sur du papier chaud : c'est ce qui le
+     sépare du rouge du prof. Sans lui, sa copie et l'annotation se confondent. */
+  --stylo-eleve: #28518f;
+  --stylo-eleve-doux: #e6edf9;
+  /* Le réglage Seyès : le bleu-violet des lignes d'un cahier français, et le
+     rouge du filet de marge. C'est ce que l'élève a sous les yeux tous les
+     jours — l'identité vient de là, pas d'un beige de plus. */
+  --seyes: rgba(40, 81, 143, .055);
+  --seyes-fort: rgba(40, 81, 143, .11);
+  --marge: rgba(163, 58, 44, .3);
+
+  /* Le stylo du prof. Sémantique, jamais décoratif. */
+  --rouge: #a33a2c;
+  --rouge-doux: #f8e7e2;
+  --acquis: #1c6f4e;
+  --acquis-doux: #e4f0e7;
+  --partiel: #8a5a12;
+  --partiel-doux: #f9edd8;
+
+  /* Les six teintes des cartes, disponibles partout : c'est ce qui fait
+     reconnaître une page de l'application au premier coup d'oeil. */
+  --t0: #fbeed2;  /* miel */
+  --t1: #fbe3d2;  /* abricot */
+  --t2: #fadee0;  /* rose */
+  --t3: #e3ecde;  /* sauge */
+  --t4: #dde8f1;  /* ciel */
+  --t5: #e7e1f0;  /* lilas */
+
+  /* Une carte se pose sur le papier, elle ne s'y découpe pas au trait. */
+  --ombre-carte: 0 1px 2px color-mix(in srgb, var(--encre) 8%, transparent),
+                 0 14px 34px -18px color-mix(in srgb, var(--encre) 32%, transparent);
+  --voile: rgba(36, 30, 23, .82);
+
+  --titre: "Fraunces", Georgia, "Times New Roman", serif;
+  --texte: "Schibsted Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --manuscrit: "Caveat", "Segoe Script", cursive;
+
+  --rayon: 16px;
+  --rayon-carte: 22px;
+  --gouttiere: 20px;
+  --colonne: 620px;
+  --large: 1120px;
+
+  /* Une échelle, pas des valeurs au hasard : chaque pas vaut 1,5 fois le
+     précédent, ce qui donne un rythme vertical qu'on lit sans le voir. */
+  --e1: 8px;
+  --e2: 12px;
+  --e3: 18px;
+  --e4: 28px;
+  --e5: 42px;
+  --e6: 64px;
+  --e7: 96px;
+}
+
+/* Trois états chez le lecteur : choix explicite clair, choix explicite sombre,
+   ou « système », qui ne marque rien et ne laisse que prefers-color-scheme. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --papier: #17130e;
+    --carte: #211b14;
+    --encre: #f4ede3;
+    --encre-douce: #a89887;
+    --trait: #33291e;
+    --trait-fort: #473a2a;
+    --accent: #d9a94a;
+    --accent-doux: #2a2013;
+    --sur-accent: #17130e;
+    --surligneur: rgba(224, 173, 66, .3);
+    --lueur: rgba(224, 173, 66, .13);
+    --stylo-eleve: #9dbcf2;
+    --stylo-eleve-doux: #1b2436;
+    --seyes: rgba(157, 188, 242, .05);
+    --seyes-fort: rgba(157, 188, 242, .09);
+    --marge: rgba(224, 138, 118, .28);
+    --rouge: #e08a76;
+    --rouge-doux: #2e1a19;
+    --acquis: #55bd90;
+    --acquis-doux: #13291f;
+    --partiel: #d7a548;
+    --partiel-doux: #2a2013;
+    --t0: #2c2313;
+    --t1: #2e2118;
+    --t2: #2e1c1e;
+    --t3: #1b2619;
+    --t4: #16222c;
+    --t5: #231d2e;
+    --voile: rgba(10, 8, 5, .86);
+  }
+}
+
+:root[data-theme="dark"] {
+  --papier: #17130e;
+  --carte: #211b14;
+  --encre: #f4ede3;
+  --encre-douce: #a89887;
+  --trait: #33291e;
+  --trait-fort: #473a2a;
+  --accent: #d9a94a;
+  --accent-doux: #2a2013;
+  --sur-accent: #17130e;
+  --surligneur: rgba(224, 173, 66, .3);
+  --lueur: rgba(224, 173, 66, .13);
+  --stylo-eleve: #9dbcf2;
+  --stylo-eleve-doux: #1b2436;
+  --seyes: rgba(157, 188, 242, .05);
+  --seyes-fort: rgba(157, 188, 242, .09);
+  --marge: rgba(224, 138, 118, .28);
+  --rouge: #e08a76;
+  --rouge-doux: #2e1a19;
+  --acquis: #55bd90;
+  --acquis-doux: #13291f;
+  --partiel: #d7a548;
+  --partiel-doux: #2a2013;
+  --t0: #2c2313;
+  --t1: #2e2118;
+  --t2: #2e1c1e;
+  --t3: #1b2619;
+  --t4: #16222c;
+  --t5: #231d2e;
+  --voile: rgba(10, 8, 5, .86);
+}
+
+* { box-sizing: border-box; }
+
+/* Plusieurs blocs masqués portent un display: (flex, grid) qui l'emporterait sur
+   la règle du navigateur. Sans ça, la surcouche d'attente reste au-dessus de tout
+   et bloque les clics. */
+[hidden] { display: none !important; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  font-family: var(--texte);
+  font-size: 17px;
+  line-height: 1.55;
+  background: var(--papier);
+  color: var(--encre);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* --- Bandeau ------------------------------------------------------------ */
+
+#bandeau {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: max(10px, env(safe-area-inset-top)) var(--gouttiere) 10px;
+  background: color-mix(in srgb, var(--papier) 88%, transparent);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--trait);
+}
+
+/* Le bandeau tient toute la largeur, mais son contenu se cale sur la colonne
+   de lecture : sinon, sur un écran d'ordinateur, le titre part se coller au
+   bord gauche pendant que le texte est au milieu. */
+#bandeau > * { position: relative; }
+
+@media (min-width: 660px) {
+  #bandeau {
+    padding-inline: max(var(--gouttiere), calc((100vw - var(--colonne)) / 2));
+  }
+
+  /* Sa page et l'écran d'une matière tiennent la largeur, pas la colonne de
+     lecture : sans ce cas, la marque flottait au milieu du bandeau pendant que
+     la page dessous commençait à 80 px du bord. */
+  #bandeau[data-large="oui"] {
+    padding-inline: max(var(--gouttiere), calc((100vw - var(--large)) / 2));
+  }
+}
+
+.lien-bandeau {
+  background: none;
+  border: 0;
+  padding: 6px 0;
+  font: inherit;
+  font-size: .88rem;
+  font-weight: 700;
+  color: var(--encre);
+  text-align: left;
+  cursor: pointer;
+  min-height: 40px;
+  /* La marque accompagne le nom de la matière : le bandeau devient l'en-tête
+     du site plutôt qu'une simple étiquette de page. */
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.compte-a-rebours {
+  font-family: var(--mono);
+  font-size: .72rem;
+  letter-spacing: .04em;
+  color: var(--accent);
+  background: var(--accent-doux);
+  padding: 6px 12px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+/* --- Trame -------------------------------------------------------------- */
+
+/* La scène ne centre plus : chaque écran décide de sa largeur. L'outil garde
+   sa colonne de lecture ; la page publique, elle, doit occuper l'écran d'un
+   ordinateur autrement qu'en bande de 620 px au milieu du vide. */
+#scene {
+  padding: var(--e4) var(--gouttiere) calc(var(--e6) + env(safe-area-inset-bottom));
+}
+
+.ecran {
+  max-width: var(--colonne);
+  margin-inline: auto;
+  animation: entree .26s ease both;
+}
+
+/* La page publique et l'espace personnel se déplient ; l'outil garde sa colonne
+   de lecture — un contrôle se passe dans une largeur de texte. */
+.ecran-accueil, .ecran-espace, .ecran-matiere { max-width: var(--large); }
+
+@keyframes entree { from { opacity: 0; transform: translateY(8px); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .ecran { animation: none; }
+}
+
+/* --- Typographie -------------------------------------------------------- */
+
+h1 {
+  font-family: var(--titre);
+  font-weight: 600;
+  font-size: clamp(2.3rem, 9vw, 3.2rem);
+  line-height: 1.04;
+  letter-spacing: -.025em;
+  text-wrap: balance;
+  margin: 0 0 20px;
+}
+
+h1 em {
+  font-style: italic;
+  color: var(--accent);
+}
+
+h2 {
+  font-family: var(--titre);
+  font-weight: 600;
+  font-size: clamp(1.5rem, 5.5vw, 1.85rem);
+  line-height: 1.14;
+  letter-spacing: -.018em;
+  text-wrap: balance;
+  margin: 0 0 12px;
+}
+
+h3 {
+  font-family: var(--texte);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -.008em;
+  margin: 0 0 8px;
+}
+
+.etape,
+.titre-bloc,
+.progression,
+.bloc-titre,
+.partie {
+  font-family: var(--mono);
+  font-size: .7rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.etape { color: var(--encre-douce); margin: 0 0 10px; }
+
+.chapeau {
+  color: var(--encre-douce);
+  font-size: 1.02rem;
+  margin: 0 0 26px;
+  max-width: 46ch;
+}
+
+.aide { font-size: .85rem; color: var(--encre-douce); margin: 12px 0 0; }
+
+.mention {
+  font-size: .78rem;
+  color: var(--encre-douce);
+  margin: 16px 0 0;
+  text-align: center;
+}
+
+.alerte-demo {
+  background: var(--partiel-doux);
+  color: var(--partiel);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.masque {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip-path: inset(50%); white-space: nowrap;
+}
+
+/* --- Accueil : la page publique ---------------------------------------- */
+
+.ecran-accueil { display: flex; flex-direction: column; gap: 56px; }
+
+.hero { display: flex; flex-direction: column; }
+
+.hero .principal { margin-top: 28px; }
+
+/* La copie corrigée : la thèse du produit en un seul objet.
+   Marge rouge à gauche, écriture bleue de l'élève, annotation du prof. */
+.copie {
+  display: flex;
+  margin: 6px 0 0;
+  background: var(--carte);
+  border: 0;
+  /* Une feuille n'a pas les coins ronds d'une carte d'interface. */
+  border-radius: 3px;
+  overflow: hidden;
+  box-shadow: var(--ombre-carte);
+}
+
+.copie-marge {
+  flex: 0 0 46px;
+  border-right: 1.5px solid color-mix(in srgb, var(--rouge) 45%, transparent);
+  background: color-mix(in srgb, var(--rouge-doux) 55%, var(--carte));
+  display: flex;
+  justify-content: center;
+  padding-top: 18px;
+}
+
+.copie-numero {
+  font-family: var(--mono);
+  font-size: .82rem;
+  color: var(--rouge);
+}
+
+.copie-corps {
+  padding: var(--e3);
+  flex: 1;
+  min-width: 0;
+  background-position: 0 6px;
+}
+
+.copie-question {
+  font-size: .84rem;
+  color: var(--encre-douce);
+  margin: 0 0 10px;
+}
+
+.copie-reponse {
+  font-family: var(--manuscrit);
+  font-size: 1.5rem;
+  line-height: 1.25;
+  color: var(--stylo-eleve);
+  margin: 0 0 14px;
+}
+
+.copie-note {
+  font-size: .85rem;
+  color: var(--rouge);
+  margin: 0;
+  padding-left: 12px;
+  border-left: 2px solid color-mix(in srgb, var(--rouge) 40%, transparent);
+}
+
+.bloc { display: flex; flex-direction: column; }
+
+.titre-bloc {
+  color: var(--encre-douce);
+  margin: 0 0 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--trait);
+}
+
+/* Le déroulé est numéroté parce que c'est réellement une séquence. */
+.deroule { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 26px; }
+
+.deroule li { display: flex; gap: 16px; align-items: flex-start; }
+
+/* Le chiffre de l'étape est écrit gros, dans la même fonte que les cartes de
+   fiche : c'est le même objet, le lecteur doit le reconnaître. */
+.deroule-numero {
+  flex: 0 0 auto;
+  font-family: var(--titre);
+  font-weight: 600;
+  font-size: 2.6rem;
+  line-height: .9;
+  letter-spacing: -.04em;
+  color: color-mix(in srgb, var(--accent) 32%, transparent);
+  min-width: 44px;
+}
+
+.deroule p { margin: 0; color: var(--encre-douce); font-size: .94rem; }
+
+.argument {
+  padding-left: 16px;
+  border-left: 2px solid var(--trait-fort);
+}
+
+.argument p { margin: 0; color: var(--encre-douce); font-size: .94rem; }
+
+.pied {
+  border-top: 1px solid var(--trait);
+  padding-top: 20px;
+  color: var(--encre-douce);
+  font-size: .85rem;
+}
+
+.pied p { margin: 0; }
+
+/* --- Boutons ------------------------------------------------------------ */
+
+button { font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+
+.principal, .secondaire, .discret {
+  display: block;
+  width: 100%;
+  min-height: 54px;
+  padding: 15px 20px;
+  border-radius: var(--rayon);
+  border: 1px solid transparent;
+  font-family: var(--texte);
+  font-weight: 700;
+  font-size: 1rem;
+  margin-top: 12px;
+  transition: transform .1s ease, opacity .15s ease;
+}
+
+/* En mode sombre l'ambre est trop clair pour porter du blanc (2,2:1). C'est le
+   rôle de « --sur-accent » : blanc sur l'ambre foncé, encre sur l'ambre clair. */
+.principal { background: var(--accent); color: var(--sur-accent); }
+
+.secondaire {
+  background: var(--carte);
+  color: var(--encre);
+  border-color: transparent;
+  box-shadow: var(--ombre-carte);
+}
+.discret { background: none; color: var(--encre-douce); min-height: 48px; font-weight: 400; }
+
+.principal:active, .secondaire:active { transform: scale(.985); }
+.principal:disabled { opacity: .38; cursor: not-allowed; }
+
+button:focus-visible, select:focus-visible, input:focus-visible,
+textarea:focus-visible, summary:focus-visible, a:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.signalement {
+  display: block;
+  width: 100%;
+  background: none;
+  border: 0;
+  color: var(--encre-douce);
+  font-size: .84rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  padding: 14px 0;
+  min-height: 48px;
+  margin-top: 4px;
+}
+
+.signalement[data-signalee="oui"] {
+  color: var(--rouge);
+  text-decoration: none;
+  font-weight: 700;
+}
+
+/* --- Champs ------------------------------------------------------------- */
+
+label {
+  display: block;
+  font-size: .84rem;
+  font-weight: 700;
+  margin: 20px 0 7px;
+  color: var(--encre-douce);
+}
+
+select, input[type="date"], input[type="email"], input[type="text"],
+input[type="password"], textarea {
+  width: 100%;
+  min-height: 54px;
+  padding: 14px 16px;
+  font-family: var(--texte);
+  font-size: 1rem;
+  color: var(--encre);
+  background: var(--carte);
+  border: 1px solid var(--trait);
+  border-radius: var(--rayon);
+  box-shadow: var(--ombre-carte);
+  appearance: none;
+}
+
+textarea { min-height: 150px; resize: vertical; line-height: 1.55; }
+
+select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235b6480' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  padding-right: 42px;
+}
+
+/* --- Photos ------------------------------------------------------------- */
+
+.zone-photos {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 150px;
+  padding: 24px;
+  margin: 0;
+  border: 2px dashed var(--trait-fort);
+  border-radius: var(--rayon-carte);
+  background: var(--t0);
+  cursor: pointer;
+  text-align: center;
+}
+
+.zone-photos-icone { font-size: 1.7rem; color: var(--accent); line-height: 1; }
+.zone-photos-texte { font-weight: 700; font-size: .98rem; }
+.zone-photos-aide { font-size: .8rem; color: var(--encre-douce); }
+
+.vignettes {
+  list-style: none;
+  padding: 0;
+  margin: 16px 0 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+  gap: 10px;
+}
+
+.vignettes li { position: relative; aspect-ratio: 3 / 4; }
+
+.vignettes img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--trait);
+  display: block;
+}
+
+.vignettes button {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 0;
+  background: var(--voile);
+  color: var(--papier);
+  font-size: 1rem;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+}
+
+.vignettes li[data-illisible="oui"] img { border: 2px solid var(--rouge); }
+
+/* --- Remettre les pages dans l'ordre ------------------------------------ */
+
+/* Le numéro n'est pas décoratif : c'est celui qu'on retrouvera plus tard sous
+   chaque partie de la fiche (« ton cahier · page 3 »). Il doit être lisible
+   avant l'analyse, sinon l'élève ne peut pas voir qu'il est faux. */
+.numero-page {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 12px;
+  background: var(--voile);
+  color: var(--papier);
+  font-family: var(--mono);
+  font-size: .72rem;
+  display: grid;
+  place-items: center;
+}
+
+/* Une poignée plutôt qu'un appui long sur toute la vignette : « touch-action:
+   none » y bloque le défilement, et on ne veut le bloquer que sur 30 px, pas
+   sur une grille qui remplit l'écran. */
+/* « .vignettes button » est plus spécifique que « .poignee » : sans le sélecteur
+   complet, la poignée héritait de « top: 5px » et venait recouvrir la croix
+   « retirer », qui devenait intouchable. */
+.vignettes .poignee {
+  position: absolute;
+  top: auto;
+  bottom: 5px;
+  right: 5px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 0;
+  background: var(--voile);
+  color: var(--papier);
+  font-size: .9rem;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  touch-action: none;
+  cursor: grab;
+}
+
+.vignettes li:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 10px;
+}
+
+.vignettes li[data-deplace="oui"] {
+  z-index: 5;
+  opacity: .92;
+  filter: drop-shadow(0 12px 20px rgba(0, 0, 0, .3));
+}
+
+.vignettes li[data-cible="oui"] img {
+  border: 2px dashed var(--accent);
+  opacity: .55;
+}
+
+/* Pendant le déplacement, la croix « retirer » ne doit pas capter le doigt. */
+.vignettes[data-glisse="oui"] button:not(.poignee) { pointer-events: none; }
+
+/* --- Chapitres ---------------------------------------------------------- */
+
+.chapitres { list-style: none; padding: 0; margin: 0 0 12px; }
+
+/* Un chapitre repéré est déjà une notion : on lui donne la carte teintée de la
+   fiche, pour que l'élève reconnaisse la même matière d'un écran à l'autre. */
+.chapitres li {
+  background: var(--t0);
+  border: 0;
+  border-radius: var(--rayon-carte);
+  box-shadow: var(--ombre-carte);
+  padding: 18px 20px;
+  margin-bottom: 12px;
+}
+
+.chapitres li:nth-child(6n+2) { background: var(--t1); }
+.chapitres li:nth-child(6n+3) { background: var(--t2); }
+.chapitres li:nth-child(6n+4) { background: var(--t3); }
+.chapitres li:nth-child(6n+5) { background: var(--t4); }
+.chapitres li:nth-child(6n+6) { background: var(--t5); }
+
+.chapitres li[data-actif="non"] { opacity: .48; }
+
+.chapitre-entete { display: flex; align-items: flex-start; gap: 12px; }
+
+.chapitre-entete input[type="checkbox"] {
+  width: 24px;
+  height: 24px;
+  min-height: 24px;
+  margin: 2px 0 0;
+  accent-color: var(--accent);
+  flex: 0 0 auto;
+}
+
+.chapitre-titre { font-weight: 700; margin: 0; }
+.chapitre-notions { font-size: .85rem; color: var(--encre-douce); margin: 8px 0 0; }
+
+.alerte {
+  background: var(--rouge-doux);
+  border: 0;
+  border-left: 3px solid var(--rouge);
+  border-radius: var(--rayon);
+  padding: 14px 16px;
+  margin-bottom: 18px;
+  font-size: .9rem;
+}
+
+.alerte ul { margin: 8px 0 0; padding-left: 20px; }
+.alerte li { margin-bottom: 4px; }
+
+/* --- Carrefour : deux choix de poids strictement égal -------------------- */
+
+.carrefour { display: grid; gap: 14px; }
+
+.case-carrefour {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: var(--t0);
+  border: 0;
+  border-radius: var(--rayon-carte);
+  box-shadow: var(--ombre-carte);
+  padding: 24px;
+  min-height: 132px;
+  color: var(--encre);
+}
+
+.carrefour .case-carrefour:nth-child(2) { background: var(--t3); }
+
+.case-carrefour:active { transform: scale(.985); }
+
+.case-carrefour strong {
+  display: block;
+  font-family: var(--titre);
+  font-weight: 600;
+  font-size: 1.24rem;
+  letter-spacing: -.015em;
+  margin-bottom: 8px;
+}
+
+.case-carrefour span { display: block; font-size: .88rem; color: var(--encre-douce); }
+
+/* --- Fiches -------------------------------------------------------------
+ *
+ * Une fiche qui se déroule est un mur de texte, et un mur de texte sur un
+ * téléphone se scrolle sans se lire. Elle devient donc un paquet de cartes
+ * qu’on fait glisser : une notion par écran, comme les élèves lisent déjà
+ * tout le reste sur leur téléphone.
+ *
+ * L’ambiance change aussi : le reste de l’application est une copie corrigée,
+ * papier froid de salle de classe. La fiche se lit le soir sous une lampe.
+ * Le papier se réchauffe ici, et redevient froid dès le contrôle.
+ *
+ * Chaque carte porte sa teinte et son chiffre géant. « À retenir » est un
+ * trait de surligneur, le geste que l’élève fait dans son propre cahier.
+ */
+
+/* La palette chaude et les six teintes vivent maintenant dans « :root » : la
+ * fiche ne les réservait plus pour elle seule. Il ne reste ici que ce qui
+ * relève de la mise en page du paquet de cartes.
+ */
+
+/* L’écran de fiche occupe toute la hauteur : une carte = un écran, on glisse
+   à l’horizontale et jamais à la verticale. */
+.ecran-fiche {
+  display: flex;
+  flex-direction: column;
+  /* Une hauteur fixe, pas un minimum : sinon le paquet grandit avec son contenu
+     et la carte repasse sous la ligne de flottaison. Ce qu’on retranche, c’est
+     le bandeau et les marges de la scène. */
+  height: calc(100dvh - 106px);
+}
+
+.ecran-fiche h2 {
+  max-width: 18ch;
+  font-size: clamp(1.3rem, 5.2vw, 1.6rem);
+  margin-bottom: 4px;
+}
+
+.fiche-souffle {
+  font-family: var(--mono);
+  font-size: .71rem;
+  letter-spacing: .07em;
+  text-transform: lowercase;
+  color: var(--encre-douce);
+  margin: 8px 0 16px;
+}
+
+/* Sur un écran court, l’en-tête cède la place aux cartes. */
+@media (max-height: 720px) {
+  .ecran-fiche .etape { margin-bottom: 6px; }
+  .ecran-fiche h2 { font-size: 1.22rem; }
+  .fiche-souffle { margin: 6px 0 10px; }
+  .barre-fiche { margin-bottom: 10px; }
+  .bouton-vue { width: 26px; height: 26px; }
+}
+
+/* Les rubans : où on en est, et un raccourci pour y aller. */
+.barre-fiche {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.rubans { display: flex; flex: 1; gap: 5px; }
+
+.bouton-vue {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  min-height: 0;
+  padding: 0;
+  border: 1px solid var(--trait-fort);
+  border-radius: 10px;
+  background: var(--carte);
+  display: grid;
+  place-items: center;
+}
+
+.bouton-vue[data-ouvert="oui"] { background: var(--encre); border-color: var(--encre); }
+
+.grille-icone {
+  display: grid;
+  grid-template-columns: repeat(2, 5px);
+  gap: 3px;
+}
+
+.grille-icone i {
+  width: 5px;
+  height: 5px;
+  border-radius: 1.5px;
+  background: var(--encre-douce);
+}
+
+.bouton-vue[data-ouvert="oui"] .grille-icone i { background: var(--papier); }
+
+/* La fiche vue de dessus : on reconnaît les couleurs qu’on vient de parcourir. */
+.vue-ensemble {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  align-content: start;
+  padding-bottom: 8px;
+  scrollbar-width: none;
+}
+
+.vue-ensemble::-webkit-scrollbar { display: none; }
+
+/* Un bouton rogne son contenu : sans hauteur suffisante et sans titre borné,
+   l’état de la notion se faisait couper en bas de tuile. */
+.tuile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  min-height: 136px;
+  padding: 14px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--t0);
+  text-align: left;
+  color: var(--encre);
+  overflow: hidden;
+}
+
+.tuile[data-teinte="1"] { background: var(--t1); }
+.tuile[data-teinte="2"] { background: var(--t2); }
+.tuile[data-teinte="3"] { background: var(--t3); }
+.tuile[data-teinte="4"] { background: var(--t4); }
+.tuile[data-teinte="5"] { background: var(--t5); }
+
+.tuile-numero {
+  font-family: var(--titre);
+  font-weight: 600;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: color-mix(in srgb, var(--encre) 34%, transparent);
+}
+
+.tuile-titre {
+  font-size: .88rem;
+  font-weight: 600;
+  line-height: 1.32;
+  margin-top: auto;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.tuile-etat {
+  flex: 0 0 auto;
+  font-family: var(--mono);
+  font-size: .62rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--encre) 52%, transparent);
+}
+
+/* Une notion mise de côté se repère au premier coup d’œil. */
+.tuile[data-marque="revoir"] { box-shadow: inset 0 0 0 2px var(--rouge); }
+.tuile[data-marque="revoir"] .tuile-etat { color: var(--rouge); }
+.tuile[data-marque="acquis"] .tuile-etat { color: color-mix(in srgb, var(--encre) 44%, transparent); }
+
+.ruban {
+  flex: 1;
+  height: 4px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--trait);
+  transition: background .25s ease;
+}
+
+.ruban[data-etat="passe"] { background: var(--trait-fort); }
+.ruban[data-etat="ici"] { background: var(--accent); }
+
+/* Une notion mise de côté se voit d’un coup d’œil dans la barre du haut. */
+.ruban[data-revoir="oui"] { background: var(--rouge); }
+
+/* Le paquet déborde de la colonne de lecture : les cartes viennent lécher
+   les bords de l’écran, et celle d’après se devine. */
+.paquet {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  gap: 14px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  margin-inline: calc(-1 * var(--gouttiere));
+  padding: 4px var(--gouttiere) 22px;
+  scrollbar-width: none;
+}
+
+.paquet::-webkit-scrollbar { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .paquet { scroll-behavior: auto; }
+}
+
+.carte-fiche {
+  position: relative;
+  flex: 0 0 min(82vw, 420px);
+  scroll-snap-align: center;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 280px;
+  padding: 26px 24px 24px;
+  border-radius: 22px;
+  background: var(--t0);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--encre) 8%, transparent),
+              0 14px 34px -18px color-mix(in srgb, var(--encre) 32%, transparent);
+  scrollbar-width: none;
+}
+
+.carte-tete { position: relative; flex: 0 0 auto; }
+
+.carte-corps {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-width: none;
+  /* Un dégradé en bas signale qu’il reste du texte sous la ligne de flottaison. */
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 26px), transparent 100%);
+}
+
+.carte-corps::-webkit-scrollbar { display: none; }
+
+.carte-fiche[data-teinte="1"] { background: var(--t1); }
+.carte-fiche[data-teinte="2"] { background: var(--t2); }
+.carte-fiche[data-teinte="3"] { background: var(--t3); }
+.carte-fiche[data-teinte="4"] { background: var(--t4); }
+.carte-fiche[data-teinte="5"] { background: var(--t5); }
+
+/* Le chiffre est l’élément graphique de la carte : énorme, débordant,
+   presque effacé. Il dit où on est sans qu’on ait à lire. */
+.carte-chiffre {
+  position: absolute;
+  top: -14px;
+  right: 8px;
+  font-family: var(--titre);
+  font-weight: 600;
+  font-size: 8.5rem;
+  line-height: 1;
+  letter-spacing: -.05em;
+  color: color-mix(in srgb, var(--encre) 11%, transparent);
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Sur un écran vraiment court, la carte se resserre plutôt que de cacher la
+   moitié de son contenu derrière un défilement que rien ne signale. */
+@media (max-height: 700px) {
+  .carte-chiffre { font-size: 6rem; }
+  .carte-fiche { padding: 20px 20px 18px; }
+  .carte-fiche h3 { font-size: 1.24rem; margin-bottom: 12px; }
+  .points li { font-size: .95rem; line-height: 1.48; margin-bottom: 10px; padding-left: 18px; }
+  .points li::before { top: .62em; }
+  .carte-suite { margin: -8px 0 12px; }
+  .carte-mots dt { margin-top: 12px; font-size: .95rem; }
+  .carte-mots dd { font-size: .9rem; line-height: 1.48; }
+  .liste-pieges li { font-size: .93rem; line-height: 1.48; margin-bottom: 11px; }
+  /* Écran court : la vignette passe en pastille flottante dans le coin, sur le
+     rembourrage de la carte. Elle ne coûte plus une seule ligne de texte —
+     et sur ces écrans-là, une ligne cachée, c’est une ligne non lue. */
+  .provenance {
+    position: absolute;
+    right: 18px;
+    bottom: 14px;
+    margin: 0;
+    padding: 0;
+    min-height: 0;
+    background: none;
+  }
+  .provenance-vignette { width: 30px; height: 30px; }
+  .provenance-texte { display: none; }
+}
+
+.carte-suite {
+  font-family: var(--mono);
+  font-size: .66rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--encre) 46%, transparent);
+  margin: -10px 0 16px;
+}
+
+.carte-etiquette {
+  font-family: var(--mono);
+  font-size: .68rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--encre) 50%, transparent);
+  margin: 0 0 4px;
+}
+
+.carte-fiche h3 {
+  position: relative;
+  font-family: var(--titre);
+  font-weight: 600;
+  font-size: 1.42rem;
+  line-height: 1.18;
+  letter-spacing: -.016em;
+  text-wrap: balance;
+  margin: 0 0 18px;
+  max-width: 19ch;
+}
+
+.points { list-style: none; margin: 0; padding: 0; }
+
+.points li {
+  position: relative;
+  padding-left: 20px;
+  margin-bottom: 14px;
+  font-size: 1.02rem;
+  line-height: 1.62;
+}
+
+.points li::before {
+  content: "";
+  position: absolute;
+  left: 1px;
+  top: .68em;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--encre) 30%, transparent);
+}
+
+.points li:last-child { margin-bottom: 0; }
+
+.carte-retenir .carte-tete { display: none; }
+
+.bloc-retenir { width: 100%; text-align: center; }
+
+/* Masquée, la phrase laisse ses traits de surligneur : on voit qu’il y a
+   quelque chose, et combien, sans pouvoir le lire. C’est ce qui donne envie
+   d’essayer de s’en souvenir. */
+.retenir[data-masque="oui"] mark {
+  color: transparent;
+  user-select: none;
+}
+
+.retenir mark { transition: color .28s ease; }
+
+@media (prefers-reduced-motion: reduce) {
+  .retenir mark { transition: none; }
+}
+
+.reveler {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  margin-top: 28px;
+  padding: 12px;
+  min-height: 52px;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+}
+
+.reveler-question {
+  font-family: var(--titre);
+  font-size: 1.02rem;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--encre) 78%, transparent);
+}
+
+.reveler-geste {
+  font-family: var(--mono);
+  font-size: .68rem;
+  letter-spacing: .1em;
+  color: color-mix(in srgb, var(--encre) 45%, transparent);
+}
+
+/* Reprendre où on s’est arrêté, si on le demande. */
+.reprise-lecture {
+  align-self: flex-start;
+  max-width: 100%;
+  margin: 0 0 14px;
+  padding: 8px 14px;
+  min-height: 40px;
+  border: 1px solid var(--trait-fort);
+  border-radius: 999px;
+  background: var(--carte);
+  font-family: var(--texte);
+  font-size: .85rem;
+  color: var(--encre);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.marques {
+  display: flex;
+  gap: 10px;
+  margin-top: 26px;
+}
+
+/* Attention au nom : « .marque » désigne déjà la signature de la page
+   d’accueil, en capitales. Ces boutons-là portent un autre nom. */
+.bouton-marque {
+  flex: 1;
+  min-height: 46px;
+  padding: 12px 10px;
+  border: 1px solid color-mix(in srgb, var(--encre) 18%, transparent);
+  border-radius: 12px;
+  background: none;
+  font-family: var(--texte);
+  font-size: .92rem;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--encre) 72%, transparent);
+  transition: background .15s ease, border-color .15s ease, color .15s ease;
+}
+
+.bouton-marque[data-choisi="oui"] {
+  background: color-mix(in srgb, var(--encre) 88%, transparent);
+  border-color: transparent;
+  color: var(--papier);
+}
+
+.carte-retenir .carte-corps {
+  display: flex;
+  align-items: center;
+  mask-image: none;
+}
+
+.carte-retenir .carte-etiquette { margin-bottom: 14px; }
+
+.retenir {
+  margin: 0;
+  font-family: var(--titre);
+  font-weight: 600;
+  font-size: clamp(1.15rem, 4.6vw, 1.42rem);
+  /* De l’air entre les lignes pour que les traits de surligneur se détachent,
+     comme des passages successifs de feutre. */
+  line-height: 2;
+  letter-spacing: -.006em;
+}
+
+.retenir mark {
+  background: linear-gradient(
+    103deg,
+    transparent 0%,
+    var(--surligneur) 2.5%,
+    var(--surligneur) 97%,
+    transparent 100%
+  );
+  color: inherit;
+  padding: .1em .3em;
+  border-radius: .18em;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+/* Les mots à connaître */
+.carte-mots dl { margin: 0; }
+.carte-mots dt { font-weight: 700; margin-top: 15px; font-size: 1rem; }
+.carte-mots dt:first-of-type { margin-top: 0; }
+.carte-mots dd {
+  margin: 3px 0 0;
+  color: color-mix(in srgb, var(--encre) 72%, transparent);
+  font-size: .95rem;
+  line-height: 1.58;
+}
+
+/* Les pièges : la partie qui suppose de savoir où les élèves tombent. */
+.carte-pieges { background: var(--t2); }
+.liste-pieges { list-style: none; margin: 0; padding: 0; }
+
+.liste-pieges li {
+  position: relative;
+  padding-left: 24px;
+  margin-bottom: 15px;
+  line-height: 1.58;
+  font-size: .99rem;
+}
+
+.liste-pieges li::before {
+  content: "✕";
+  position: absolute;
+  left: 0;
+  top: .05em;
+  font-size: .82rem;
+  color: color-mix(in srgb, var(--encre) 52%, transparent);
+}
+
+.liste-pieges li:last-child { margin-bottom: 0; }
+
+/* La carte de fin referme la lecture au lieu de la laisser tomber. */
+.carte-fin { background: var(--t3); justify-content: center; text-align: center; }
+.carte-fin h3 { max-width: none; margin-bottom: 12px; font-size: 1.6rem; }
+.carte-fin .mot-fin {
+  color: color-mix(in srgb, var(--encre) 74%, transparent);
+  margin: 0 0 26px;
+  font-size: .98rem;
+  line-height: 1.6;
+}
+.carte-fin .principal { background: var(--encre); color: var(--papier); }
+
+.carte-fin .secondaire {
+  background: none;
+  border-color: color-mix(in srgb, var(--encre) 22%, transparent);
+  color: var(--encre);
+}
+
+.carte-fin .discret { color: color-mix(in srgb, var(--encre) 60%, transparent); }
+
+/* Sur cet écran, la scène rend sa marge basse au paquet. */
+:root[data-ecran="fiche"] #scene {
+  padding-bottom: calc(8px + env(safe-area-inset-bottom));
+}
+
+/* La vignette du cahier, au pied de la carte : un bout de l’écriture de
+   l’élève, sous le texte propre. C’est la preuve que la fiche vient de lui. */
+.provenance {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  /* La marge basse négative fait mordre la vignette dans le rembourrage de la
+     carte : elle coûte 26px de texte au lieu de 56, ce qui compte sur un petit
+     écran où chaque ligne cachée est une ligne non lue. */
+  margin: 8px -6px -16px;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--encre) 5%, transparent);
+  text-align: left;
+  min-height: 34px;
+}
+
+.provenance-vignette {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  object-fit: cover;
+  object-position: top center;
+  flex: 0 0 auto;
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--encre) 22%, transparent);
+}
+
+.provenance-texte {
+  font-family: var(--mono);
+  font-size: .66rem;
+  letter-spacing: .09em;
+  color: color-mix(in srgb, var(--encre) 55%, transparent);
+}
+
+/* Le cahier en grand : fond neutre, la page occupe tout ce qu’elle peut. */
+.visionneuse {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  background: #14110d;
+  padding: max(12px, env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom));
+  gap: 10px;
+}
+
+.visionneuse-barre {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 0 0 auto;
+}
+
+.legende-page {
+  font-family: var(--mono);
+  font-size: .7rem;
+  letter-spacing: .1em;
+  color: rgba(255, 255, 255, .72);
+}
+
+.fermer-visionneuse {
+  width: 40px;
+  height: 40px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .12);
+  color: #fff;
+  font-size: 1rem;
+}
+
+.page-cahier {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  object-fit: contain;
+  border-radius: 10px;
+}
+
+.visionneuse-pied { display: flex; justify-content: space-between; flex: 0 0 auto; }
+
+/* Sur la première page, « précédent » disparaît : « suivant » doit rester
+ * sous le pouce droit plutôt que de sauter à gauche. */
+.page-suivante { margin-left: auto; }
+
+.page-precedente, .page-suivante {
+  width: 44px;
+  height: 44px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .12);
+  color: #fff;
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.fiche-pied { display: flex; justify-content: center; flex: 0 0 auto; }
+
+.lien-outil {
+  background: none;
+  border: 0;
+  color: var(--encre-douce);
+  font-family: var(--texte);
+  font-size: .85rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  padding: 12px 8px;
+  min-height: 44px;
+}
+
+/* Pour qui préfère tout lire d’une traite : les cartes se remettent en colonne. */
+.paquet[data-vue="colonne"] {
+  display: block;
+  flex: none;
+  height: auto;
+  overflow: visible;
+  scroll-snap-type: none;
+  margin-inline: 0;
+  padding-inline: 0;
+}
+
+.ecran-fiche:has(.paquet[data-vue="colonne"]) { height: auto; }
+
+.paquet[data-vue="colonne"] .carte-fiche {
+  height: auto;
+  min-height: 0;
+  margin-bottom: 14px;
+}
+
+.paquet[data-vue="colonne"] .carte-corps {
+  overflow: visible;
+  mask-image: none;
+}
+
+.paquet[data-vue="colonne"] .retenir { margin-top: 0; }
+.paquet[data-vue="colonne"] .carte-retenir .carte-corps { display: block; }
+
+/* --- Le contrôle -------------------------------------------------------- */
+
+.ecran-plein { min-height: 70vh; display: flex; flex-direction: column; }
+
+.barre-controle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.progression { color: var(--encre-douce); }
+
+.chrono {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 1.05rem;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--carte);
+  border: 0;
+  box-shadow: var(--ombre-carte);
+}
+
+.chrono[data-urgent="oui"] { color: var(--papier); background: var(--rouge); }
+
+.jauge { height: 3px; background: var(--trait); border-radius: 999px; overflow: hidden; margin-bottom: 24px; }
+#jauge-remplie { height: 100%; width: 0; background: var(--accent); transition: width .3s ease; }
+
+.partie { color: var(--accent); margin: 0 0 12px; }
+
+/* Le document tient dans la marge, comme une pièce jointe au sujet. */
+.document {
+  margin: 0 0 20px;
+  padding: 18px 20px;
+  background: var(--t4);
+  border: 0;
+  border-radius: var(--rayon-carte);
+  box-shadow: var(--ombre-carte);
+  font-size: .92rem;
+  white-space: pre-wrap;
+}
+
+.enonce {
+  font-family: var(--titre);
+  font-weight: 600;
+  font-size: 1.3rem;
+  line-height: 1.28;
+  letter-spacing: -.012em;
+  text-wrap: pretty;
+  margin-bottom: 18px;
+}
+
+/* --- La correction ------------------------------------------------------ */
+
+.fragiles {
+  background: var(--t0);
+  border: 0;
+  border-radius: var(--rayon-carte);
+  box-shadow: var(--ombre-carte);
+  padding: 22px 24px;
+  margin-bottom: 24px;
+}
+
+.fragiles h3 { font-family: var(--titre); font-size: 1.1rem; font-weight: 600; margin-bottom: 10px; }
+.fragiles ol { margin: 0; padding-left: 20px; }
+.fragiles li { margin-bottom: 10px; }
+.fragiles li::marker { font-family: var(--mono); font-size: .85rem; color: var(--accent); }
+.fragiles li:last-child { margin-bottom: 0; }
+.fragiles b { display: block; }
+.fragiles span { font-size: .88rem; color: var(--encre-douce); }
+
+/* Le filet de gauche, c'est le stylo du prof dans la marge. */
+/* Repliée, une question tient en une ligne ; dépliée, elle donne tout. Neuf
+   questions dépliées, c'était huit écrans et demi de défilement. */
+.carte-correction {
+  background: var(--carte);
+  border: 0;
+  border-left: 4px solid var(--trait-fort);
+  border-radius: 6px var(--rayon-carte) var(--rayon-carte) 6px;
+  box-shadow: var(--ombre-carte);
+  padding: 0 20px 0;
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+
+.carte-correction[open] { padding-bottom: 18px; }
+
+.tete-correction {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 0;
+  cursor: pointer;
+  list-style: none;
+}
+
+.tete-correction::-webkit-details-marker { display: none; }
+
+.numero-correction {
+  flex: 0 0 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-family: var(--mono);
+  font-size: .72rem;
+  background: color-mix(in srgb, var(--encre) 7%, transparent);
+  color: var(--encre-douce);
+}
+
+[data-statut="acquis"] .numero-correction { background: var(--acquis-doux); color: var(--acquis); }
+[data-statut="partiel"] .numero-correction { background: var(--partiel-doux); color: var(--partiel); }
+[data-statut="a_revoir"] .numero-correction { background: var(--rouge-doux); color: var(--rouge); }
+
+.tete-correction .question-correction { flex: 1; min-width: 0; }
+
+.carte-correction[data-statut="acquis"] { border-left-color: var(--acquis); }
+.carte-correction[data-statut="partiel"] { border-left-color: var(--partiel); }
+.carte-correction[data-statut="a_revoir"] { border-left-color: var(--rouge); }
+
+/* En tête de l'énoncé, pas au-dessus : le texte coule autour. */
+.etiquette-statut {
+  font-family: var(--mono);
+  font-size: .6rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  padding: 3px 7px;
+  border-radius: 5px;
+  margin-right: 7px;
+  white-space: nowrap;
+}
+
+[data-statut="acquis"] .etiquette-statut { color: var(--acquis); background: var(--acquis-doux); }
+[data-statut="partiel"] .etiquette-statut { color: var(--partiel); background: var(--partiel-doux); }
+[data-statut="a_revoir"] .etiquette-statut { color: var(--rouge); background: var(--rouge-doux); }
+
+/* Repliée, une question s'abrège : deux lignes suffisent à la reconnaître. */
+.question-correction {
+  font-weight: 700;
+  margin: 2px 0 0;
+  font-size: .94rem;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.carte-correction[open] .question-correction {
+  -webkit-line-clamp: none;
+  margin-bottom: 4px;
+}
+
+.bloc-correction { margin-bottom: 14px; }
+.bloc-correction:last-child { margin-bottom: 0; }
+
+.bloc-titre { color: var(--encre-douce); margin: 0 0 6px; }
+
+.bloc-correction p, .bloc-correction ul { margin: 0; font-size: .93rem; }
+.bloc-correction ul { padding-left: 20px; }
+.bloc-correction li { margin-bottom: 5px; }
+
+.ta-reponse { white-space: pre-wrap; color: var(--encre-douce); font-style: italic; }
+
+/* L’erreur nommée : c’est le stylo rouge dans la marge, on la traite comme telle. */
+.erreur {
+  background: var(--rouge-doux);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: .92rem;
+}
+
+/* Le renvoi au cours, c'est le cœur de la correction : on le pose en bleu,
+   du côté de l'élève, pas en rouge — et pas dans l'ambre du reste de la page,
+   qui le ferait disparaître dans le décor. */
+.repere {
+  background: var(--stylo-eleve-doux);
+  border-left: 3px solid var(--stylo-eleve);
+  border-radius: 8px;
+  padding: 11px 13px;
+  font-size: .9rem;
+}
+
+details.detail-reponse { margin-top: 12px; }
+
+details.detail-reponse summary {
+  font-size: .84rem;
+  color: var(--accent);
+  font-weight: 700;
+  cursor: pointer;
+  padding: 8px 0;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+}
+
+details.detail-reponse p { font-size: .92rem; margin: 0 0 10px; }
+
+/* --- Reprise de session ------------------------------------------------- */
+
+.rappel {
+  background: var(--t3);
+  border: 0;
+  border-radius: var(--rayon-carte);
+  box-shadow: var(--ombre-carte);
+  padding: 18px 20px;
+  margin-bottom: 20px;
+  font-size: .95rem;
+}
+
+.etapes { list-style: none; padding: 0; margin: 0 0 24px; }
+
+.etapes li {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--trait);
+  font-size: .95rem;
+}
+
+.etapes li:last-child { border-bottom: 0; }
+.etapes .marqueur { flex: 0 0 22px; font-family: var(--mono); color: var(--acquis); }
+.etapes li[data-fait="non"] { color: var(--encre-douce); }
+.etapes li[data-fait="non"] .marqueur { color: var(--trait-fort); }
+
+.lien-reprise {
+  background: var(--carte);
+  border: 0;
+  border-radius: var(--rayon-carte);
+  box-shadow: var(--ombre-carte);
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.lien-reprise-titre { font-weight: 700; margin: 0 0 5px; }
+.lien-reprise-aide { font-size: .85rem; color: var(--encre-douce); margin: 0 0 12px; }
+
+.lien-reprise code {
+  display: block;
+  font-family: var(--mono);
+  font-size: .74rem;
+  word-break: break-all;
+  background: var(--papier);
+  border-radius: 6px;
+  padding: 11px;
+  margin-bottom: 10px;
+  color: var(--encre-douce);
+}
+
+/* --- Attente ------------------------------------------------------------ */
+
+.attente {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: var(--gouttiere);
+  background: color-mix(in srgb, var(--papier) 93%, transparent);
+  backdrop-filter: blur(3px);
+}
+
+.attente-boite { text-align: center; max-width: 320px; }
+.attente-boite p { margin: 0; font-weight: 700; }
+.attente-boite .mention { margin-top: 8px; font-weight: 400; }
+
+.pastilles { display: flex; gap: 7px; justify-content: center; margin-bottom: 18px; }
+
+.pastilles i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: pulse 1.3s ease-in-out infinite;
+}
+
+.pastilles i:nth-child(2) { animation-delay: .18s; }
+.pastilles i:nth-child(3) { animation-delay: .36s; }
+
+@keyframes pulse { 0%, 100% { opacity: .25; transform: scale(.8); } 50% { opacity: 1; transform: scale(1); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .pastilles i { animation: none; opacity: .7; }
+}
+
+/* --- Messages ----------------------------------------------------------- */
+
+.message {
+  position: fixed;
+  left: 50%;
+  bottom: calc(20px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 60;
+  width: calc(100% - 2 * var(--gouttiere));
+  max-width: 440px;
+  background: var(--encre);
+  color: var(--papier);
+  border-radius: var(--rayon);
+  padding: 14px 16px;
+  font-size: .9rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .22);
+  /* Le message flotte au-dessus du bouton principal : sans ça, il intercepte
+     les touchers pendant les quelques secondes où il est affiché. */
+  pointer-events: none;
+}
+
+.message[data-ton="alerte"] { background: var(--rouge); color: var(--papier); }
+
+/* --- Dialogue ----------------------------------------------------------- */
+
+dialog {
+  border: 0;
+  border-radius: var(--rayon-carte);
+  padding: 22px;
+  width: min(440px, calc(100vw - 32px));
+  background: var(--carte);
+  color: var(--encre);
+}
+
+dialog::backdrop { background: color-mix(in srgb, var(--encre) 48%, transparent); }
+dialog h3 { margin-top: 0; font-family: var(--titre); font-size: 1.2rem; }
+dialog textarea { min-height: 90px; margin-top: 12px; }
+dialog menu { display: flex; gap: 10px; padding: 0; margin: 16px 0 0; }
+dialog menu button { margin-top: 0; }
+
+/* --- La page publique : une feuille de cahier ---------------------------- */
+
+/*
+ * D'où vient la forme : d'un cahier Seyès. Les lignes tous les 7 px, la
+ * quatrième plus marquée, et le filet rouge de la marge à gauche — c'est
+ * le papier que l'élève a sous les yeux tous les jours, et personne d'autre
+ * n'a exactement ce papier-là.
+ *
+ * Le réglage reste sous la barre du perceptible : il donne une matière à la
+ * page, il ne se met jamais entre l'oeil et le texte. Il n'habille que la
+ * page publique et la copie corrigée — l'outil, lui, est ce qu'on écrit
+ * dessus, et reste sur du papier uni.
+ */
+/* Une page de présentation se parcourt : sa longueur est son propos, à la
+   différence des écrans de l'outil, qui doivent tenir. On la garde néanmoins
+   sous trois écrans et demi, chaque section devant gagner sa place. */
+.ecran-accueil {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e5);
+}
+
+/* La réglure ne court pas sous toute la page : du texte posé sur des lignes se
+   lit moins bien, et une page entièrement rayée fait décor, pas cahier. Elle
+   n'habille que la copie — le seul endroit où elle est vraie. */
+.seyes {
+  --reglure: 26px;
+  background-image:
+    repeating-linear-gradient(to bottom,
+      transparent 0 calc(var(--reglure) / 4 - 1px),
+      var(--seyes) calc(var(--reglure) / 4 - 1px) calc(var(--reglure) / 4)),
+    repeating-linear-gradient(to bottom,
+      transparent 0 calc(var(--reglure) - 1px),
+      var(--seyes-fort) calc(var(--reglure) - 1px) var(--reglure));
+}
+
+/* --- Le héros ------------------------------------------------------------ */
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e3);
+}
+
+.hero-actions { display: flex; flex-direction: column; gap: 4px; }
+.hero-actions .principal { margin-top: var(--e2); }
+.hero-actions .hero-rangee { margin-top: var(--e2); }
+.hero-rangee .principal { margin-top: 0; }
+.hero-actions .discret { margin-top: 0; }
+.hero .chapeau { margin: 0; max-width: 34ch; }
+
+/* Le titre porte l'axe optique de Fraunces : à cette taille, un dessin plus
+   contrasté et plus serré, comme une fonte de titrage l'a toujours été. */
+h1 {
+  font-variation-settings: "opsz" 120;
+}
+
+/* La copie corrigée : la thèse du produit en un objet. Elle est posée sur la
+   table, très légèrement de travers — une feuille ne tombe jamais droite. */
+.copie {
+  position: relative;
+  transform: rotate(-.5deg);
+}
+
+.copie::before {
+  /* le pli d'une feuille qu'on a pliée en deux dans son sac */
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(to right,
+    transparent 48%, color-mix(in srgb, var(--encre) 5%, transparent) 50%, transparent 52%);
+  border-radius: inherit;
+}
+
+/* --- L'entrée : connexion, inscription, mot de passe oublié ---------------
+ *
+ * Deux onglets, parce qu'il y a deux gestes différents : revenir chez soi, ou
+ * ouvrir un compte. Plus deux volets de secours pour le mot de passe oublié.
+ *
+ * C'est le seul écran où l'élève confie quelque chose. La marque y est donc
+ * grande — 72 px contre 32 ailleurs — parce qu'on ne donne pas son mot de passe
+ * à un logo qu'on distingue à peine.
+ */
+.ecran-connexion {
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--e4);
+  padding-top: var(--e5);
+}
+
+.entree-marque {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 2px;
+}
+
+.logo-geant {
+  width: 72px;
+  height: 72px;
+  border-radius: 19px;
+  box-shadow: 0 2px 4px color-mix(in srgb, var(--encre) 12%, transparent),
+              0 18px 36px -18px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+.entree-nom {
+  margin: 14px 0 0;
+  font-family: var(--titre);
+  font-weight: 600;
+  font-size: 1.7rem;
+  letter-spacing: -.015em;
+  color: var(--encre);
+}
+
+.entree-accroche {
+  margin: 0;
+  font-size: .92rem;
+  color: var(--encre-douce);
+}
+
+.entree-carte {
+  width: 100%;
+  /* « background-color », pas le raccourci : « .seyes » pose la réglure en
+     background-image, et le raccourci l'effacerait. */
+  background-color: var(--carte);
+  border: 1px solid var(--trait);
+  border-radius: var(--rayon-grand, 20px);
+  box-shadow: var(--ombre-carte);
+  padding: var(--e4);
+}
+
+.entree-volet { display: block; }
+.entree-volet[hidden] { display: none; }
+
+.entree-titre {
+  margin: 0;
+  font-family: var(--titre);
+  font-size: 1.22rem;
+  font-weight: 600;
+  letter-spacing: -.01em;
+}
+
+.entree-aide {
+  margin: 8px 0 0;
+  font-size: .88rem;
+  line-height: 1.5;
+  color: var(--encre-douce);
+}
+
+.entree-carte .principal { margin-top: var(--e3); width: 100%; }
+
+/* Le code se lit à voix haute depuis un téléphone posé à côté : il faut des
+   chiffres larges, espacés, et non proportionnels pour qu'ils ne dansent pas. */
+.champ-code {
+  font-family: var(--mono);
+  font-size: 1.6rem;
+  letter-spacing: .34em;
+  text-align: center;
+  padding-left: 16px;
+  padding-right: 0;
+  text-indent: .34em;
+}
+
+/* --- Les onglets ---------------------------------------------------------
+ *
+ * Un rail, deux libellés, et une pastille qui glisse sous celui qui est actif.
+ * Le mouvement dit lequel des deux on vient de quitter — deux fonds qui
+ * s'allument et s'éteignent ne le disent pas.
+ */
+.onglets {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  padding: 3px;
+  margin-bottom: var(--e4);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--encre) 6%, transparent);
+}
+
+.onglet {
+  position: relative;
+  z-index: 1;
+  min-height: 40px;
+  padding: 9px 8px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  font: inherit;
+  font-size: .9rem;
+  font-weight: 600;
+  color: var(--encre-douce);
+  cursor: pointer;
+  transition: color .2s ease;
+}
+
+.onglet[aria-selected="true"] { color: var(--encre); }
+
+.onglet-curseur {
+  position: absolute;
+  z-index: 0;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: calc(50% - 4px);
+  border-radius: 999px;
+  background: var(--carte);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--encre) 14%, transparent),
+              0 6px 14px -8px color-mix(in srgb, var(--encre) 40%, transparent);
+  transition: transform .26s cubic-bezier(.2, .7, .3, 1);
+}
+
+.onglets[data-actif="inscription"] .onglet-curseur { transform: translateX(calc(100% + 2px)); }
+
+@media (prefers-reduced-motion: reduce) {
+  .onglet-curseur { transition: none; }
+}
+
+/* --- Le mot de passe -----------------------------------------------------
+ *
+ * « Voir » plutôt qu'un œil : sur un clavier de téléphone, un mot de passe
+ * qu'on ne peut pas relire est un mot de passe qu'on retape trois fois.
+ */
+.champ-secret { position: relative; }
+
+.champ-secret input {
+  /* La place du bouton, pour que le texte ne passe pas dessous. */
+  padding-right: 68px;
+}
+
+.voir-mdp {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  min-height: 0;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--encre) 6%, transparent);
+  font: inherit;
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--encre-douce);
+  cursor: pointer;
+}
+
+.voir-mdp[aria-pressed="true"] { color: var(--accent); }
+
+/* Trois barres : trop court, ça va, solide. Une jauge dit où on en est pendant
+   qu'on tape ; une liste de règles ne se lit qu'après le refus. */
+.jauge-mdp {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.jauge-mdp i {
+  height: 4px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--encre) 10%, transparent);
+  transition: background .2s ease;
+}
+
+.jauge-mdp[data-force="1"] i:nth-child(1) { background: var(--rouge); }
+.jauge-mdp[data-force="2"] i:nth-child(-n+2) { background: var(--accent); }
+.jauge-mdp[data-force="3"] i { background: var(--acquis, var(--accent)); }
+
+.entree-note {
+  margin: 7px 0 0;
+  font-size: .78rem;
+  line-height: 1.45;
+  color: var(--encre-douce);
+}
+
+.entree-volet label:first-child { margin-top: 0; }
+
+.entree-erreur {
+  margin: 10px 0 0;
+  font-size: .87rem;
+  line-height: 1.45;
+  color: var(--rouge);
+}
+
+/* Le code affiché à l'écran n'existe qu'en démonstration : il se présente donc
+   comme un panneau de chantier, pas comme une partie du produit. */
+.entree-demo {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--accent-doux);
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: .82rem;
+  line-height: 1.5;
+}
+
+.entree-liens {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--e2);
+  margin-top: var(--e3);
+}
+
+.lien-nu {
+  background: none;
+  border: 0;
+  padding: 6px 0;
+  min-height: 0;
+  font: inherit;
+  font-size: .85rem;
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.lien-nu[disabled] { color: var(--encre-douce); text-decoration: none; cursor: default; }
+.lien-danger { color: var(--rouge); }
+
+/* Le compte, tout en bas de sa page : on n'ouvre pas le site pour le gérer.
+   Tenu sur une ligne — c'est de la plomberie, et l'élève est venu pour ses
+   fiches. Une deuxième ligne ici, c'est un écran de moins pour le contenu. */
+.pied-compte {
+  margin-top: var(--e4);
+  padding-top: 14px;
+  border-top: 1px solid var(--trait);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px var(--e2);
+}
+
+.pied-compte-adresse {
+  margin: 0;
+  font-size: .76rem;
+  color: var(--encre-douce);
+  overflow-wrap: anywhere;
+}
+
+.pied-compte-liens { display: flex; gap: var(--e3); }
+.pied-compte .lien-nu { font-size: .78rem; padding: 2px 0; }
+
+@media (min-width: 660px) {
+  .ecran-connexion { padding-top: var(--e6); }
+  .logo-geant { width: 84px; height: 84px; border-radius: 22px; }
+  .entree-nom { font-size: 2rem; }
+  .entree-carte { padding: var(--e5); }
+}
+
+/* --- La marque ------------------------------------------------------------
+ *
+ * « Repère » : ce que le produit rend, littéralement — « où le relire dans ton
+ * cours ». Le dessin le dit en un glyphe : une page réglée, le filet rouge de
+ * la marge, et un passage surligné. Les trois éléments de l'identité, réunis.
+ */
+.marque {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--encre);
+  text-transform: none;
+  letter-spacing: -.01em;
+  font-family: var(--titre);
+  font-weight: 600;
+  font-size: 1.15rem;
+}
+
+.logo-marque {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  border-radius: 8.5px;
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--encre) 14%, transparent);
+}
+
+/* Deux échelles réduites. En dessous de 24 px l'ombre portée ne fait que
+   salir le contour : on l'enlève. */
+.logo-bandeau { width: 22px; height: 22px; border-radius: 6px; box-shadow: none; }
+.logo-pied    { width: 18px; height: 18px; border-radius: 5px; box-shadow: none; }
+
+/* --- Le rond d'accès à sa page -------------------------------------------
+ *
+ * Une bannière large disait « Ma page » sur toute la largeur de l'écran.
+ * Un rond suffit : il porte l'emblème que l'élève a choisi — c'est déjà sa
+ * page — et se pose aussi bien dans un bandeau que dans un héros.
+ */
+.rond-perso {
+  position: relative;
+  flex: 0 0 auto;
+  width: 54px;
+  height: 54px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--carte);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--encre) 12%, transparent),
+              0 10px 22px -12px color-mix(in srgb, var(--encre) 40%, transparent);
+  display: grid;
+  place-items: center;
+  transition: transform .18s cubic-bezier(.2, .7, .3, 1), box-shadow .2s ease;
+}
+
+/* Un anneau clair détache le rond du papier sans lui mettre de bordure. */
+.rond-perso::before {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  border: 1.5px solid color-mix(in srgb, var(--accent) 26%, transparent);
+}
+
+.rond-perso-embleme { font-size: 1.4rem; line-height: 1; }
+
+.rond-perso:active { transform: scale(.94); }
+
+.rond-perso-bandeau {
+  width: 40px;
+  height: 40px;
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--encre) 12%, transparent);
+}
+
+.rond-perso-bandeau .rond-perso-embleme { font-size: 1.05rem; }
+.rond-perso-bandeau::before { inset: 2px; }
+
+/* La pastille ne compte rien : elle dit qu'il y a quelque chose à faire. */
+.rond-perso-pastille {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 2.5px var(--papier);
+}
+
+.rond-perso-pastille[data-urgence="haute"] { background: var(--rouge); }
+
+.rond-perso-bandeau .rond-perso-pastille { width: 10px; height: 10px; top: 0; right: 0; }
+
+.hero-rangee { display: flex; align-items: center; gap: var(--e3); }
+.hero-rangee .principal { flex: 1; margin-top: 0; }
+
+/* Le rond et ses deux mots forment un seul bloc, centré sur la hauteur du
+   bouton principal. Sans la légende, un rond isolé n'annonce rien ; avec une
+   étiquette à sa droite, il redeviendrait la bannière qu'on a retirée. */
+.acces-perso {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.acces-perso-mot {
+  font-family: var(--mono);
+  font-size: .62rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--encre-douce);
+  white-space: nowrap;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .rond-perso:hover {
+    transform: translateY(-2px) scale(1.04);
+    box-shadow: 0 2px 5px color-mix(in srgb, var(--encre) 14%, transparent),
+                0 16px 30px -14px color-mix(in srgb, var(--encre) 45%, transparent);
+  }
+}
+
+/* --- L'aperçu de la fiche -------------------------------------------------
+ *
+ * Le meilleur argument du produit, c'est ce qu'il fabrique. On le montre donc
+ * au lieu de le décrire : un vrai paquet de cartes, qu'on fait glisser du
+ * doigt, avec ses teintes, son surligneur et le renvoi au cahier.
+ */
+.bloc-apercu { gap: var(--e3); }
+
+.apercu { position: relative; }
+
+.apercu-invite {
+  font-family: var(--mono);
+  font-size: .62rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--encre-douce);
+  margin: 0 0 var(--e2);
+}
+
+.paquet-apercu {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  margin-inline: calc(-1 * var(--gouttiere));
+  padding: 4px var(--gouttiere) 18px;
+}
+
+.paquet-apercu::-webkit-scrollbar { display: none; }
+
+.carte-apercu {
+  position: relative;
+  flex: 0 0 min(78vw, 330px);
+  scroll-snap-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 232px;
+  padding: 20px 22px;
+  border-radius: var(--rayon-carte);
+  background: var(--t0);
+  box-shadow: var(--ombre-carte);
+  overflow: hidden;
+}
+
+.carte-apercu[data-teinte="1"] { background: var(--t1); }
+.carte-apercu[data-teinte="3"] { background: var(--t3); }
+
+.apercu-chiffre {
+  position: absolute;
+  top: -10px;
+  right: 10px;
+  font-family: var(--titre);
+  font-weight: 600;
+  font-size: 5.5rem;
+  line-height: 1;
+  letter-spacing: -.05em;
+  color: color-mix(in srgb, var(--encre) 10%, transparent);
+  pointer-events: none;
+}
+
+.carte-apercu h3 {
+  font-family: var(--titre);
+  font-weight: 600;
+  font-size: 1.15rem;
+  line-height: 1.16;
+  letter-spacing: -.015em;
+  margin: 0;
+  padding-right: 44px;
+}
+
+.carte-apercu ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+
+.carte-apercu li {
+  position: relative;
+  padding-left: 16px;
+  font-size: .92rem;
+  line-height: 1.45;
+  color: color-mix(in srgb, var(--encre) 80%, transparent);
+}
+
+.carte-apercu li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: .62em;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--encre) 30%, transparent);
+}
+
+.apercu-etiquette {
+  font-family: var(--mono);
+  font-size: .62rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--encre) 55%, transparent);
+  margin: 0;
+}
+
+.carte-apercu-retenir { justify-content: center; }
+
+.apercu-retenir {
+  font-family: var(--titre);
+  font-weight: 600;
+  font-size: 1.28rem;
+  line-height: 1.5;
+  margin: 0;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+/* Le trait de surligneur, comme dans la fiche : c'est le geste que l'élève
+   fait déjà sur son cahier. */
+.apercu-retenir mark {
+  background: linear-gradient(to bottom,
+    transparent 8%, var(--surligneur) 8%, var(--surligneur) 88%, transparent 88%);
+  color: inherit;
+  padding: .1em .3em;
+  border-radius: .18em;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+.apercu-cahier {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: .62rem;
+  letter-spacing: .08em;
+  color: color-mix(in srgb, var(--encre) 55%, transparent);
+  padding: 5px 7px;
+  margin: 0 -6px -6px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--encre) 5%, transparent);
+}
+
+/* La vignette du cahier, suggérée : une page réglée en miniature. */
+.apercu-cahier i {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+  border-radius: 5px;
+  background:
+    repeating-linear-gradient(to bottom, transparent 0 4px, var(--seyes-fort) 4px 5px),
+    var(--carte);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--encre) 20%, transparent);
+}
+
+/* --- Les blocs ------------------------------------------------------------ */
+
+.bloc { display: flex; flex-direction: column; gap: var(--e4); }
+
+.titre-bloc {
+  color: var(--encre-douce);
+  margin: 0;
+  padding-bottom: var(--e2);
+  border-bottom: 1px solid var(--trait);
+}
+
+.deroule { gap: var(--e4); }
+
+/* Empilés, les trois arguments coûtaient un écran et demi sur un téléphone.
+   Ils défilent latéralement, comme les cartes de fiche et les rangées de
+   « Ma page » : c'est le geste que le produit emploie partout. */
+.arguments {
+  display: flex;
+  /* Explicitement en ligne : une règle plus haut posait la colonne, et sans
+     cette déclaration les trois cartes s'empilaient malgré le défilement. */
+  flex-direction: row;
+  gap: var(--e2);
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  margin-inline: calc(-1 * var(--e3));
+  padding: 2px var(--e3) var(--e2);
+}
+
+.arguments::-webkit-scrollbar { display: none; }
+
+.argument {
+  flex: 0 0 min(74vw, 300px);
+  scroll-snap-align: start;
+}
+
+/* Chaque argument devient une carte teintée : la page publique annonce déjà
+   la matière de l'outil, on reconnaît le produit avant d'être entré dedans. */
+.argument {
+  padding: var(--e4);
+  border: 0;
+  border-radius: var(--rayon-carte);
+  background: var(--t0);
+  box-shadow: var(--ombre-carte);
+}
+
+.arguments .argument:nth-child(2) { background: var(--t3); }
+.arguments .argument:nth-child(3) { background: var(--t4); }
+
+.argument h3 { font-size: 1.06rem; margin-bottom: var(--e1); }
+
+.pied {
+  border-top: 1px solid var(--trait);
+  padding-top: var(--e3);
+  color: var(--encre-douce);
+  font-size: .85rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e2) var(--e4);
+  justify-content: space-between;
+}
+
+.pied-marque {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: .7rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+/* --- Arrivée sur la page : on écrit, on ne fait pas apparaître ----------- */
+
+/* Les éléments du héros montent l'un après l'autre, dans l'ordre où on les
+   lit. Un seul mouvement orchestré vaut mieux que dix effets dispersés. */
+.hero > * { animation: monte .5s cubic-bezier(.2, .7, .3, 1) both; }
+.hero > *:nth-child(1) { animation-delay: .02s; }
+.hero > *:nth-child(2) { animation-delay: .08s; }
+.hero > *:nth-child(3) { animation-delay: .14s; }
+.hero > *:nth-child(4) { animation-delay: .22s; }
+.hero > *:nth-child(5) { animation-delay: .30s; }
+.hero > *:nth-child(6) { animation-delay: .34s; }
+.hero > *:nth-child(7) { animation-delay: .38s; }
+
+@keyframes monte {
+  from { opacity: 0; transform: translateY(14px); }
+}
+
+/* Les blocs suivants n'arrivent qu'au moment où on descend les chercher.
+ *
+ * L'état caché est posé par le script, jamais par la feuille de style : si le
+ * script ne tourne pas — vieux navigateur, erreur, blocage — la page reste
+ * entièrement lisible au lieu de se vider. Du contenu que seul JavaScript
+ * peut faire réapparaître est du contenu qu'on peut perdre. */
+:root[data-revelations="oui"] .a-reveler {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity .55s ease, transform .55s cubic-bezier(.2, .7, .3, 1);
+}
+
+:root[data-revelations="oui"] .a-reveler[data-vu="oui"] { opacity: 1; transform: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .hero > *, .copie { animation: none; transform: none; }
+  .a-reveler { opacity: 1; transform: none; transition: none; }
+}
+
+/* --- La copie : l'annotation s'écrit ------------------------------------
+ *
+ * C'est la thèse du produit en un geste : le prof passe derrière, souligne, et
+ * renvoie au cours. Le trait rouge de la marge apparaît d'abord, le mot suit —
+ * comme une main qui écrit, pas comme un bloc qui s'allume.
+ *
+ * Elle se joue une fois à l'arrivée, pour que l'élève au téléphone la voie
+ * aussi, et se rejoue au survol pour qui a une souris.
+ */
+.copie-note {
+  transition: clip-path .85s cubic-bezier(.25, .8, .35, 1);
+}
+
+.copie[data-ecrit="non"] .copie-note {
+  clip-path: inset(0 100% 0 0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .copie-note { transition: none; }
+  .copie[data-ecrit="non"] .copie-note { clip-path: none; }
+}
+
+/* --- Ma page ----------------------------------------------------------
+ *
+ * Ce n'est pas un profil de réseau social : ni photo, ni public, ni compteur
+ * d'abonnés — l'élève est mineur et il n'y a pas de compte. C'est l'objet que
+ * l'école lui donne déjà : une carte d'élève, puis un classeur.
+ *
+ * Tout empilé, la page faisait plus de trois écrans de haut sur un téléphone,
+ * et grandissait à chaque contrôle passé. Elle tient maintenant en une carte
+ * qui se retourne et des intercalaires : une seule pile ouverte à la fois. La
+ * hauteur ne dépend plus du nombre de séances.
+ */
+
+.ecran-espace { display: flex; flex-direction: column; gap: var(--e4); }
+
+.bandeau-droite { display: flex; align-items: center; gap: var(--e2); }
+
+
+/* --- La carte de l'année -------------------------------------------------
+ *
+ * Une seule carte, rien de caché derrière. Elle empilait trois styles de
+ * conteneurs dans un petit rectangle — une boîte pour l'échéance, une autre
+ * pour les chiffres, le tout dans un troisième. Elle ne porte plus que
+ * l'identité, les trois chiffres et la frise : le reste est sorti à côté.
+ */
+.carte-annee {
+  position: relative;
+  background-color: var(--carte);
+  border-radius: var(--rayon-carte);
+  box-shadow: var(--ombre-carte);
+  padding: var(--e4);
+  padding-left: calc(var(--e4) + 12px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: var(--e3);
+}
+
+/* La teinte choisie dans l'atelier. */
+.carte-annee[data-teinte="0"] { background-color: color-mix(in srgb, var(--t0) 55%, var(--carte)); }
+.carte-annee[data-teinte="1"] { background-color: color-mix(in srgb, var(--t1) 55%, var(--carte)); }
+.carte-annee[data-teinte="2"] { background-color: color-mix(in srgb, var(--t2) 55%, var(--carte)); }
+.carte-annee[data-teinte="3"] { background-color: color-mix(in srgb, var(--t3) 55%, var(--carte)); }
+.carte-annee[data-teinte="4"] { background-color: color-mix(in srgb, var(--t4) 55%, var(--carte)); }
+.carte-annee[data-teinte="5"] { background-color: color-mix(in srgb, var(--t5) 55%, var(--carte)); }
+
+/* Le filet de marge, comme sur une copie double. */
+.carte-annee::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 16px;
+  width: 2px;
+  background: var(--marge);
+}
+
+.annee-haut { display: flex; align-items: center; gap: var(--e3); }
+
+.embleme {
+  flex: 0 0 auto;
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, var(--encre) 10%, transparent);
+  background: color-mix(in srgb, var(--carte) 75%, transparent);
+  font-size: 1.6rem;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  transition: transform .2s cubic-bezier(.2, .7, .3, 1);
+}
+
+.embleme:active { transform: scale(.94) rotate(-8deg); }
+
+.annee-identite { min-width: 0; flex: 1; }
+
+/* Le prénom est écrit en grand : c'est la page de quelqu'un. Sans cadre non
+   plus — un champ encadré au milieu d'une carte fait formulaire. */
+.champ-prenom {
+  width: 100%;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  font-family: var(--titre);
+  font-weight: 600;
+  font-size: clamp(1.7rem, 7vw, 2.1rem);
+  line-height: 1.1;
+  letter-spacing: -.025em;
+  color: var(--encre);
+}
+
+.champ-prenom::placeholder { color: color-mix(in srgb, var(--encre) 26%, transparent); }
+.champ-prenom:focus-visible { outline-offset: 5px; border-radius: 4px; }
+
+.annee-classe {
+  font-family: var(--mono);
+  font-size: .64rem;
+  letter-spacing: .11em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--encre) 58%, transparent);
+  margin: 5px 0 0;
+}
+
+/* Les trois chiffres racontent l'année : ils ont droit à la taille. */
+/* Trois colonnes, jamais un retour à la ligne : en « flex » avec une gouttière
+   fixe, « Contrôles blancs » passait à la ligne sur un écran de 360 px et la
+   carte gagnait 90 px. */
+.annee-chiffres {
+  display: grid;
+  grid-template-columns: repeat(3, auto);
+  justify-content: start;
+  gap: var(--e4);
+  margin: 0;
+  padding-top: var(--e2);
+  border-top: 1px solid color-mix(in srgb, var(--encre) 10%, transparent);
+}
+
+.annee-chiffre { display: flex; flex-direction: column; }
+
+.annee-chiffres dd {
+  margin: 0;
+  font-family: var(--titre);
+  font-weight: 600;
+  font-size: 1.9rem;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.annee-chiffres dt {
+  font-family: var(--mono);
+  font-size: .56rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--encre) 55%, transparent);
+  margin-top: 5px;
+}
+
+/* La frise vit devant, pas au dos : c'est la forme de l'année, la seule chose
+   de cette page qui se regarde plutôt qu'elle ne se lit. */
+.annee-frise { display: flex; flex-direction: column; gap: 7px; }
+
+.frise {
+  display: grid;
+  grid-template-rows: repeat(7, 10px);
+  grid-auto-flow: column;
+  /* Sans largeur explicite, les colonnes s'étirent et la frise se disloque. */
+  grid-auto-columns: 10px;
+  justify-content: start;
+  gap: 3px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.frise::-webkit-scrollbar { display: none; }
+
+.case-frise {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--encre) 8%, transparent);
+}
+
+.case-frise[data-travaille="oui"] { background: color-mix(in srgb, var(--accent) 78%, transparent); }
+.case-frise[data-aujourdhui="oui"] { box-shadow: 0 0 0 2px var(--carte), 0 0 0 3px var(--trait-fort); }
+
+/* Sans légende, personne ne devine que chaque colonne est une semaine. */
+.frise-legende {
+  font-family: var(--mono);
+  font-size: .55rem;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--encre) 48%, transparent);
+  margin: 0;
+}
+
+/* --- La prochaine échéance ----------------------------------------------
+ *
+ * Un objet à part, et pas une boîte dans la carte : c'est la question qu'on
+ * se pose en ouvrant la page, elle mérite sa place.
+ */
+.prochain {
+  display: flex;
+  align-items: center;
+  gap: var(--e3);
+  padding: var(--e3) var(--e4);
+  border-radius: var(--rayon-carte);
+  background: var(--carte);
+  box-shadow: var(--ombre-carte);
+  border-left: 5px solid var(--accent);
+  font-size: .92rem;
+  color: var(--encre-douce);
+}
+
+.prochain[data-urgence="moyenne"] { border-left-color: var(--partiel); }
+.prochain[data-urgence="haute"] { border-left-color: var(--rouge); }
+.prochain[data-urgence="aucune"] { border-left-color: var(--trait-fort); }
+
+.prochain-compte {
+  flex: 0 0 auto;
+  font-family: var(--titre);
+  font-weight: 600;
+  font-size: 1.9rem;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+}
+
+.prochain[data-urgence="moyenne"] .prochain-compte { color: var(--partiel); }
+.prochain[data-urgence="haute"] .prochain-compte { color: var(--rouge); }
+
+.prochain > div { flex: 1; min-width: 0; }
+.prochain-matiere { font-weight: 700; color: var(--encre); margin: 0; font-size: 1rem; }
+.prochain-quand { font-size: .8rem; margin: 2px 0 0; }
+
+.prochain-aller {
+  flex: 0 0 auto;
+  border: 0;
+  background: var(--accent);
+  color: var(--sur-accent);
+  border-radius: 999px;
+  padding: 9px 16px;
+  min-height: 40px;
+  font-size: .84rem;
+  font-weight: 700;
+}
+
+/* --- Le tableau de bord --------------------------------------------------
+ *
+ * Tout était derrière quatre onglets : en arrivant, l'élève voyait son prénom
+ * et une échéance, jamais son année. Les onglets disparaissent au profit d'une
+ * étagère — une tuile par matière, l'année d'un coup d'oeil — et chaque tuile
+ * ouvre tout ce que cette matière contient.
+ */
+.pan { display: flex; flex-direction: column; gap: var(--e2); }
+
+.pan-tete { display: flex; align-items: baseline; justify-content: space-between; gap: var(--e2); }
+
+.pan-titre {
+  font-family: var(--mono);
+  font-size: .66rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--encre) 52%, transparent);
+  margin: 0;
+  font-weight: 500;
+}
+
+.pan-lien {
+  border: 0;
+  background: none;
+  padding: 4px 0;
+  min-height: 32px;
+  font-size: .8rem;
+  font-weight: 700;
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.pan-vide { color: var(--encre-douce); font-size: .9rem; margin: 0; }
+
+/* L'agenda se replie : la prochaine échéance est déjà en haut de page, le
+   calendrier complet sert à planifier, pas à consulter. */
+.pan-pliant {
+  background: var(--carte);
+  border-radius: var(--rayon-carte);
+  box-shadow: var(--ombre-carte);
+  overflow: hidden;
+}
+
+.pan-tete-pliante {
+  display: flex;
+  align-items: center;
+  gap: var(--e2);
+  padding: var(--e3);
+  min-height: 52px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.pan-tete-pliante::-webkit-details-marker { display: none; }
+.pan-tete-pliante .pan-titre { flex: 1; }
+
+.pan-compte {
+  font-family: var(--mono);
+  font-size: .62rem;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--accent-doux);
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.pan-chevron {
+  font-size: .9rem;
+  line-height: 1;
+  color: var(--encre-douce);
+  transition: transform .22s cubic-bezier(.2, .7, .3, 1);
+}
+
+.pan-pliant[open] .pan-chevron { transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) { .pan-chevron { transition: none; } }
+
+.pan-corps { padding: 0 var(--e3) var(--e3); display: flex; flex-direction: column; gap: var(--e2); }
+
+/* --- L'étagère ------------------------------------------------------------ */
+
+.etagere {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--e2);
+}
+
+/* Une tuile de matière : sa couleur, son code, ce qu'elle contient, et
+   l'échéance si elle en a une. C'est l'objet qu'on collectionne au fil de
+   l'année, et celui qu'on ouvre pour travailler. */
+.tuile-matiere {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas:
+    "code echeance"
+    "nom  nom"
+    "chiffres chiffres"
+    "revoir revoir";
+  align-content: start;
+  gap: 6px var(--e2);
+  text-align: left;
+  padding: var(--e3);
+  min-height: 132px;
+  border: 0;
+  border-radius: var(--rayon-carte);
+  background: var(--t0);
+  color: var(--encre);
+  box-shadow: var(--ombre-carte);
+  transition: transform .16s cubic-bezier(.2, .7, .3, 1), box-shadow .2s ease;
+}
+
+.tuile-matiere[data-teinte="1"] { background: var(--t1); }
+.tuile-matiere[data-teinte="2"] { background: var(--t2); }
+.tuile-matiere[data-teinte="3"] { background: var(--t3); }
+.tuile-matiere[data-teinte="4"] { background: var(--t4); }
+.tuile-matiere[data-teinte="5"] { background: var(--t5); }
+
+.tuile-matiere:active { transform: scale(.975); }
+
+.tuile-code {
+  grid-area: code;
+  font-family: var(--mono);
+  font-size: .6rem;
+  letter-spacing: .1em;
+  padding: 4px 8px;
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--carte) 68%, transparent);
+  color: color-mix(in srgb, var(--encre) 70%, transparent);
+  justify-self: start;
+}
+
+.tuile-nom {
+  grid-area: nom;
+  font-family: var(--titre);
+  font-weight: 600;
+  font-size: 1.08rem;
+  line-height: 1.15;
+  letter-spacing: -.015em;
+  margin-top: 2px;
+}
+
+.tuile-chiffres {
+  grid-area: chiffres;
+  font-size: .74rem;
+  color: color-mix(in srgb, var(--encre) 58%, transparent);
+}
+
+.tuile-echeance {
+  grid-area: echeance;
+  justify-self: end;
+  font-family: var(--mono);
+  font-size: .66rem;
+  font-variant-numeric: tabular-nums;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--carte) 68%, transparent);
+  color: var(--accent);
+}
+
+.tuile-echeance[data-urgence="moyenne"] { color: var(--partiel); }
+.tuile-echeance[data-urgence="haute"] { background: var(--rouge); color: var(--papier); }
+
+.tuile-revoir {
+  grid-area: revoir;
+  justify-self: start;
+  font-family: var(--mono);
+  font-size: .6rem;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--encre) 55%, transparent);
+  margin-top: 2px;
+}
+
+/* Cinq tuiles rouges sur six, c'est du bruit : le compte reste en gris, et un
+   point rouge signale simplement qu'une notion y est déjà revenue. */
+.tuile-revoir { display: flex; align-items: center; gap: 5px; }
+.tuile-revoir i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--rouge);
+  flex: 0 0 auto;
+}
+
+/* --- La vue d'une matière ------------------------------------------------ */
+
+.ecran-matiere { display: flex; flex-direction: column; gap: var(--e4); }
+
+.retour {
+  align-self: flex-start;
+  border: 0;
+  background: none;
+  padding: 6px 0;
+  min-height: 40px;
+  font-size: .86rem;
+  font-weight: 700;
+  color: var(--encre-douce);
+}
+
+.matiere-tete {
+  display: flex;
+  align-items: center;
+  gap: var(--e3);
+  padding: var(--e4);
+  border-radius: var(--rayon-carte);
+  background: var(--t0);
+  box-shadow: var(--ombre-carte);
+}
+
+.matiere-tete[data-teinte="1"] { background: var(--t1); }
+.matiere-tete[data-teinte="2"] { background: var(--t2); }
+.matiere-tete[data-teinte="3"] { background: var(--t3); }
+.matiere-tete[data-teinte="4"] { background: var(--t4); }
+.matiere-tete[data-teinte="5"] { background: var(--t5); }
+.matiere-tete[data-tout="oui"] { background: var(--carte); }
+
+.matiere-code {
+  flex: 0 0 auto;
+  min-width: 54px;
+  height: 50px;
+  padding: 0 10px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  font-family: var(--mono);
+  font-size: .68rem;
+  letter-spacing: .06em;
+  background: color-mix(in srgb, var(--carte) 70%, transparent);
+  color: color-mix(in srgb, var(--encre) 72%, transparent);
+}
+
+.matiere-nom {
+  font-family: var(--titre);
+  font-weight: 600;
+  font-size: clamp(1.5rem, 6vw, 1.9rem);
+  line-height: 1.1;
+  letter-spacing: -.022em;
+  margin: 0;
+}
+
+.matiere-dessous {
+  font-size: .82rem;
+  color: color-mix(in srgb, var(--encre) 62%, transparent);
+  margin: 4px 0 0;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .tuile-matiere:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 2px 4px color-mix(in srgb, var(--encre) 9%, transparent),
+                0 24px 46px -22px color-mix(in srgb, var(--encre) 40%, transparent);
+  }
+  .pan-lien:hover, .retour:hover { color: var(--encre); }
+}
+
+/* --- L'agenda ------------------------------------------------------------
+ *
+ * Un vrai agenda : l'élève y pose ses dates. Un mois tient en 240 px, une
+ * liste de rendez-vous non. Et un mois se lit d'un coup d'oeil — « c'est
+ * quelle semaine, déjà ? » est la question qu'on se pose.
+ */
+
+.mois-barre { display: flex; align-items: center; justify-content: space-between; gap: var(--e2); }
+
+.mois-titre {
+  margin: 0;
+  font-family: var(--titre);
+  font-weight: 600;
+  font-size: 1.1rem;
+  text-transform: capitalize;
+}
+
+.mois-fleche {
+  width: 40px;
+  height: 40px;
+  min-height: 0;
+  padding: 0;
+  border: 1px solid var(--trait);
+  border-radius: 50%;
+  background: var(--papier);
+  color: var(--encre);
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.jours-semaine, .mois {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+
+.jours-semaine {
+  font-family: var(--mono);
+  font-size: .6rem;
+  letter-spacing: .08em;
+  color: var(--encre-douce);
+  text-align: center;
+  margin-top: 2px;
+}
+
+.jour, .jour-vide { aspect-ratio: 1; border-radius: 9px; }
+
+.jour {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: 0;
+  background: var(--papier);
+  color: var(--encre-douce);
+  font-size: .82rem;
+  padding: 0;
+  min-height: 0;
+  transition: transform .12s ease, background .18s ease;
+}
+
+.jour:active { transform: scale(.92); }
+.jour[data-aujourdhui="oui"] { box-shadow: inset 0 0 0 1.5px var(--trait-fort); color: var(--encre); font-weight: 700; }
+
+/* Un jour occupé porte la couleur de l'échéance, pas un simple point : sur un
+   mois entier, c'est ce qui se voit sans lire. */
+.jour[data-occupe="oui"] { background: var(--t0); color: var(--encre); font-weight: 700; }
+.jour[data-occupe="oui"][data-passe="oui"] { background: var(--papier); color: var(--trait-fort); font-weight: 400; }
+
+/* Le jour choisi passe devant tout le reste. « .jour[data-occupe][data-passe] »
+   compte trois sélecteurs et l'emportait : un jour passé restait pâle même
+   quand on venait de le toucher. */
+.jour[data-choisi="oui"],
+.jour[data-choisi="oui"][data-occupe="oui"],
+.jour[data-choisi="oui"][data-occupe="oui"][data-passe="oui"] {
+  background: var(--accent);
+  color: var(--sur-accent);
+  font-weight: 700;
+}
+
+.jour-points { display: flex; gap: 2px; height: 4px; }
+.jour-points i { width: 4px; height: 4px; border-radius: 50%; background: var(--accent); }
+.jour[data-choisi="oui"] .jour-points i { background: var(--sur-accent); }
+.jour[data-passe="oui"] .jour-points i { background: var(--trait-fort); }
+
+/* --- Le jour choisi ------------------------------------------------------ */
+
+.jour-detail { display: flex; flex-direction: column; gap: 6px; margin-top: var(--e2); }
+
+.jour-detail-titre {
+  font-family: var(--mono);
+  font-size: .64rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--encre-douce);
+  margin: 0;
+}
+
+.rendez-vous {
+  display: flex;
+  align-items: center;
+  gap: var(--e2);
+  padding: 10px 12px;
+  border-radius: var(--rayon);
+  background: var(--papier);
+}
+
+.rendez-vous[data-source="saisi"] { border-left: 3px solid var(--trait-fort); }
+.rendez-vous > div { flex: 1; min-width: 0; }
+.rendez-vous-matiere { font-weight: 700; margin: 0; font-size: .92rem; }
+.rendez-vous-etat { font-size: .78rem; color: var(--encre-douce); margin: 2px 0 0; }
+
+.rendez-vous-action {
+  flex: 0 0 auto;
+  border: 1px solid var(--trait-fort);
+  background: none;
+  color: var(--encre);
+  border-radius: 999px;
+  padding: 7px 12px;
+  min-height: 38px;
+  font-size: .8rem;
+  font-weight: 700;
+}
+
+.rendez-vous-retirer {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--encre-douce);
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.ajout-rv { display: flex; gap: 6px; margin-top: 2px; }
+
+.ajout-rv select {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 34px 10px 12px;
+  font-size: .88rem;
+  box-shadow: none;
+  background-position: right 12px center;
+}
+
+.ajout-rv-valider {
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: var(--rayon);
+  background: var(--accent);
+  color: var(--sur-accent);
+  padding: 0 16px;
+  min-height: 44px;
+  font-weight: 700;
+  font-size: .88rem;
+}
+
+/* --- Ce qui ne tient pas encore ------------------------------------------ */
+
+/* Repliées, six notions tiennent en un demi-écran ; dépliées, c'était un écran
+   par notion. « details » plutôt qu'un accordéon maison : le navigateur sait
+   déjà le faire, au clavier comme au lecteur d'écran. */
+.reviennent { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+
+.revient {
+  border-radius: var(--rayon);
+  background: var(--papier);
+  border-left: 3px solid var(--trait-fort);
+  overflow: hidden;
+}
+
+/* Deux fois, c'est le vrai signal : on le dit avec le stylo du prof. */
+/* Quatre aplats rouges à la suite hurlent au lieu d'alerter. Le filet et le
+   badge suffisent : c'est la répétition qui doit se voir, pas la surface. */
+.revient[data-insistante="oui"] { border-left-color: var(--rouge); border-left-width: 4px; }
+
+.revient-tete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e2);
+  padding: 12px;
+  min-height: 46px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.revient-tete::-webkit-details-marker { display: none; }
+.revient-titre { font-weight: 700; font-size: .94rem; }
+
+.revient-fois {
+  flex: 0 0 auto;
+  font-family: var(--mono);
+  font-size: .64rem;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--encre-douce);
+}
+
+.revient[data-insistante="oui"] .revient-fois {
+  color: var(--rouge);
+  font-weight: 700;
+  font-size: .82rem;
+  letter-spacing: 0;
+}
+
+.revient-corps { padding: 0 12px 12px; }
+
+.revient-matiere {
+  font-family: var(--mono);
+  font-size: .6rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--encre-douce);
+  margin: 0;
+}
+
+.revient-pourquoi { font-size: .88rem; color: var(--encre-douce); margin: 7px 0 0; }
+
+.revient-action {
+  margin-top: 10px;
+  background: none;
+  border: 0;
+  padding: 8px 0;
+  min-height: 40px;
+  color: var(--accent);
+  font-weight: 700;
+  font-size: .86rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* --- Les tiroirs par matière ---------------------------------------------
+ *
+ * Une liste de sept notions à la file ne se lit pas. Rangées par matière dans
+ * des tiroirs, elles tiennent en trois lignes, et on ouvre celle qui concerne
+ * le contrôle de demain.
+ */
+.groupe {
+  position: relative;
+  border-radius: var(--rayon);
+  background: var(--papier);
+  overflow: hidden;
+  padding-left: 7px;
+}
+
+/* Le filet de matière, comme sur les lignes de l'archive : la couleur se lit
+   avant le nom, et six barres grises identiques ne disaient rien. */
+.groupe::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 7px;
+  background: var(--t0);
+}
+
+.groupe[data-teinte="1"]::before { background: var(--t1); }
+.groupe[data-teinte="2"]::before { background: var(--t2); }
+.groupe[data-teinte="3"]::before { background: var(--t3); }
+.groupe[data-teinte="4"]::before { background: var(--t4); }
+.groupe[data-teinte="5"]::before { background: var(--t5); }
+
+.groupe-tete {
+  display: flex;
+  align-items: center;
+  gap: var(--e2);
+  padding: 12px;
+  min-height: 46px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.groupe-tete::-webkit-details-marker { display: none; }
+
+.groupe-nom {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--mono);
+  font-size: .68rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--encre);
+}
+
+.groupe-compte {
+  flex: 0 0 auto;
+  font-family: var(--mono);
+  font-size: .64rem;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--encre) 9%, transparent);
+  color: var(--encre-douce);
+  font-variant-numeric: tabular-nums;
+}
+
+.groupe-chevron {
+  flex: 0 0 auto;
+  font-size: .9rem;
+  line-height: 1;
+  color: var(--encre-douce);
+  transition: transform .22s cubic-bezier(.2, .7, .3, 1);
+}
+
+.groupe[open] .groupe-chevron { transform: rotate(180deg); }
+
+@media (prefers-reduced-motion: reduce) { .groupe-chevron { transition: none; } }
+
+/* Dedans, les notions gardent leur forme mais perdent leur fond : elles sont
+   déjà dans un tiroir, un second cadre ferait empilement de boîtes. */
+.groupe-contenu { list-style: none; margin: 0; padding: 0 8px 8px; display: flex; flex-direction: column; gap: 4px; }
+.groupe-contenu .revient { background: var(--carte); }
+
+/* --- L'archive ------------------------------------------------------------
+ *
+ * Une année d'élève, ce n'est pas quatre fiches : c'est trente, sur six
+ * matières. En rangée qui défile, la trentième était à 3800 px du bord.
+ *
+ * Des lignes, donc — mais des lignes qui donnent envie de les toucher. La
+ * matière n'est plus un filet de 5 px qu'on ne voit pas : c'est une pastille
+ * de couleur avec son code, et un fond légèrement teinté. Trente lignes se
+ * trient alors à l'oeil, sans lire.
+ */
+.archive { display: flex; flex-direction: column; gap: var(--e2); }
+
+.recherche {
+  width: 100%;
+  min-height: 42px;
+  padding: 9px 16px;
+  font-family: var(--texte);
+  font-size: .9rem;
+  color: var(--encre);
+  background: color-mix(in srgb, var(--encre) 4%, transparent);
+  border: 0;
+  border-radius: 999px;
+  box-shadow: none;
+  appearance: none;
+}
+
+.recherche::placeholder { color: color-mix(in srgb, var(--encre) 42%, transparent); }
+.recherche::-webkit-search-cancel-button { -webkit-appearance: none; }
+
+.filtres {
+  display: flex;
+  gap: 5px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin-inline: calc(-1 * var(--e3));
+  padding: 0 var(--e3) 2px;
+  mask-image: linear-gradient(to right, #000 calc(100% - 20px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 20px), transparent 100%);
+}
+
+.filtres::-webkit-scrollbar { display: none; }
+
+.puce {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--encre) 5%, transparent);
+  color: color-mix(in srgb, var(--encre) 62%, transparent);
+  padding: 7px 13px;
+  min-height: 34px;
+  font-size: .76rem;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: background .18s ease, color .18s ease;
+}
+
+.puce-compte {
+  font-family: var(--mono);
+  font-size: .6rem;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  opacity: .65;
+}
+
+/* Une puce active porte la couleur de sa matière — la même que la pastille des
+   lignes qu'elle laisse passer. */
+.puce[aria-pressed="true"] { color: var(--encre); background: var(--t0); }
+.puce[aria-pressed="true"][data-teinte="1"] { background: var(--t1); }
+.puce[aria-pressed="true"][data-teinte="2"] { background: var(--t2); }
+.puce[aria-pressed="true"][data-teinte="3"] { background: var(--t3); }
+.puce[aria-pressed="true"][data-teinte="4"] { background: var(--t4); }
+.puce[aria-pressed="true"][data-teinte="5"] { background: var(--t5); }
+
+.archive-liste { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+
+.archive-mois {
+  font-family: var(--mono);
+  font-size: .58rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--encre) 42%, transparent);
+  margin: var(--e2) 0 1px;
+}
+
+.archive-mois:first-child { margin-top: 0; }
+
+.ligne-archive {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  text-align: left;
+  gap: 12px;
+  padding: 8px 12px 8px 8px;
+  border: 0;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--t0) 34%, var(--carte));
+  color: var(--encre);
+  min-height: 58px;
+  transition: transform .14s ease, background .18s ease;
+}
+
+.ligne-archive[data-teinte="1"] { background: color-mix(in srgb, var(--t1) 34%, var(--carte)); }
+.ligne-archive[data-teinte="2"] { background: color-mix(in srgb, var(--t2) 34%, var(--carte)); }
+.ligne-archive[data-teinte="3"] { background: color-mix(in srgb, var(--t3) 34%, var(--carte)); }
+.ligne-archive[data-teinte="4"] { background: color-mix(in srgb, var(--t4) 34%, var(--carte)); }
+.ligne-archive[data-teinte="5"] { background: color-mix(in srgb, var(--t5) 34%, var(--carte)); }
+
+.ligne-archive:active { transform: scale(.985); }
+
+/* La pastille de matière : la masse de couleur qui ancre la ligne. */
+.ligne-archive-pastille {
+  flex: 0 0 auto;
+  min-width: 46px;
+  font-variant-numeric: tabular-nums;
+  height: 42px;
+  padding: 0 7px;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  font-family: var(--mono);
+  font-size: .62rem;
+  letter-spacing: .04em;
+  font-weight: 500;
+  color: color-mix(in srgb, var(--encre) 72%, transparent);
+  background: var(--t0);
+}
+
+/* Le jour du mois, dans une matière : plus gros, il sert de repère. */
+.ligne-archive-pastille[data-jour="oui"] {
+  font-family: var(--titre);
+  font-weight: 600;
+  font-size: 1.05rem;
+  letter-spacing: -.02em;
+}
+
+.ligne-archive[data-teinte="1"] .ligne-archive-pastille { background: var(--t1); }
+.ligne-archive[data-teinte="2"] .ligne-archive-pastille { background: var(--t2); }
+.ligne-archive[data-teinte="3"] .ligne-archive-pastille { background: var(--t3); }
+.ligne-archive[data-teinte="4"] .ligne-archive-pastille { background: var(--t4); }
+.ligne-archive[data-teinte="5"] .ligne-archive-pastille { background: var(--t5); }
+
+.ligne-archive-corps { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+
+.ligne-archive-titre {
+  font-family: var(--titre);
+  font-weight: 600;
+  font-size: 1rem;
+  line-height: 1.22;
+  letter-spacing: -.012em;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.ligne-archive-bas {
+  font-family: var(--mono);
+  font-size: .6rem;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--encre) 48%, transparent);
+}
+
+.archive-plus {
+  border: 0;
+  background: color-mix(in srgb, var(--encre) 5%, transparent);
+  color: color-mix(in srgb, var(--encre) 66%, transparent);
+  border-radius: 999px;
+  padding: 11px;
+  min-height: 42px;
+  font-size: .82rem;
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+/* --- La lumière du curseur ----------------------------------------------
+ *
+ * Rien n'est éclairé à plat : une carte posée sur la page prend la lumière de
+ * là où on regarde. La lueur suit le pointeur sur tout ce qui est une surface
+ * — la copie, les cartes de fiche, les choix, les blocs de correction.
+ *
+ * Une seule règle pour toutes : la liste ci-dessous est reprise telle quelle
+ * par le script (« ECLAIRABLES » dans app.js), et un test vérifie que les deux
+ * ne divergent pas. Sans ça, on ajoute une carte d'un côté et pas de l'autre,
+ * et elle reste mate sans que personne ne s'en aperçoive.
+ *
+ * --px et --py viennent du script, en fraction de la boîte. Leur valeur de
+ * repli place la lumière au centre : si le script ne tourne pas, la lueur
+ * n'apparaît simplement jamais, faute de survol qui l'allume.
+ */
+
+/* liste-eclairables */
+.copie, .case-carrefour, .argument, .chapitres li, .carte-fiche, .tuile,
+.carte-correction, .fragiles, .document, .rappel, .lien-reprise, .zone-photos {
+  position: relative;
+}
+
+.copie::after, .case-carrefour::after, .argument::after, .chapitres li::after,
+.carte-fiche::after, .tuile::after, .carte-correction::after, .fragiles::after,
+.document::after, .rappel::after, .lien-reprise::after, .zone-photos::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity .32s ease;
+  background: radial-gradient(
+    46% 68% at calc(var(--px, .5) * 100%) calc(var(--py, .5) * 100%),
+    var(--lueur), transparent 72%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .copie::after, .case-carrefour::after, .argument::after, .chapitres li::after,
+  .carte-fiche::after, .tuile::after, .carte-correction::after, .fragiles::after,
+  .document::after, .rappel::after, .lien-reprise::after, .zone-photos::after {
+    display: none;
+  }
+}
+
+/* --- Une bande, pour respirer -------------------------------------------
+ *
+ * Sans rupture, quatre sections sur le même fond se lisent comme une liste.
+ * La bande donne un temps fort au milieu de la page.
+ */
+.bande {
+  background: var(--t5);
+  border-radius: var(--rayon-carte);
+  padding: var(--e5) var(--e4);
+  margin-inline: calc(-1 * var(--e2));
+}
+
+.bande .titre-bloc { border-bottom-color: color-mix(in srgb, var(--encre) 12%, transparent); }
+.bande .argument { background: color-mix(in srgb, var(--carte) 72%, transparent); }
+.bande .arguments .argument:nth-child(2),
+.bande .arguments .argument:nth-child(3) { background: color-mix(in srgb, var(--carte) 72%, transparent); }
+
+/* --- La fin de la page --------------------------------------------------- */
+
+.fin {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--e2);
+  padding: var(--e5) var(--e3);
+  border-radius: var(--rayon-carte);
+  background: var(--t0);
+  box-shadow: var(--ombre-carte);
+}
+
+.fin-titre {
+  font-family: var(--titre);
+  font-weight: 600;
+  font-size: clamp(1.5rem, 6vw, 2rem);
+  line-height: 1.1;
+  letter-spacing: -.02em;
+  text-wrap: balance;
+  margin: 0;
+  max-width: 18ch;
+}
+
+.fin-texte { color: color-mix(in srgb, var(--encre) 68%, transparent); margin: 0; max-width: 34ch; }
+.fin .principal { max-width: 300px; }
+.fin .mention { margin-top: 0; }
+
+/* --- À la souris ---------------------------------------------------------
+ *
+ * Le produit est fait pour le téléphone, mais un élève l'ouvre aussi sur
+ * l'ordinateur du CDI. Une interface qui ne répond pas au survol y paraît
+ * morte. Rien de tout ça n'existe au doigt, où le survol n'a pas de sens et
+ * laisse des états collés.
+ */
+@media (hover: hover) and (pointer: fine) {
+  .principal:hover {
+    background: color-mix(in srgb, var(--accent) 88%, var(--encre));
+    transform: translateY(-1px);
+  }
+
+  .secondaire:hover, .case-carrefour:hover, .argument:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 4px color-mix(in srgb, var(--encre) 9%, transparent),
+                0 22px 44px -22px color-mix(in srgb, var(--encre) 38%, transparent);
+  }
+
+  .case-carrefour, .argument {
+    transition: transform .18s ease, box-shadow .18s ease;
+  }
+
+  .discret:hover, .signalement:hover { color: var(--encre); }
+
+  .provenance:hover { background: color-mix(in srgb, var(--encre) 9%, transparent); }
+
+  .bouton-marque:hover { border-color: var(--accent); }
+
+  /* La copie se redresse et s'éclaire quand on la regarde de près. */
+  .copie {
+    transition: transform .4s cubic-bezier(.2, .7, .3, 1),
+                box-shadow .4s ease;
+  }
+
+  .copie:hover {
+    transform: rotate(0deg) translateY(-3px);
+    box-shadow: 0 3px 6px color-mix(in srgb, var(--encre) 9%, transparent),
+                0 36px 70px -34px color-mix(in srgb, var(--encre) 50%, transparent);
+  }
+
+  .copie:hover::after, .case-carrefour:hover::after, .argument:hover::after,
+  .chapitres li:hover::after, .carte-fiche:hover::after, .tuile:hover::after,
+  .carte-correction:hover::after, .fragiles:hover::after, .document:hover::after,
+  .rappel:hover::after, .lien-reprise:hover::after, .zone-photos:hover::after {
+    opacity: 1;
+  }
+
+  /* L'étape survolée se colore : le numéro passe du creux au plein, comme
+     une case qu'on vient de cocher. */
+  .deroule li { transition: transform .18s ease; }
+  .deroule li:hover { transform: translateY(-2px); }
+
+  .deroule-numero { transition: background .2s ease, color .2s ease, transform .25s cubic-bezier(.2,.7,.3,1); }
+
+  .deroule li:hover .deroule-numero {
+    background: var(--accent);
+    color: var(--sur-accent);
+    transform: scale(1.12);
+  }
+
+  /* Sur une carte de fiche, le chiffre géant se décale un peu : la carte a
+     de l'épaisseur, le chiffre est dessous. */
+  .carte-fiche { transition: box-shadow .3s ease; }
+  .carte-chiffre { transition: transform .45s cubic-bezier(.2, .7, .3, 1), color .3s ease; }
+
+  .carte-fiche:hover {
+    box-shadow: 0 2px 4px color-mix(in srgb, var(--encre) 10%, transparent),
+                0 26px 50px -24px color-mix(in srgb, var(--encre) 42%, transparent);
+  }
+
+  .carte-fiche:hover .carte-chiffre {
+    transform: translate(-6px, 4px);
+    color: color-mix(in srgb, var(--encre) 15%, transparent);
+  }
+
+  /* La vignette du cahier montre un peu plus de la page quand on la vise. */
+  .provenance-vignette { transition: transform .3s cubic-bezier(.2, .7, .3, 1); }
+  .provenance:hover .provenance-vignette { transform: scale(1.14); }
+
+  .vignettes li { transition: transform .2s ease; }
+  .vignettes li:hover { transform: translateY(-3px); }
+  .vignettes li:hover img { border-color: var(--trait-fort); }
+  .poignee { transition: background .2s ease, transform .2s ease; }
+  .poignee:hover { background: var(--accent); transform: scale(1.08); }
+
+  /* Le lien du bandeau et les liens discrets : le trait se dessine. */
+  .signalement { text-decoration-color: transparent; transition: text-decoration-color .2s ease, color .2s ease; }
+  .signalement:hover { text-decoration-color: currentColor; }
+}
+
+/* --- Au doigt ------------------------------------------------------------
+ *
+ * Le survol n'existe pas sur un téléphone, et c'est là que sont les élèves.
+ * L'équivalent tactile, c'est l'appui : tout ce qu'on peut toucher doit
+ * répondre sous le doigt, sinon l'interface paraît morte là où elle compte.
+ */
+.case-carrefour:active, .argument:active, .chapitres li:active { transform: scale(.985); }
+.provenance:active { transform: scale(.97); }
+.vignettes li:active { transform: scale(.97); }
+.deroule li:active .deroule-numero { transform: scale(.92); }
+.bouton-marque:active, .reveler:active { transform: scale(.96); }
+
+.provenance, .bouton-marque, .reveler, .chapitres li,
+.case-carrefour, .argument, .vignettes li, .deroule-numero {
+  transition: transform .12s ease, background .2s ease, border-color .2s ease;
+}
+
+/* --- Au clavier ----------------------------------------------------------
+ *
+ * Qui navigue au clavier doit voir la même chose que qui survole : sans ça,
+ * l'interface s'anime pour les uns et reste plate pour les autres.
+ */
+.case-carrefour:focus-visible, .argument:focus-visible {
+  transform: translateY(-2px);
+}
+
+.provenance:focus-visible .provenance-vignette { transform: scale(1.14); }
+
+.deroule li:focus-within .deroule-numero {
+  background: var(--accent);
+  color: var(--sur-accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .case-carrefour, .argument, .chapitres li, .provenance, .vignettes li,
+  .deroule li, .carte-fiche, .carte-chiffre, .provenance-vignette, .poignee,
+  .bouton-marque, .reveler {
+    transition: none !important;
+    transform: none !important;
+  }
+}
+
+/* --- L'espace personnel sur grand écran ---------------------------------
+ *
+ * En colonne de 620 px au milieu de 1280, la page paraissait vide sur les
+ * côtés. L'élargir sans la structurer aurait fait pire : une colonne étirée.
+ * Elle se déplie donc en vraie mise en page — l'identité et ce qui presse à
+ * gauche, l'étagère en dessous sur toute la largeur.
+ */
+@media (min-width: 860px) {
+  .espace-haut {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+    gap: var(--e4);
+    align-items: start;
+  }
+
+  .espace-haut-droite { display: flex; flex-direction: column; gap: var(--e4); }
+
+  /* La carte remplit sa colonne : sa frise a enfin la place de s'étaler. */
+  .carte-annee { height: 100%; }
+
+  /* Trois colonnes fixes plutôt qu'un remplissage automatique : six matières
+     font alors deux rangées pleines, là où quatre colonnes laissaient deux
+     tuiles orphelines à côté d'un vide. */
+  .etagere { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+  /* Dans une matière, les fiches et les contrôles se lisent côte à côte : ce
+     sont deux listes courtes, les empiler laissait la moitié de l'écran vide. */
+  .matiere-listes {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--e4);
+    align-items: start;
+  }
+}
+
+/* --- Écrans larges ------------------------------------------------------
+ *
+ * L'outil garde sa colonne de lecture : un contrôle se passe dans une largeur
+ * de texte, pas sur trois colonnes. La page publique, elle, se déplie — sans
+ * ça, un élève qui ouvre le site sur l'ordinateur du CDI voit une application
+ * de téléphone posée au milieu d'un écran vide, et n'y croit pas.
+ */
+
+@media (min-width: 700px) {
+  #scene { padding-top: var(--e5); }
+  .carrefour { grid-template-columns: 1fr 1fr; }
+  /* À partir de 700 px les trois tiennent côte à côte : plus besoin de défiler. */
+  .arguments { overflow-x: visible; margin-inline: 0; padding-inline: 0; }
+  .argument { flex: 1 1 0; }
+  .deroule { flex-direction: row; gap: var(--e4); }
+  .deroule li { flex: 1; flex-direction: column; gap: var(--e2); align-items: flex-start; }
+  .deroule-numero { flex: 0 0 auto; }
+  .bande { padding: var(--e6) var(--e5); margin-inline: calc(-1 * var(--e4)); }
+  .copie-reponse { font-size: 1.7rem; }
+  .pied { font-size: .9rem; }
+}
+
+@media (min-width: 900px) {
+  /* Le héros se lit en deux temps : la thèse à gauche, la preuve à droite.
+     La copie corrigée cesse d'être une illustration sous le texte et devient
+     ce qu'on regarde en premier. */
+  .hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+    grid-template-areas:
+      "marque copie"
+      "titre  copie"
+      "chapeau copie"
+      "action copie"
+      "mention copie"
+      "demo   copie";
+    align-content: start;
+    column-gap: var(--e6);
+    row-gap: var(--e3);
+    align-items: start;
+  }
+
+  .hero .marque   { grid-area: marque; }
+  .hero h1        { grid-area: titre; }
+  .hero .chapeau  { grid-area: chapeau; }
+  .hero .copie    { grid-area: copie; align-self: center; }
+  .hero-actions { grid-area: action; align-items: flex-start; }
+  .hero-rangee .principal { width: auto; min-width: 260px; flex: 0 0 auto; }
+  .hero-actions .discret { width: auto; }
+  .hero .mention  { grid-area: mention; text-align: left; margin: 0; }
+  .hero #mention-demo { grid-area: demo; }
+
+  h1 { font-size: clamp(3rem, 4.4vw, 4rem); }
+
+  .copie { transform: rotate(-1.2deg); box-shadow: 0 2px 4px color-mix(in srgb, var(--encre) 8%, transparent),
+             0 30px 60px -30px color-mix(in srgb, var(--encre) 45%, transparent); }
+  .copie-corps { padding: var(--e4); }
+  .copie-question { font-size: .92rem; }
+
+  /* La page prend la marge d'un cahier : le filet rouge à gauche, et les
+     intitulés de section posés dedans, là où un professeur écrit. */
+  .bloc {
+    position: relative;
+    display: grid;
+    grid-template-columns: 210px minmax(0, 1fr);
+    column-gap: var(--e5);
+    align-items: start;
+  }
+
+  /* Le filet de marge, sur toute la hauteur du bloc : dans un cahier il ne
+     s'arrête pas à la fin du titre. L'intitulé se pose dedans, à gauche,
+     là où un professeur écrit. */
+  .bloc::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: calc(210px + var(--e5) / 2 - 1px);
+    width: 2px;
+    background: var(--marge);
+  }
+
+  .titre-bloc {
+    border-bottom: 0;
+    padding: 4px 0 0;
+    position: sticky;
+    top: var(--e5);
+  }
+
+  .arguments, .deroule { grid-column: 2; }
+  .titre-bloc { grid-column: 1; grid-row: 1; }
+
+  .pied { padding-top: var(--e4); }
+}
+
+@media (min-width: 1160px) {
+  #scene { padding-inline: var(--e5); }
+}

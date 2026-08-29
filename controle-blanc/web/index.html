@@ -1,0 +1,645 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#fbf7f2">
+<meta name="theme-color" content="#17130e" media="(prefers-color-scheme: dark)">
+<meta name="description" content="Repère : passe le contrôle avant le contrôle. Photographie ton cours, teste-toi dessus, vois ce qui te manque.">
+<title>Repère — le contrôle avant le contrôle</title>
+<link rel="stylesheet" href="/polices.css">
+<link rel="stylesheet" href="/styles.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8.5' fill='%23a86e14'/><rect x='13.6' y='12.9' width='12.6' height='6.2' rx='3.1' fill='white' fill-opacity='.26'/><g stroke='white' stroke-linecap='round' fill='none'><path d='M11 7v18' stroke-width='1.5' stroke-opacity='.45'/><path d='M15 9.4h11M15 22.6h7.5' stroke-width='2' stroke-opacity='.45'/><path d='M15 16h11' stroke-width='2.4'/></g></svg>">
+</head>
+<body>
+
+<!-- Le glyphe de la marque, défini une fois. « Repère » : le filet de marge
+     d'une page, trois lignes, et celle qu'on est venu relire — surlignée.
+     Les couleurs viennent des variables, donc il suit le thème. -->
+<svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
+  <symbol id="glyphe-repere" viewBox="0 0 32 32">
+    <rect width="32" height="32" rx="8.5" fill="var(--accent)"/>
+    <rect x="13.6" y="12.9" width="12.6" height="6.2" rx="3.1" fill="var(--sur-accent)" fill-opacity=".26"/>
+    <g stroke="var(--sur-accent)" stroke-linecap="round" fill="none">
+      <path d="M11 7v18" stroke-width="1.5" stroke-opacity=".45"/>
+      <path d="M15 9.4h11M15 22.6h7.5" stroke-width="2" stroke-opacity=".45"/>
+      <path d="M15 16h11" stroke-width="2.4"/>
+    </g>
+  </symbol>
+</svg>
+
+<header id="bandeau" hidden>
+  <button type="button" id="bouton-accueil" class="lien-bandeau" aria-label="Revenir à ma session">
+    <svg class="logo-marque logo-bandeau" aria-hidden="true" focusable="false"><use href="#glyphe-repere"/></svg>
+    <span id="bandeau-matiere">Repère</span>
+  </button>
+  <div class="bandeau-droite">
+    <span id="bandeau-compte" class="compte-a-rebours"></span>
+    <button type="button" id="bouton-espace" class="rond-perso rond-perso-bandeau"
+            aria-label="Ouvrir ma page">
+      <span class="rond-perso-embleme" id="bandeau-embleme">✏️</span>
+      <span class="rond-perso-pastille" id="bandeau-pastille" hidden></span>
+    </button>
+  </div>
+</header>
+
+<main id="scene">
+
+<!-- ÉTAPE 0 — accueil -->
+<section id="ecran-accueil" class="ecran ecran-accueil" hidden>
+
+  <div class="hero">
+    <p class="marque">
+      <svg class="logo-marque" aria-hidden="true" focusable="false"><use href="#glyphe-repere"/></svg>
+      <span>Repère</span>
+    </p>
+    <h1>Passe le contrôle<br><em>avant</em> le contrôle.</h1>
+    <p class="chapeau">
+      Photographie ton cours. Passe un vrai contrôle dessus. Découvre ce qui te manque
+      pendant qu’il est encore temps de le réviser.
+    </p>
+
+    <figure class="copie" aria-label="Extrait d’une copie corrigée">
+      <div class="copie-marge"><span class="copie-numero">3</span></div>
+      <div class="copie-corps seyes">
+        <p class="copie-question">Qu’appelle-t-on une « guerre totale » ?</p>
+        <p class="copie-reponse">C’est quand tout le pays travaille pour la guerre, pas seulement les soldats.</p>
+        <p class="copie-note">Juste. Il manque un exemple — ton cours en donne deux, partie III.</p>
+      </div>
+    </figure>
+
+    <div class="hero-actions">
+      <div class="hero-rangee">
+        <button type="button" class="principal" id="bouton-commencer">Commencer</button>
+        <!-- L'accès à sa page : un rond, pas une bannière. Il porte l'emblème
+             que l'élève a choisi, une pastille quand quelque chose l'attend, et
+             deux mots dessous — sans eux, un rond n'annonce rien. -->
+        <span class="acces-perso" id="acces-perso" hidden>
+          <button type="button" class="rond-perso" id="bouton-ma-page"
+                  aria-label="Ouvrir ma page">
+            <span class="rond-perso-embleme" id="rond-embleme">✏️</span>
+            <span class="rond-perso-pastille" id="rond-pastille" hidden></span>
+          </button>
+          <span class="acces-perso-mot" aria-hidden="true">ma page</span>
+        </span>
+      </div>
+      <button type="button" class="discret" id="bouton-reprendre" hidden>Reprendre où j’en étais</button>
+    </div>
+    <p class="mention alerte-demo" id="mention-demo" hidden>Mode démonstration : contenus d’exemple, rien n’est analysé.</p>
+  </div>
+
+  <!-- Ce que le produit fabrique, en vrai et manipulable. Le décrire ne suffit
+       pas : un paquet de cartes qu'on fait glisser se comprend en une seconde. -->
+  <section class="bloc bloc-apercu a-reveler">
+    <p class="titre-bloc">Ta fiche, en vrai</p>
+    <div class="apercu">
+      <p class="apercu-invite">Fais glisser →</p>
+      <div class="paquet-apercu">
+        <article class="carte-apercu" data-teinte="0">
+          <span class="apercu-chiffre" aria-hidden="true">1</span>
+          <h3>Une guerre d’un type nouveau</h3>
+          <ul>
+            <li>Trois phases : mouvement, position, puis mouvement à nouveau.</li>
+            <li>Guerre totale : toutes les ressources du pays sont mobilisées.</li>
+          </ul>
+          <span class="apercu-cahier"><i aria-hidden="true"></i>ton cahier · page 1</span>
+        </article>
+        <article class="carte-apercu carte-apercu-retenir" data-teinte="1">
+          <p class="apercu-etiquette">Notion 1 · à retenir</p>
+          <p class="apercu-retenir"><mark>Guerre totale : le pays entier travaille pour la guerre, pas seulement les soldats.</mark></p>
+          <span class="apercu-cahier"><i aria-hidden="true"></i>ton cahier · page 1</span>
+        </article>
+        <article class="carte-apercu" data-teinte="3">
+          <span class="apercu-chiffre" aria-hidden="true">2</span>
+          <h3>La violence de masse</h3>
+          <ul>
+            <li>Verdun, 1916 : la bataille emblématique de la guerre de position.</li>
+            <li>Génocide des Arméniens, 1915-1916.</li>
+          </ul>
+          <span class="apercu-cahier"><i aria-hidden="true"></i>ton cahier · pages 1 et 2</span>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="bloc a-reveler">
+    <p class="titre-bloc">Comment ça marche</p>
+    <ol class="deroule">
+      <li>
+        <span class="deroule-numero">1</span>
+        <div>
+          <h3>Tu photographies ton cours</h3>
+          <p>Plusieurs pages d’un coup, écriture à la main comprise. Si une photo est illisible, on te le dit tout de suite.</p>
+        </div>
+      </li>
+      <li>
+        <span class="deroule-numero">2</span>
+        <div>
+          <h3>Tu passes le contrôle blanc</h3>
+          <p>Au format réel de la matière, chronométré, sans retour en arrière. Comme le jour J, mais sans conséquence.</p>
+        </div>
+      </li>
+      <li>
+        <span class="deroule-numero">3</span>
+        <div>
+          <h3>Tu vois ce qui te manque</h3>
+          <p>Pour chaque réponse : ce qui manquait, et à quel endroit de <em>ton</em> cours le relire. Puis une fiche courte sur ces notions-là.</p>
+        </div>
+      </li>
+    </ol>
+  </section>
+
+  <section class="bloc bande a-reveler">
+    <p class="titre-bloc">Pourquoi ça marche mieux qu’une fiche</p>
+    <div class="arguments">
+      <div class="argument">
+        <h3>C’est ton cours, pas un cours</h3>
+        <p>Ce qui tombe au contrôle, c’est ce que ton prof a écrit au tableau. Les questions viennent de tes pages à toi.</p>
+      </div>
+      <div class="argument">
+        <h3>Ce que tu rates revient</h3>
+        <p>Les notions que tu manques aujourd’hui te sont reposées demain, autrement. C’est comme ça qu’elles rentrent.</p>
+      </div>
+      <div class="argument">
+        <h3>Aucune note</h3>
+        <p>Jamais de « tu aurais 12 ». Juste les trois notions sur lesquelles tu es fragile, et où les retravailler.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Qui lit jusqu'ici doit avoir où cliquer : une page qui se termine sur un
+       pied de page renvoie son lecteur nulle part. -->
+  <section class="fin a-reveler">
+    <p class="fin-titre">Ton prochain contrôle, c’est quand ?</p>
+    <p class="fin-texte">Prends ton cours en photo. Dix minutes, et tu sais ce qui te manque.</p>
+    <button type="button" class="principal" id="bouton-commencer-bas">Commencer</button>
+  </section>
+
+  <footer class="pied a-reveler">
+    <p class="pied-marque">
+      <svg class="logo-marque logo-pied" aria-hidden="true" focusable="false"><use href="#glyphe-repere"/></svg>
+      <span>Repère</span>
+    </p>
+  </footer>
+
+</section>
+
+<!-- ENTRÉE — connexion et inscription -->
+<section id="ecran-connexion" class="ecran ecran-connexion" hidden>
+
+  <!-- Ici la marque est grande : c'est le seul écran où l'élève confie quelque
+       chose, et il doit voir à qui. -->
+  <div class="entree-marque">
+    <svg class="logo-geant" aria-hidden="true" focusable="false"><use href="#glyphe-repere"/></svg>
+    <p class="entree-nom">Repère</p>
+    <p class="entree-accroche">Passe le contrôle avant le contrôle.</p>
+  </div>
+
+  <div class="entree-carte seyes">
+
+    <!-- Deux onglets, parce qu'il y a deux gestes différents : revenir chez soi,
+         ou ouvrir un compte. Un formulaire unique qui devine lequel se trompe
+         un jour sur deux, et l'élève ne sait jamais ce qu'il vient de faire. -->
+    <div class="onglets" role="tablist" aria-label="Connexion ou inscription">
+      <button type="button" class="onglet" id="onglet-connexion" role="tab"
+              aria-selected="true" aria-controls="volet-connexion">Connexion</button>
+      <button type="button" class="onglet" id="onglet-inscription" role="tab"
+              aria-selected="false" aria-controls="volet-inscription">Inscription</button>
+      <span class="onglet-curseur" id="onglet-curseur" aria-hidden="true"></span>
+    </div>
+
+    <!-- Volet 1 : se connecter. -->
+    <form class="entree-volet" id="volet-connexion" role="tabpanel"
+          aria-labelledby="onglet-connexion" novalidate>
+      <label for="champ-email">Ton adresse mail</label>
+      <input type="email" id="champ-email" name="email" required
+             autocomplete="email" inputmode="email" enterkeyhint="next"
+             spellcheck="false" autocapitalize="off" placeholder="prenom@exemple.fr">
+
+      <label for="champ-mdp">Ton mot de passe</label>
+      <div class="champ-secret">
+        <input type="password" id="champ-mdp" name="password" required
+               autocomplete="current-password" enterkeyhint="go">
+        <button type="button" class="voir-mdp" id="voir-mdp"
+                aria-label="Afficher le mot de passe" aria-pressed="false">Voir</button>
+      </div>
+
+      <p class="entree-erreur" id="erreur-connexion" role="alert" hidden></p>
+      <button type="submit" class="principal" id="bouton-connexion">Se connecter</button>
+      <div class="entree-liens">
+        <button type="button" class="lien-nu" id="bouton-oubli">Mot de passe oublié ?</button>
+        <button type="button" class="lien-nu" id="lien-vers-inscription">Créer un compte</button>
+      </div>
+    </form>
+
+    <!-- Volet 2 : s'inscrire. Prénom et classe ne sont pas de la curiosité : le
+         premier nomme sa page, la seconde règle le niveau des contrôles. Ni nom
+         de famille, ni date de naissance, ni établissement. -->
+    <form class="entree-volet" id="volet-inscription" role="tabpanel"
+          aria-labelledby="onglet-inscription" hidden novalidate>
+      <label for="champ-prenom-inscription">Ton prénom</label>
+      <input type="text" id="champ-prenom-inscription" name="given-name" required
+             autocomplete="given-name" maxlength="40" enterkeyhint="next"
+             placeholder="Lina">
+      <p class="entree-note">Il servira à nommer ta page.</p>
+
+      <label for="champ-classe-inscription">Ta classe</label>
+      <select id="champ-classe-inscription" name="classe"></select>
+      <p class="entree-note">Elle règle le niveau de tes contrôles blancs.</p>
+
+      <label for="champ-email-inscription">Ton adresse mail</label>
+      <input type="email" id="champ-email-inscription" name="email" required
+             autocomplete="email" inputmode="email" enterkeyhint="next"
+             spellcheck="false" autocapitalize="off" placeholder="prenom@exemple.fr">
+
+      <label for="champ-mdp-inscription">Choisis un mot de passe</label>
+      <div class="champ-secret">
+        <input type="password" id="champ-mdp-inscription" name="new-password" required
+               autocomplete="new-password" enterkeyhint="next">
+        <button type="button" class="voir-mdp" id="voir-mdp-inscription"
+                aria-label="Afficher le mot de passe" aria-pressed="false">Voir</button>
+      </div>
+      <!-- La jauge dit où on en est plutôt que d'énumérer des règles à la fin. -->
+      <div class="jauge-mdp" id="jauge-mdp" aria-hidden="true"><i></i><i></i><i></i></div>
+      <p class="entree-note" id="note-mdp">8 caractères au minimum. Trois mots collés
+        valent mieux qu’un mot avec un chiffre au bout.</p>
+
+      <label for="champ-mdp-confirmation">Le même, pour vérifier</label>
+      <div class="champ-secret">
+        <input type="password" id="champ-mdp-confirmation" name="new-password-confirm" required
+               autocomplete="new-password" enterkeyhint="go">
+      </div>
+
+      <p class="entree-erreur" id="erreur-inscription" role="alert" hidden></p>
+      <button type="submit" class="principal" id="bouton-inscription">Créer mon compte</button>
+      <div class="entree-liens">
+        <button type="button" class="lien-nu" id="lien-vers-connexion">J’ai déjà un compte</button>
+      </div>
+    </form>
+
+    <!-- Volet 3 : mot de passe oublié, en deux temps. -->
+    <form class="entree-volet" id="volet-oubli" hidden novalidate>
+      <h2 class="entree-titre">Mot de passe oublié</h2>
+      <p class="entree-aide">On t’envoie un code à six chiffres pour en choisir un nouveau.</p>
+      <label for="champ-email-oubli">Ton adresse mail</label>
+      <input type="email" id="champ-email-oubli" name="email" required
+             autocomplete="email" inputmode="email" enterkeyhint="send"
+             spellcheck="false" autocapitalize="off" placeholder="prenom@exemple.fr">
+      <p class="entree-erreur" id="erreur-oubli" role="alert" hidden></p>
+      <button type="submit" class="principal" id="bouton-envoyer-code">Recevoir un code</button>
+      <div class="entree-liens">
+        <button type="button" class="lien-nu" id="lien-retour-connexion">Revenir à la connexion</button>
+      </div>
+    </form>
+
+    <form class="entree-volet" id="volet-code" hidden novalidate>
+      <h2 class="entree-titre">Ton code est parti</h2>
+      <p class="entree-aide">
+        Regarde dans <b id="rappel-email"></b> — et dans les indésirables, ça arrive.
+      </p>
+      <label for="champ-code">Le code à six chiffres</label>
+      <input type="text" id="champ-code" name="code" required maxlength="6"
+             class="champ-code" inputmode="numeric" pattern="[0-9]*"
+             autocomplete="one-time-code" enterkeyhint="next" placeholder="••••••">
+      <p class="entree-demo" id="code-demonstration" hidden></p>
+
+      <label for="champ-mdp-nouveau">Ton nouveau mot de passe</label>
+      <div class="champ-secret">
+        <input type="password" id="champ-mdp-nouveau" name="new-password" required
+               autocomplete="new-password" enterkeyhint="go">
+        <button type="button" class="voir-mdp" id="voir-mdp-nouveau"
+                aria-label="Afficher le mot de passe" aria-pressed="false">Voir</button>
+      </div>
+      <p class="entree-erreur" id="erreur-code" role="alert" hidden></p>
+      <button type="submit" class="principal" id="bouton-reinitialiser">Changer mon mot de passe</button>
+      <div class="entree-liens">
+        <button type="button" class="lien-nu" id="bouton-renvoyer">Renvoyer le code</button>
+        <button type="button" class="lien-nu" id="bouton-changer-adresse">Changer d’adresse</button>
+      </div>
+    </form>
+
+  </div>
+
+  <button type="button" class="discret" id="bouton-quitter-connexion">Revenir à l’accueil</button>
+</section>
+
+<!-- MA PAGE — tout ce que l’élève a déjà fait, relu depuis son téléphone -->
+<section id="ecran-espace" class="ecran ecran-espace" hidden>
+
+  <!-- Une seule carte, rien de caché. Le retournement était un mécanisme en
+       quête de contenu : la frise, qu'il fallait aller chercher au dos, est
+       la plus belle chose de cette page — elle vit maintenant devant. -->
+  <div class="espace-haut">
+  <div class="carte-annee seyes" id="carte-annee">
+    <div class="annee-haut">
+      <button type="button" id="embleme" class="embleme" aria-label="Changer d’emblème et de couleur"
+              aria-expanded="false" aria-controls="atelier">✏️</button>
+      <div class="annee-identite">
+        <label for="champ-prenom" class="masque">Ton prénom</label>
+        <input type="text" id="champ-prenom" class="champ-prenom" maxlength="24"
+               placeholder="Ton prénom" autocomplete="off" spellcheck="false">
+        <p class="annee-classe" id="carte-classe"></p>
+      </div>
+    </div>
+
+    <dl class="annee-chiffres" id="carte-chiffres"></dl>
+
+    <div class="annee-frise">
+      <div class="frise" id="frise-regularite" aria-hidden="true"></div>
+      <p class="frise-legende" id="frise-legende"></p>
+      <p class="masque" id="texte-regularite"></p>
+    </div>
+  </div>
+
+  <div class="espace-haut-droite">
+    <!-- La prochaine échéance : un objet à part, pas une boîte dans une boîte. -->
+    <div class="prochain" id="prochain"></div>
+
+  <!-- Choisir son emblème et la couleur de sa carte. C'est tout ce qu'il y a
+       à personnaliser, et ça suffit : la carte devient la sienne. -->
+  <div class="atelier" id="atelier" hidden>
+    <p class="atelier-titre">Ton emblème</p>
+    <div class="atelier-choix" id="choix-emblemes"></div>
+    <p class="atelier-titre">La couleur de ta carte</p>
+    <div class="atelier-choix" id="choix-teintes"></div>
+  </div>
+
+  <!-- Ce qui revient. Passe avant tout le reste : c'est la seule chose que ce
+       produit sache dire qu'un cahier ne dit pas. -->
+  <section class="pan" id="pan-revient" hidden>
+    <h2 class="pan-titre">Ce qui ne tient pas encore</h2>
+    <ul class="reviennent" id="liste-reviennent"></ul>
+  </section>
+  </div>
+  </div>
+
+  <!-- L'étagère : une année en un coup d'oeil, une tuile par matière. -->
+  <section class="pan" id="pan-matieres">
+    <div class="pan-tete">
+      <h2 class="pan-titre">Tes matières</h2>
+      <button type="button" class="pan-lien" id="bouton-tout-voir">Tout chercher</button>
+    </div>
+    <div class="etagere" id="etagere"></div>
+    <p class="pan-vide" id="vide-matieres" hidden>Photographie ton premier cours : il s’installera ici.</p>
+  </section>
+
+  <!-- L'agenda, replié : la prochaine échéance est déjà en haut de page. -->
+  <details class="pan pan-pliant" id="pan-agenda">
+    <summary class="pan-tete-pliante">
+      <h2 class="pan-titre">Ton agenda</h2>
+      <span class="pan-compte" id="compte-agenda"></span>
+      <span class="pan-chevron" aria-hidden="true">⌄</span>
+    </summary>
+    <div class="pan-corps">
+      <div class="mois-barre">
+        <button type="button" id="mois-precedent" class="mois-fleche" aria-label="Mois précédent">‹</button>
+        <p class="mois-titre" id="mois-titre" aria-live="polite"></p>
+        <button type="button" id="mois-suivant" class="mois-fleche" aria-label="Mois suivant">›</button>
+      </div>
+      <div class="jours-semaine" aria-hidden="true">
+        <span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span>
+      </div>
+      <div class="mois" id="mois-grille"></div>
+      <div class="jour-detail" id="jour-detail"></div>
+    </div>
+  </details>
+
+  <button type="button" class="principal" id="bouton-espace-nouveau">Photographier un nouveau cours</button>
+  <button type="button" class="discret" id="bouton-quitter-espace">Revenir</button>
+
+  <!-- Le compte, en bas et en petit : on n'ouvre pas le site pour le gérer.
+       Effacer est à côté de sortir, parce que c'est là qu'on le cherche. -->
+  <div class="pied-compte">
+    <p class="pied-compte-adresse" id="compte-adresse"></p>
+    <div class="pied-compte-liens">
+      <button type="button" class="lien-nu" id="bouton-sortir">Se déconnecter</button>
+      <button type="button" class="lien-nu lien-danger" id="bouton-effacer-compte">Effacer mon compte</button>
+    </div>
+  </div>
+</section>
+
+<!-- LA VUE D'UNE MATIÈRE — tout ce qu'elle contient, sans onglet à deviner.
+     Sert aussi de vue « tout », quand aucune matière n'est choisie. -->
+<section id="ecran-matiere" class="ecran ecran-matiere" hidden>
+  <button type="button" class="retour" id="retour-etagere">← Tes matières</button>
+
+  <div class="matiere-tete" id="matiere-tete"></div>
+
+  <section class="pan" id="pan-matiere-revoir" hidden>
+    <h2 class="pan-titre">Ce qui ne tient pas encore</h2>
+    <ul class="reviennent" id="liste-matiere-revoir"></ul>
+    <button type="button" class="archive-plus" id="plus-revoir" hidden></button>
+  </section>
+
+  <div class="matiere-listes">
+  <section class="pan">
+    <div class="archive">
+      <label class="masque" for="recherche-fiches">Chercher une fiche</label>
+      <input type="search" id="recherche-fiches" class="recherche" placeholder="Chercher une fiche…"
+             autocomplete="off" enterkeyhint="search">
+      <div class="filtres" id="filtres-fiches" role="group" aria-label="Filtrer par matière"></div>
+      <h2 class="pan-titre" id="titre-fiches">Ses fiches</h2>
+      <ul class="archive-liste" id="liste-mes-fiches"></ul>
+      <button type="button" class="archive-plus" id="plus-fiches" hidden></button>
+      <p class="pan-vide" id="vide-fiches" hidden>Aucune fiche encore.</p>
+    </div>
+  </section>
+
+  <section class="pan">
+    <div class="archive">
+      <label class="masque" for="recherche-controles">Chercher un contrôle blanc</label>
+      <input type="search" id="recherche-controles" class="recherche" placeholder="Chercher un contrôle…"
+             autocomplete="off" enterkeyhint="search">
+      <div class="filtres" id="filtres-controles" role="group" aria-label="Filtrer par matière"></div>
+      <h2 class="pan-titre" id="titre-controles">Ses contrôles blancs</h2>
+      <ul class="archive-liste" id="liste-mes-controles"></ul>
+      <button type="button" class="archive-plus" id="plus-controles" hidden></button>
+      <p class="pan-vide" id="vide-controles" hidden>Aucun contrôle blanc encore.</p>
+    </div>
+  </section>
+  </div>
+</section>
+
+<!-- ÉTAPE 1a — le contexte -->
+<section id="ecran-contexte" class="ecran" hidden>
+  <p class="etape">Étape 1 sur 5</p>
+  <h2>C’est quoi, ce contrôle ?</h2>
+  <label for="champ-niveau">Ta classe</label>
+  <select id="champ-niveau"></select>
+  <label for="champ-matiere">La matière</label>
+  <select id="champ-matiere"></select>
+  <label for="champ-date">La date du contrôle</label>
+  <input type="date" id="champ-date">
+  <p class="aide" id="aide-date">C’est elle qui rythme tout le reste.</p>
+  <button type="button" class="principal" id="bouton-vers-photos">Continuer</button>
+</section>
+
+<!-- ÉTAPE 1b — les photos -->
+<section id="ecran-photos" class="ecran" hidden>
+  <p class="etape">Étape 2 sur 5</p>
+  <h2>Photographie ton cours</h2>
+  <p class="chapeau">Toutes les pages qui tombent au contrôle. Écriture à la main, pas de souci.</p>
+
+  <label for="champ-photos" class="zone-photos" id="zone-photos">
+    <span class="zone-photos-icone" aria-hidden="true">＋</span>
+    <span class="zone-photos-texte">Ajouter des photos</span>
+    <span class="zone-photos-aide">Plusieurs pages d’un coup</span>
+  </label>
+  <input type="file" id="champ-photos" accept="image/*" multiple hidden>
+
+  <ul id="liste-photos" class="vignettes"></ul>
+  <p class="aide" id="aide-ordre" hidden>L’ordre compte : c’est celui de ton cours. Tire la poignée d’une page pour la déplacer.</p>
+  <p class="masque" id="annonce-photos" role="status" aria-live="polite"></p>
+
+  <button type="button" class="principal" id="bouton-analyser" disabled>Analyser mon cours</button>
+  <p class="aide" id="aide-photos">Le piège n°1, c’est ta propre ombre : mets-toi de côté par rapport à la lumière. Et cadre la page entière, bords compris.</p>
+</section>
+
+<!-- ÉTAPE 2 — confirmer le périmètre -->
+<section id="ecran-perimetre" class="ecran" hidden>
+  <p class="etape">Étape 3 sur 5</p>
+  <h2 id="titre-perimetre">J’ai repéré 1 chapitre.</h2>
+  <p class="chapeau">C’est bien tout ce qui tombe au contrôle ?</p>
+
+  <div id="alerte-photos" class="alerte" hidden></div>
+
+  <ul id="liste-chapitres" class="chapitres"></ul>
+
+  <button type="button" class="principal" id="bouton-perimetre-ok">Oui, c’est tout</button>
+  <button type="button" class="discret" id="bouton-plus-de-photos">Il manque des pages, j’en ajoute</button>
+</section>
+
+<!-- ÉTAPE 3 — le carrefour -->
+<section id="ecran-carrefour" class="ecran" hidden>
+  <p class="etape">Étape 4 sur 5</p>
+  <h2>Par quoi tu commences ?</h2>
+  <p class="chapeau">Les deux marchent. Dans les deux cas tu finiras par passer le contrôle blanc.</p>
+  <div id="cases-carrefour" class="carrefour"></div>
+</section>
+
+<!-- Fiche (générale ou ciblée) -->
+<section id="ecran-fiche" class="ecran ecran-fiche" hidden>
+  <p class="etape" id="etiquette-fiche">Fiche de révision</p>
+  <h2 id="titre-fiche">Fiche</h2>
+  <p class="fiche-souffle" id="fiche-souffle"></p>
+
+  <button type="button" class="reprise-lecture" id="reprise-lecture" hidden></button>
+
+  <div class="barre-fiche">
+    <div class="rubans" id="rubans" role="tablist" aria-label="Notions de la fiche"></div>
+    <button type="button" class="bouton-vue" id="bouton-vue" aria-label="Voir toute la fiche">
+      <span class="grille-icone" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+    </button>
+  </div>
+
+  <div class="vue-ensemble" id="vue-ensemble" hidden></div>
+
+  <div class="paquet" id="paquet"></div>
+
+  <div class="fiche-pied">
+    <button type="button" class="lien-outil" id="bouton-tout-afficher">Tout afficher d’un coup</button>
+  </div>
+</section>
+
+<!-- ÉTAPE 4 — le contrôle blanc -->
+<section id="ecran-controle" class="ecran ecran-plein" hidden>
+  <div class="barre-controle">
+    <span id="progression-controle" class="progression">Question 1 sur 5</span>
+    <span id="chrono" class="chrono" role="timer" aria-live="off">--:--</span>
+  </div>
+  <div class="jauge"><div id="jauge-remplie"></div></div>
+
+  <p class="partie" id="partie-question"></p>
+  <blockquote id="document-question" class="document" hidden></blockquote>
+  <h2 id="enonce-question" class="enonce"></h2>
+
+  <label for="champ-reponse" class="masque">Ta réponse</label>
+  <textarea id="champ-reponse" rows="8" placeholder="Réponds comme au contrôle : rédige."></textarea>
+
+  <button type="button" class="principal" id="bouton-question-suivante">Valider et continuer</button>
+  <button type="button" class="signalement" id="bouton-signaler">Cette question me semble fausse</button>
+  <p class="aide">Pas de retour en arrière, comme le jour J.</p>
+</section>
+
+<!-- ÉTAPE 5 — la correction -->
+<section id="ecran-correction" class="ecran" hidden>
+  <p class="etape">Étape 5 sur 5</p>
+  <h2>Ta correction</h2>
+  <p class="chapeau" id="mot-de-fin"></p>
+
+  <div id="bloc-fragiles" class="fragiles" hidden>
+    <h3>Là où tu es fragile</h3>
+    <ol id="liste-fragiles"></ol>
+  </div>
+
+  <div id="corps-correction"></div>
+
+  <button type="button" class="principal" id="bouton-fiche-ciblee">Ma fiche sur ces notions</button>
+  <button type="button" class="secondaire" id="bouton-second-controle">Me retester sur ces notions</button>
+  <button type="button" class="discret" id="bouton-correction-accueil">Garder ma session pour demain</button>
+</section>
+
+<!-- Tableau de bord de session -->
+<section id="ecran-reprise" class="ecran" hidden>
+  <p class="etape" id="etiquette-reprise">Ma session</p>
+  <h2 id="titre-reprise">On en est là.</h2>
+  <div id="rappel-date" class="rappel"></div>
+
+  <ul id="liste-etapes" class="etapes"></ul>
+
+  <div class="lien-reprise">
+    <p class="lien-reprise-titre">Garde ce lien</p>
+    <p class="lien-reprise-aide">C’est lui qui retrouve ton cours et tes résultats. Envoie-le-toi.</p>
+    <code id="texte-lien"></code>
+    <button type="button" class="secondaire" id="bouton-copier">Copier le lien</button>
+  </div>
+
+  <button type="button" class="principal" id="bouton-continuer-session">Continuer</button>
+  <button type="button" class="discret" id="bouton-nouveau-cours">Commencer un autre cours</button>
+</section>
+
+</main>
+
+<!-- Surcouche d’attente -->
+<div id="attente" class="attente" hidden aria-live="polite">
+  <div class="attente-boite">
+    <div class="pastilles"><i></i><i></i><i></i></div>
+    <p id="attente-texte">Un instant…</p>
+    <p id="attente-sous-texte" class="mention"></p>
+  </div>
+</div>
+
+<!-- Messages -->
+<div id="message" class="message" hidden role="status"></div>
+
+<!-- Le cahier de l’élève, en grand.
+     Les pages ne sortent jamais du téléphone : elles sont relues depuis le
+     stockage du navigateur, jamais redemandées au serveur. -->
+<div id="visionneuse" class="visionneuse" hidden>
+  <div class="visionneuse-barre">
+    <span id="legende-page" class="legende-page"></span>
+    <button id="fermer-visionneuse" type="button" class="fermer-visionneuse" aria-label="Fermer">✕</button>
+  </div>
+  <img id="page-cahier" class="page-cahier" alt="Une page de ton cours">
+  <div class="visionneuse-pied">
+    <button id="page-precedente" type="button" class="page-precedente" aria-label="Page précédente">‹</button>
+    <button id="page-suivante" type="button" class="page-suivante" aria-label="Page suivante">›</button>
+  </div>
+</div>
+
+<!-- Boîte de dialogue de signalement -->
+<dialog id="dialogue-signalement">
+  <form method="dialog">
+    <h3>Qu’est-ce qui ne va pas ?</h3>
+    <p class="aide">Facultatif, mais ça nous aide beaucoup.</p>
+    <textarea id="motif-signalement" rows="3" placeholder="Ce n’est pas dans mon cours, la question n’a pas de sens…"></textarea>
+    <menu>
+      <button value="annuler" class="discret">Annuler</button>
+      <button value="envoyer" class="secondaire">Signaler</button>
+    </menu>
+  </form>
+</dialog>
+
+<script src="/app.js"></script>
+</body>
+</html>
