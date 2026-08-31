@@ -59,6 +59,7 @@ def _usage(reponse: Any) -> dict[str, Any]:
 
 def _appel(
     *,
+    action: str,
     blocs_systeme: list[dict[str, Any]],
     contenu_utilisateur: list[dict[str, Any]],
     schema: dict[str, Any],
@@ -69,7 +70,7 @@ def _appel(
 
     try:
         with client().messages.stream(
-            model=config.MODEL,
+            model=config.modele_pour(action),
             max_tokens=max_tokens,
             system=blocs_systeme,
             messages=[{"role": "user", "content": contenu_utilisateur}],
@@ -158,6 +159,7 @@ def analyser_photos(
     })
 
     return _appel(
+        action="analyse",
         blocs_systeme=[{"type": "text", "text": prompts.ANALYSE_SYSTEME.format(niveau=niveau)}],
         contenu_utilisateur=contenu,
         schema=prompts.SCHEMA_ANALYSE,
@@ -174,6 +176,7 @@ def fiche_generale(
     if config.DEMO_MODE:
         return demo.fiche_generale(chapitres), {}
     return _appel(
+        action="fiche_generale",
         blocs_systeme=_systeme_avec_cours(niveau, chapitres),
         contenu_utilisateur=[{"type": "text", "text": prompts.FICHE_GENERALE_CONSIGNE}],
         schema=prompts.SCHEMA_FICHE,
@@ -192,6 +195,7 @@ def fiche_ciblee(
         for n in notions
     )
     return _appel(
+        action="fiche_ciblee",
         blocs_systeme=_systeme_avec_cours(niveau, chapitres),
         contenu_utilisateur=[
             {"type": "text", "text": prompts.FICHE_CIBLEE_CONSIGNE.format(notions=liste)}
@@ -242,6 +246,7 @@ def generer_controle(
         contrainte_deja_posees=contrainte_deja,
     )
     return _appel(
+        action="controle",
         blocs_systeme=_systeme_avec_cours(niveau, chapitres),
         contenu_utilisateur=[{"type": "text", "text": consigne}],
         schema=prompts.SCHEMA_CONTROLE,
@@ -283,6 +288,7 @@ def corriger(
         copie.append("")
 
     return _appel(
+        action="correction",
         blocs_systeme=_systeme_avec_cours(niveau, chapitres),
         contenu_utilisateur=[
             {"type": "text", "text": "\n".join(copie)},

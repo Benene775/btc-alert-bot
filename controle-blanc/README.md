@@ -399,6 +399,34 @@ Ce qu'il reste du mois s'affiche sous chaque outil de la page perso
 
 ---
 
+## Quel modèle sert quel appel
+
+Deux réglages, parce que les cinq appels n'ont pas le même risque.
+
+| Variable | Appels concernés | Défaut |
+|---|---|---|
+| `CB_MODEL` | l'analyse : le seul appel qui regarde les **photos** | `claude-sonnet-5` |
+| `CB_MODEL_TEXTE` | fiche, fiche ciblée, contrôle, correction | `claude-sonnet-5` |
+
+Un seul appel lit de l'écriture manuscrite, et tout le reste est bâti sur ce
+qu'il en tire : la fiche, le contrôle et la correction lisent la transcription,
+jamais les images. Une ligne mal lue ne reste donc pas locale — elle se propage
+jusque dans la copie corrigée, d'autant que **la transcription n'est jamais
+montrée à l'élève** : il n'a aucun moyen de repérer l'erreur à sa source.
+
+Les deux défauts sont au tarif bas, et c'est un choix de **phase de test** : les
+testeurs sont des élèves qu'on connaît, à qui rien n'est facturé et qu'on a
+prévenus. Faire l'essai sur le modèle cher n'apprendrait rien sur ce qu'on peut
+se permettre ensuite.
+
+Le jour où c'est payant, `CB_MODEL=claude-opus-5` remonte la lecture des photos
+en gamme haute **sans toucher aux quatre autres appels** — on garde donc
+l'essentiel de l'économie. Ce découpage ne coûte aucune lecture de cache : le
+bloc de cours mis en cache ne sert qu'aux appels « texte », l'analyse tournant
+avant que le cours existe.
+
+---
+
 ## Chiffrer le coût
 
 Rien à estimer : **chaque appel enregistre déjà les compteurs que l'API renvoie

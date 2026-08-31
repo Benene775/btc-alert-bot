@@ -26,9 +26,42 @@ def _int(name: str, default: int) -> int:
         return default
 
 
-# Modèle. On ne descend pas en gamme sans décision explicite : la qualité de la
-# lecture d'une écriture manuscrite et de la correction est tout le produit.
-MODEL = os.environ.get("CB_MODEL", "claude-opus-5").strip() or "claude-opus-5"
+# --- Les modèles -----------------------------------------------------------
+#
+# Deux modèles, parce que les cinq appels n'ont pas le même risque.
+#
+# Un seul regarde des PHOTOS d'écriture manuscrite : l'analyse. Et tout le reste
+# est bâti sur ce qu'il en tire — la fiche, le contrôle et la correction lisent
+# la transcription, jamais les images. Une ligne mal lue ne reste donc pas
+# locale : elle se propage, avec assurance, jusque dans la copie corrigée. Un
+# modèle qui dit « je n'arrive pas à lire » est rattrapable ; un modèle qui lit
+# de travers sans le signaler ne l'est pas, d'autant que la transcription n'est
+# jamais montrée à l'élève.
+#
+# PENDANT LA PHASE DE TEST, c'est quand même le modèle le moins cher qui lit les
+# photos. C'est un choix, pas un oubli : les testeurs sont des élèves qu'on
+# connaît, à qui on ne facture rien et qu'on a prévenus qu'il y aurait des
+# ratés. Faire tourner l'essai sur le modèle cher n'apprendrait justement rien
+# sur ce qu'on peut se permettre ensuite.
+#
+# LE JOUR OÙ C'EST PAYANT, cette ligne redevient une décision : soit
+# CB_MODEL=claude-opus-5 pour remettre la lecture des photos en gamme haute
+# (elle seule, les quatre autres appels restant au tarif bas), soit une mesure
+# qui montre que ce n'est pas la peine — voir « Chiffrer le coût » dans le README.
+MODEL = os.environ.get("CB_MODEL", "claude-sonnet-5").strip() or "claude-sonnet-5"
+
+# Les quatre autres appels ne voient jamais les photos : ils raisonnent sur du
+# texte déjà transcrit, et leurs erreurs sont visibles par l'élève — qui a un
+# bouton « signaler ». C'est là que l'économie se prend sans jouer le produit,
+# et c'est le réglage qui restera bas même une fois le produit payant.
+MODELE_TEXTE = os.environ.get("CB_MODEL_TEXTE", "claude-sonnet-5").strip() or "claude-sonnet-5"
+
+
+def modele_pour(action: str) -> str:
+    """Le modèle d'un appel. Découper là ne coûte aucune lecture de cache : le
+    bloc de cours mis en cache ne sert qu'aux appels « texte », puisque l'analyse
+    tourne avant que le cours existe."""
+    return MODEL if action == "analyse" else MODELE_TEXTE
 
 # Mode démonstration : aucun appel API, contenus factices en français.
 # Sert à faire cliquer le prof / les élèves dans tout le parcours sans dépenser.
