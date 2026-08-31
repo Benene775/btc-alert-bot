@@ -3236,6 +3236,9 @@ h1 {
 
 .agenda-deplie[data-ouvert="oui"] { grid-template-rows: 1fr; }
 
+/* Le panneau bascule vers l'avant en s'ouvrant, comme une page qu'on rabat.
+   L'origine est en haut : il pivote depuis la charnière, pas depuis son
+   milieu. C'est ce qui fait qu'on lit « du papier » et pas « une div ». */
 .agenda-dedans {
   overflow: hidden;
   min-height: 0;
@@ -3243,8 +3246,10 @@ h1 {
   flex-direction: column;
   gap: var(--e2);
   opacity: 0;
-  transform: translateY(-6px);
-  transition: opacity .3s ease .08s, transform .3s ease .08s;
+  transform-origin: top center;
+  transform: perspective(1400px) rotateX(-7deg) translateY(-6px);
+  transition: opacity .34s ease .06s,
+              transform .46s cubic-bezier(.18, .78, .28, 1) .06s;
 }
 
 .agenda-deplie[data-ouvert="oui"] .agenda-dedans {
@@ -3253,22 +3258,46 @@ h1 {
   padding-top: var(--e3);
 }
 
-/* Les jours arrivent en cascade : la grille du mois se construit case après
-   case, comme celle de la frise qu'on vient de quitter. */
-.agenda-deplie[data-ouvert="oui"] .jour {
-  animation: jour-arrive .34s cubic-bezier(.2, .7, .3, 1) backwards;
-  animation-delay: calc(var(--i, 0) * 7ms);
+/* La vague. Les jours n'arrivent pas ligne par ligne — ça, c'est un balayage
+   de machine — mais EN DIAGONALE depuis le lundi de la première semaine :
+   --i porte le rang diagonal (colonne + ligne), posé au dessin.
+
+   Elle ne joue qu'à l'ouverture et au changement de mois (data-anime). Sans
+   ce garde-fou elle rejouait à chaque clic sur une date, la grille étant
+   redessinée : la page tremblait sous le doigt de l'élève. */
+.agenda-deplie[data-anime="oui"] .jour {
+  animation: jour-arrive .42s cubic-bezier(.2, .82, .28, 1) backwards;
+  animation-delay: calc(var(--i, 0) * 38ms);
 }
 
 @keyframes jour-arrive {
-  from { opacity: 0; transform: scale(.72); }
-  to { opacity: 1; transform: none; }
+  from { opacity: 0; transform: scale(.55) translateY(-10px); filter: blur(2px); }
+  60%  { opacity: 1; filter: blur(0); }
+  to   { opacity: 1; transform: none; filter: blur(0); }
+}
+
+/* Et une fois la grille posée, ce qui compte s'allume : les dates qui portent
+   un contrôle. C'est l'instant où l'œil arrive — autant qu'il tombe sur ce
+   pour quoi l'élève a ouvert son agenda, pas sur une grille uniforme.
+   Les dates passées ne clignotent pas : elles n'attendent plus rien. */
+.agenda-deplie[data-anime="oui"] .jour[data-occupe="oui"]:not([data-passe="oui"]) {
+  animation: jour-arrive .42s cubic-bezier(.2, .82, .28, 1) backwards,
+             jour-signale .5s ease-out calc(var(--i, 0) * 38ms + .42s) backwards;
+}
+
+@keyframes jour-signale {
+  from { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent); }
+  to   { box-shadow: 0 0 0 9px color-mix(in srgb, var(--accent) 0%, transparent); }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .frise-porte, .frise-chevron, .frise-invite,
   .agenda-deplie, .agenda-dedans { transition: none; }
-  .agenda-deplie[data-ouvert="oui"] .jour { animation: none; }
+  .agenda-dedans { transform: none; }
+  .agenda-deplie[data-anime="oui"] .jour,
+  .agenda-deplie[data-anime="oui"] .jour[data-occupe="oui"]:not([data-passe="oui"]) {
+    animation: none;
+  }
   .frise-porte:hover .case-frise[data-travaille="oui"] { transition-delay: 0s; }
 }
 

@@ -870,8 +870,12 @@ function dessinerMois(sessions) {
     const jour = document.createElement('button');
     jour.type = 'button';
     jour.className = 'jour';
-    // Le rang dans la grille : à l'ouverture, les jours arrivent en cascade.
-    jour.style.setProperty('--i', String(decalage + n - 1));
+    // Le rang DIAGONAL, pas le rang de lecture : la grille se remplit en
+    // biais depuis le lundi de la première semaine, comme la lumière qui
+    // traverse une page. Case après case de gauche à droite, c'est un
+    // balayage de machine ; en diagonale, ça se pose.
+    const rang = decalage + n - 1;
+    jour.style.setProperty('--i', String((rang % 7) + Math.floor(rang / 7)));
     jour.dataset.jour = cle;
     if (cle === aujourdhui) jour.dataset.aujourdhui = 'oui';
     if (cle === jourChoisi) jour.dataset.choisi = 'oui';
@@ -1091,6 +1095,21 @@ function dessinerAtelier() {
  * l'inverse : on attend la fin de la transition pour remettre « hidden », afin
  * que le bloc sorte vraiment de l'ordre de tabulation.
  */
+/* L'animation d'ouverture ne doit jouer qu'à l'ouverture — et au changement de
+ * mois, qui est le même geste. Sans ce marqueur elle rejouait à chaque clic sur
+ * une date : la grille est redessinée à chaque fois, donc les cases sont neuves
+ * et l'animation repartait de zéro sous le doigt de l'élève. */
+const DUREE_VAGUE = 900;
+let minuteurVague = null;
+
+function animerAgenda() {
+  const bloc = $('agenda-deplie');
+  if (!bloc) return;
+  bloc.dataset.anime = 'oui';
+  clearTimeout(minuteurVague);
+  minuteurVague = setTimeout(() => { delete bloc.dataset.anime; }, DUREE_VAGUE);
+}
+
 function basculerAgenda(ouvre) {
   const bloc = $('agenda-deplie');
   const porte = $('bouton-agenda');
@@ -1108,6 +1127,7 @@ function basculerAgenda(ouvre) {
 
   if (ouvre) {
     bloc.hidden = false;
+    animerAgenda();
     requestAnimationFrame(() => requestAnimationFrame(() => {
       bloc.dataset.ouvert = 'oui';
     }));
@@ -4438,8 +4458,9 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   });
 
-  $('mois-precedent').onclick = () => changerMois(-1);
-  $('mois-suivant').onclick = () => changerMois(1);
+  // Changer de mois, c'est ouvrir un autre mois : la vague rejoue.
+  $('mois-precedent').onclick = () => { animerAgenda(); changerMois(-1); };
+  $('mois-suivant').onclick = () => { animerAgenda(); changerMois(1); };
 
   // La carte d'élève : deux réglages, gardés ici et nulle part ailleurs.
   $('champ-prenom').oninput = (evenement) => {
