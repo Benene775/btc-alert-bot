@@ -132,6 +132,28 @@ class SignalementQuestion(BaseModel):
     motif: str = ""
 
 
+# Le classeur qui monte sur le serveur. Mêmes précautions que pour le cours :
+# c'est le navigateur qui décide de la taille, donc c'est ici qu'on la borne.
+# Une séance complète — transcription, fiches, contrôles, corrections — pèse
+# quelques dizaines de kilo-octets ; 400 000 caractères laissent dix fois la
+# marge nécessaire.
+MAX_CAR_SEANCE = 400_000
+MAX_SEANCES_PAR_COMPTE = 300
+
+
+class SeanceRangee(BaseModel):
+    """Une séance poussée par le navigateur.
+
+    contenu est gardé tel quel, sans être relu : le serveur n'a pas à connaître
+    la forme du classeur, et une validation champ par champ ici obligerait à
+    changer le serveur à chaque évolution du navigateur. Il vérifie seulement
+    que c'est du JSON, et que ça tient dans les bornes.
+    """
+
+    contenu: str = Field(max_length=MAX_CAR_SEANCE)
+    maj_le: str = Field(max_length=40)
+
+
 class Evenement(BaseModel):
     session_id: str
     type: str

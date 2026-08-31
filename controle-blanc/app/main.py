@@ -16,6 +16,7 @@ Trois principes de découpage :
 from __future__ import annotations
 
 import html
+import json
 import logging
 import uuid
 from contextlib import asynccontextmanager
@@ -25,7 +26,7 @@ from fastapi import Cookie, Depends, FastAPI, File, Form, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import config, courrier, formats, llm, store
+from . import config, courrier, formats, llm, schemas, store
 from .schemas import (
     Connexion,
     ContexteSession,
@@ -37,6 +38,7 @@ from .schemas import (
     Evenement,
     Inscription,
     Reinitialisation,
+    SeanceRangee,
     SignalementQuestion,
 )
 
@@ -287,6 +289,71 @@ def configuration() -> dict[str, Any]:
         "mode_demonstration": config.DEMO_MODE,
         "max_photos": config.MAX_PHOTOS_PAR_ANALYSE,
     }
+
+
+# --- Le classeur ------------------------------------------------------------
+#
+# Un compte promet qu'on retrouve ses affaires ailleurs. Jusqu'ici le classeur
+# vivait dans le seul navigateur où il avait été fait : changer d'appareil, ou
+# vider ses données, le perdait entièrement. Ces deux routes le font monter.
+#
+# Le modèle est volontairement pauvre : une séance entière, la plus récente
+# gagne. Pas de fusion champ par champ — c'est un élève sur un ou deux
+# appareils, et une fusion se paierait en pertes silencieuses.
+
+@app.get("/api/classeur")
+def lire_classeur(depuis: str = "", compte: dict = Depends(compte_connecte)) -> dict[str, Any]:
+    """Les séances modifiées depuis « depuis ». Sans lui, tout le classeur.
+
+    « maintenant » est l'horodatage à renvoyer au prochain appel : le prendre du
+    serveur évite qu'une horloge de téléphone en avance fasse sauter des séances.
+    """
+    return {
+        "seances": store.lire_classeur(compte["id"], depuis or None),
+        # L'agenda part entier à chaque fois : c'est une liste de dates, elle
+        # pèse quelques centaines d'octets. Le découper par date coûterait plus
+        # de code que ça n'économiserait d'octets.
+        "agenda": store.lire_agenda(compte["id"]),
+        # L'horodatage à renvoyer au prochain appel. Il vient du serveur et se
+        # compare à range_le, jamais à l'heure d'un téléphone.
+        "maintenant": store.maintenant_precis(),
+    }
+
+
+@app.put("/api/agenda")
+def ranger_agenda(corps: SeanceRangee, compte: dict = Depends(compte_connecte)) -> dict[str, Any]:
+    try:
+        json.loads(corps.contenu)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="contenu illisible")
+    return {"range": store.poser_agenda(compte["id"], corps.contenu, corps.maj_le)}
+
+
+@app.put("/api/classeur/{seance_id}")
+def ranger_seance(seance_id: str, corps: SeanceRangee,
+                  compte: dict = Depends(compte_connecte)) -> dict[str, Any]:
+    if not store.session_existe(seance_id, compte["id"]):
+        raise HTTPException(status_code=404, detail="session inconnue")
+    try:
+        json.loads(corps.contenu)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="contenu illisible")
+    # Le plafond ne vaut que pour une séance NOUVELLE : refuser la mise à jour
+    # d'une séance déjà rangée bloquerait un élève au plafond sur son propre
+    # travail — il ne pourrait plus rien sauvegarder de ce qu'il a déjà.
+    if (not store.seance_rangee(compte["id"], seance_id)
+            and store.compter_seances(compte["id"]) >= schemas.MAX_SEANCES_PAR_COMPTE):
+        raise HTTPException(status_code=413, detail="classeur plein")
+    ecrit = store.poser_seance(compte["id"], seance_id, corps.contenu, corps.maj_le)
+    return {"range": ecrit}
+
+
+@app.delete("/api/classeur/{seance_id}")
+def effacer_seance(seance_id: str, compte: dict = Depends(compte_connecte)) -> dict[str, str]:
+    """Effacée sur le téléphone, effacée ici : sinon la synchronisation suivante
+    la ferait revenir, et l'élève ne comprendrait pas."""
+    store.oublier_seance(compte["id"], seance_id)
+    return {"etat": "ok"}
 
 
 # --- Session ----------------------------------------------------------------

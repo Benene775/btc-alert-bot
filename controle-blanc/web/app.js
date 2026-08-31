@@ -26,6 +26,7 @@ let CLE_ETAT = PREFIXE + 'session.';
 let CLE_DERNIERE = PREFIXE + 'derniere';
 let CLE_CARTE = PREFIXE + 'carte';
 let CLE_AGENDA = PREFIXE + 'agenda';
+let CLE_SYNC = PREFIXE + 'sync';
 let BASE_PAGES = 'cb-pages';
 
 function attacherAuCompte(identifiant) {
@@ -34,6 +35,7 @@ function attacherAuCompte(identifiant) {
   CLE_DERNIERE = PREFIXE + 'derniere';
   CLE_CARTE = PREFIXE + 'carte';
   CLE_AGENDA = PREFIXE + 'agenda';
+  CLE_SYNC = PREFIXE + 'sync';
   BASE_PAGES = identifiant ? 'cb-pages-' + identifiant : 'cb-pages';
 }
 
@@ -75,6 +77,9 @@ function etatNeuf(sessionId, lien) {
 
 function sauver() {
   if (!etat) return;
+  // L'horodatage décide qui gagne quand deux appareils ont travaillé sur la
+  // même séance. Il est posé ici, au moment où le contenu change vraiment.
+  etat.majLe = new Date().toISOString();
   try {
     localStorage.setItem(CLE_ETAT + etat.sessionId, JSON.stringify(etat));
     localStorage.setItem(CLE_DERNIERE, etat.sessionId);
@@ -82,6 +87,7 @@ function sauver() {
     // Quota du navigateur plein : on prévient sans casser la séance en cours.
     message("Ton téléphone n’a plus de place pour sauvegarder. Garde bien ton lien.", 'alerte');
   }
+  monterPlusTard(etat.sessionId);
 }
 
 function charger(sessionId) {
@@ -252,6 +258,9 @@ function oublierSession(sessionId) {
   } catch (e) { /* stockage refusé */ }
   // Les pages du cahier de la séance disparue n'ont plus rien à illustrer.
   oublierPages(sessionId);
+  // Et sur le serveur : sans ça, la synchronisation suivante la ferait revenir.
+  if (compte) envoyerJson('/api/classeur/' + encodeURIComponent(sessionId),
+                          null, 'DELETE').catch(() => {});
 }
 
 function menageSessions() {
@@ -744,8 +753,17 @@ function rendezVous() {
 }
 
 function garderRendezVous(liste) {
-  try { localStorage.setItem(CLE_AGENDA, JSON.stringify(liste)); }
-  catch (e) { message("Ton téléphone n’a plus de place pour enregistrer.", 'alerte'); }
+  const maintenant = new Date().toISOString();
+  try {
+    localStorage.setItem(CLE_AGENDA, JSON.stringify(liste));
+    localStorage.setItem(CLE_AGENDA + '.majLe', maintenant);
+  } catch (e) { message("Ton téléphone n’a plus de place pour enregistrer.", 'alerte'); }
+  // L'agenda monte comme les séances : c'est l'élève qui l'écrit, et le perdre
+  // en changeant de téléphone ferait la même impression que perdre un cours.
+  if (compte) {
+    envoyerJson('/api/agenda',
+                { contenu: JSON.stringify(liste), maj_le: maintenant }, 'PUT').catch(() => {});
+  }
 }
 
 function ajouterRendezVous(date, matiere, note) {
@@ -1944,7 +1962,18 @@ async function ouvrirLaPorte(reponse) {
   attacherAuCompte(compte.id);
   adopterProfil();
   majCompte();
+  // Descendre le classeur AVANT le ménage, et avant de montrer quoi que ce
+  // soit. C'est ici que ça se joue pour qui se connecte depuis un appareil
+  // neuf : la synchronisation du démarrage, elle, ne sert que si le cookie
+  // était déjà là. Sans cette ligne, entrer son mot de passe sur l'ordinateur
+  // de la famille donnait une page vide.
+  const descendues = await synchroniser();
   menageSessions();
+  if (descendues) {
+    message(descendues > 1
+      ? 'On a retrouvé tes ' + descendues + ' cours.'
+      : 'On a retrouvé ton cours.');
+  }
   const suite = apresEntree;
   apresEntree = null;
   // Une date posée dans l'agenda dit déjà quoi et quand : on ne redemande pas.
@@ -2068,12 +2097,123 @@ class ErreurApi extends Error {
   }
 }
 
-function envoyerJson(chemin, corps) {
-  return api(chemin, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(corps),
+function envoyerJson(chemin, corps, methode = 'POST') {
+  const options = { method: methode, headers: {} };
+  if (corps !== null && corps !== undefined) {
+    options.headers['Content-Type'] = 'application/json';
+    options.body = JSON.stringify(corps);
+  }
+  return api(chemin, options);
+}
+
+/* ------------------------------------------------------------- classeur --- */
+
+/*
+ * Le classeur, des deux côtés.
+ *
+ * Jusqu'ici tout vivait dans le navigateur où le travail avait été fait :
+ * changer d'appareil, ou vider ses données, perdait le classeur entier — sans
+ * message, sans rien. Pour un élève ce n'est pas un bug, c'est un produit qui a
+ * perdu son travail. Or un compte promet exactement l'inverse.
+ *
+ * Le modèle est volontairement pauvre : une séance entière, la plus récente
+ * gagne (majLe, UTC). Pas de fusion champ par champ — c'est un élève sur un ou
+ * deux appareils, qui travaille rarement sur les deux en même temps, et une
+ * vraie fusion se paierait en pertes silencieuses.
+ *
+ * Le local reste la copie de travail : tout marche hors ligne, la montée se
+ * fait quand elle peut. Ce qui ne monte pas aujourd'hui montera demain.
+ */
+
+const DELAI_MONTEE = 2000;      // on laisse l'élève finir son geste avant d'envoyer
+const aMonter = new Set();
+let minuteurMontee = null;
+
+function monterPlusTard(sessionId) {
+  if (!compte || !sessionId) return;
+  aMonter.add(sessionId);
+  clearTimeout(minuteurMontee);
+  minuteurMontee = setTimeout(viderLaFileDeMontee, DELAI_MONTEE);
+}
+
+async function viderLaFileDeMontee() {
+  if (!compte) return;
+  const lot = [...aMonter];
+  aMonter.clear();
+  for (const sessionId of lot) {
+    const seance = charger(sessionId);
+    if (!seance) continue;
+    try {
+      await envoyerJson('/api/classeur/' + encodeURIComponent(sessionId),
+                        { contenu: JSON.stringify(seance),
+                          maj_le: seance.majLe || new Date().toISOString() }, 'PUT');
+    } catch (e) {
+      // Hors ligne, ou séance inconnue du serveur : le local fait foi, on
+      // réessaiera. Ne rien dire à l'élève : il n'a rien à faire de cette
+      // information, et son travail n'est pas en danger.
+      if (e.genre !== 'session') aMonter.add(sessionId);
+    }
+  }
+}
+
+/* Descendre ce qui a bougé ailleurs, puis pousser ce qui n'est pas encore monté.
+ *
+ * Sans repère de synchronisation, on demande tout : c'est le cas d'un appareil
+ * qui arrive vierge, et c'est précisément celui qu'on veut servir. */
+async function synchroniser() {
+  if (!compte) return;
+  let depuis = '';
+  try { depuis = localStorage.getItem(CLE_SYNC) || ''; } catch (e) { /* stockage refusé */ }
+
+  let reponse;
+  try {
+    reponse = await api('/api/classeur' + (depuis ? '?depuis=' + encodeURIComponent(depuis) : ''));
+  } catch (e) {
+    return;   // hors ligne : on travaille en local, on synchronisera plus tard
+  }
+
+  let descendues = 0;
+  (reponse.seances || []).forEach((distante) => {
+    let contenu;
+    try { contenu = JSON.parse(distante.contenu); } catch (e) { return; }
+    if (!contenu || contenu.v !== VERSION_ETAT) return;
+    const locale = charger(distante.id);
+    // La plus récente gagne. À égalité on garde la locale : elle est déjà là.
+    if (locale && (locale.majLe || '') >= (contenu.majLe || distante.maj_le)) return;
+    try {
+      localStorage.setItem(CLE_ETAT + distante.id, JSON.stringify(contenu));
+      descendues += 1;
+    } catch (e) { /* plus de place : le serveur garde la copie */ }
   });
+
+  // L'agenda : même règle, le plus récent gagne.
+  if (reponse.agenda) {
+    let localMaj = '';
+    try { localMaj = localStorage.getItem(CLE_AGENDA + '.majLe') || ''; } catch (e) { /* idem */ }
+    if (reponse.agenda.maj_le > localMaj) {
+      try {
+        JSON.parse(reponse.agenda.contenu);   // on ne range que ce qui se relit
+        localStorage.setItem(CLE_AGENDA, reponse.agenda.contenu);
+        localStorage.setItem(CLE_AGENDA + '.majLe', reponse.agenda.maj_le);
+      } catch (e) { /* illisible ou plus de place : on garde le local */ }
+    } else if (localMaj > reponse.agenda.maj_le) {
+      garderRendezVous(rendezVous());   // le nôtre est plus frais : il remonte
+    }
+  } else if (rendezVous().length) {
+    garderRendezVous(rendezVous());     // le serveur n'en a pas : premier envoi
+  }
+
+  try { localStorage.setItem(CLE_SYNC, reponse.maintenant); } catch (e) { /* idem */ }
+
+  // Puis la montée. À la première connexion depuis un navigateur qui a déjà
+  // servi, c'est ce qui fait remonter tout l'existant : rien ne doit être perdu
+  // parce qu'on a ajouté la synchronisation après coup.
+  const connues = new Set((reponse.seances || []).map((s) => s.id));
+  toutesLesSessions().forEach((seance) => {
+    if (!depuis || !connues.has(seance.sessionId)) aMonter.add(seance.sessionId);
+  });
+  await viderLaFileDeMontee();
+  return descendues;
 }
 
 function tracer(type, details = {}) {
@@ -2222,6 +2362,16 @@ async function initialiser() {
     armerRevelations();
     armerCopie();
     return;
+  }
+
+  // Le classeur du serveur AVANT de lire l'historique local : sur un appareil
+  // neuf, c'est ce qui fait la différence entre « je retrouve mes affaires » et
+  // une page vide qui donne envie d'arrêter.
+  const descendues = await synchroniser();
+  if (descendues) {
+    message(descendues > 1
+      ? 'On a retrouvé tes ' + descendues + ' cours.'
+      : 'On a retrouvé ton cours.');
   }
 
   // Avant de lire l'historique : deux séances jumelles n'ont aucune raison de

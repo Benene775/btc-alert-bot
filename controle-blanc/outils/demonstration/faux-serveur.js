@@ -207,6 +207,14 @@ async function api(chemin, options = {}) {
 
   if (chemin === '/api/session/contexte' || chemin === '/api/evenement') return { etat: 'ok' };
 
+  // Le classeur : dans le produit il monte sur le serveur, ce qui fait qu'un
+  // élève retrouve ses affaires sur un autre appareil. Une démonstration n'a
+  // qu'un navigateur et pas de serveur : elle accepte les montées sans rien
+  // ranger, et ne descend jamais rien. Sans ces réponses, la synchronisation
+  // réessaierait en boucle.
+  if (chemin === '/api/classeur') return { seances: [], maintenant: new Date().toISOString() };
+  if (chemin.startsWith('/api/classeur/')) return { range: true };
+
   // Les plafonds du mois. Dans le produit ils sont comptés côté serveur, seul
   // endroit où le compte est infalsifiable ; ici on les tient en mémoire, pour
   // que le compteur sous chaque outil de la page perso montre autre chose qu'un

@@ -120,6 +120,41 @@ CREATE TABLE IF NOT EXISTS jetons (
 );
 CREATE INDEX IF NOT EXISTS idx_jetons_compte ON jetons (compte_id);
 
+-- Le classeur de l'élève : ses séances, gardées côté serveur pour qu'un compte
+-- tienne sa promesse — se connecter ailleurs et retrouver ses affaires.
+--
+-- Une ligne = une séance entière, telle que le navigateur la garde. Pas de
+-- fusion champ par champ : la plus récente écrase, à la milliseconde près
+-- (maj_le, UTC). C'est un élève sur un ou deux appareils, qui travaille
+-- rarement sur les deux en même temps ; une vraie fusion coûterait des
+-- semaines et se paierait en pertes silencieuses.
+-- Deux horodatages, et ils ne servent pas à la même chose :
+--   maj_le   vient du NAVIGATEUR et décide qui gagne entre deux appareils ;
+--   range_le vient du SERVEUR et sert à répondre « qu'est-ce qui a bougé
+--            depuis ma dernière visite ? ».
+-- Les confondre paraît marcher tant que les horloges sont d'accord, puis fait
+-- sauter des séances en silence chez l'élève dont le téléphone a dix minutes
+-- d'avance. Un seul réveil de plus, et son travail n'est jamais redescendu.
+CREATE TABLE IF NOT EXISTS classeur (
+    compte_id TEXT NOT NULL,
+    seance_id TEXT NOT NULL,
+    contenu   TEXT NOT NULL,
+    maj_le    TEXT NOT NULL,
+    range_le  TEXT NOT NULL DEFAULT '',
+    PRIMARY KEY (compte_id, seance_id)
+);
+CREATE INDEX IF NOT EXISTS idx_classeur_range ON classeur (compte_id, range_le);
+
+-- L'agenda : les contrôles à venir, que l'élève saisit à la main. Ce n'est pas
+-- une séance, mais c'est son travail au même titre — le perdre en changeant de
+-- téléphone ferait exactement la même impression.
+CREATE TABLE IF NOT EXISTS agenda (
+    compte_id TEXT PRIMARY KEY,
+    contenu   TEXT NOT NULL,
+    maj_le    TEXT NOT NULL,
+    range_le  TEXT NOT NULL DEFAULT ''
+);
+
 CREATE TABLE IF NOT EXISTS corriges (
     controle_id TEXT PRIMARY KEY,
     session_id  TEXT NOT NULL,
@@ -135,6 +170,12 @@ def maintenant() -> str:
 
 def aujourdhui() -> str:
     return datetime.now(timezone.utc).date().isoformat()
+
+
+def maintenant_precis() -> str:
+    """À la microseconde : deux séances rangées dans la même seconde doivent
+    rester distinctes, sinon la seconde ne redescend jamais."""
+    return datetime.now(timezone.utc).isoformat()
 
 
 def mois_courant() -> str:
@@ -157,6 +198,13 @@ def _init(conn: sqlite3.Connection) -> None:
     # appel pour tout le reste. Les usages d'avant comptaient pour un.
     if usages and "quantite" not in usages:
         conn.execute("ALTER TABLE usages ADD COLUMN quantite INTEGER NOT NULL DEFAULT 1")
+    for table in ("classeur", "agenda"):
+        colonnes_t = {ligne[1] for ligne in conn.execute(f"PRAGMA table_info({table})")}
+        if colonnes_t and "range_le" not in colonnes_t:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN range_le TEXT NOT NULL DEFAULT ''")
+            # Les lignes d'avant n'en ont pas : on leur donne leur maj_le, ce qui
+            # les fait redescendre une fois de trop plutôt que pas du tout.
+            conn.execute(f"UPDATE {table} SET range_le = maj_le WHERE range_le = ''")
     demandes = {ligne[1] for ligne in conn.execute("PRAGMA table_info(demandes_code)")}
     if demandes and "source" not in demandes:
         conn.execute("ALTER TABLE demandes_code ADD COLUMN source TEXT NOT NULL DEFAULT ''")
@@ -657,6 +705,8 @@ def supprimer_compte(compte_id: str) -> None:
         for seance in seances:
             cur.execute("DELETE FROM corriges WHERE session_id = ?", (seance,))
         cur.execute("DELETE FROM sessions WHERE compte_id = ?", (compte_id,))
+        cur.execute("DELETE FROM classeur WHERE compte_id = ?", (compte_id,))
+        cur.execute("DELETE FROM agenda WHERE compte_id = ?", (compte_id,))
         cur.execute("DELETE FROM jetons WHERE compte_id = ?", (compte_id,))
         cur.execute("SELECT email FROM comptes WHERE id = ?", (compte_id,))
         ligne = cur.fetchone()
@@ -665,6 +715,104 @@ def supprimer_compte(compte_id: str) -> None:
             cur.execute("DELETE FROM demandes_code WHERE email = ?", (ligne["email"],))
             cur.execute("DELETE FROM tentatives WHERE email = ?", (ligne["email"],))
         cur.execute("DELETE FROM comptes WHERE id = ?", (compte_id,))
+
+
+# --- Le classeur ------------------------------------------------------------
+#
+# Ce que le serveur garde ici, il ne le gardait pas avant : le cours transcrit,
+# les fiches, les contrôles et les corrections d'un élève identifié. C'est le
+# prix de la promesse du compte, et ça change la ligne au registre des
+# traitements — d'où l'effacement en même temps que le compte, juste au-dessus.
+
+
+def poser_seance(compte_id: str, seance_id: str, contenu: str, maj_le: str) -> bool:
+    """Range une séance, sauf si le serveur en a déjà une plus récente.
+
+    Rend True si elle a été écrite. Le refus n'est pas une erreur : c'est le cas
+    normal quand deux appareils poussent la même séance, et le navigateur qui
+    perd doit simplement reprendre celle du serveur.
+    """
+    with curseur() as cur:
+        cur.execute(
+            "SELECT maj_le FROM classeur WHERE compte_id = ? AND seance_id = ?",
+            (compte_id, seance_id),
+        )
+        ligne = cur.fetchone()
+        if ligne and ligne["maj_le"] >= maj_le:
+            return False
+        range_le = maintenant_precis()
+        cur.execute(
+            "INSERT INTO classeur (compte_id, seance_id, contenu, maj_le, range_le)"
+            " VALUES (?, ?, ?, ?, ?)"
+            " ON CONFLICT(compte_id, seance_id)"
+            " DO UPDATE SET contenu = ?, maj_le = ?, range_le = ?",
+            (compte_id, seance_id, contenu, maj_le, range_le, contenu, maj_le, range_le),
+        )
+        return True
+
+
+def lire_classeur(compte_id: str, depuis: str | None = None) -> list[dict[str, Any]]:
+    """Les séances modifiées depuis cet horodatage. Sans lui, tout le classeur —
+    c'est ce que demande un appareil qui arrive vierge."""
+    with curseur() as cur:
+        if depuis:
+            cur.execute(
+                "SELECT seance_id, contenu, maj_le FROM classeur"
+                " WHERE compte_id = ? AND range_le > ? ORDER BY range_le",
+                (compte_id, depuis),
+            )
+        else:
+            cur.execute(
+                "SELECT seance_id, contenu, maj_le FROM classeur"
+                " WHERE compte_id = ? ORDER BY range_le",
+                (compte_id,),
+            )
+        return [{"id": l["seance_id"], "contenu": l["contenu"], "maj_le": l["maj_le"]}
+                for l in cur.fetchall()]
+
+
+def seance_rangee(compte_id: str, seance_id: str) -> bool:
+    with curseur() as cur:
+        cur.execute("SELECT 1 FROM classeur WHERE compte_id = ? AND seance_id = ?",
+                    (compte_id, seance_id))
+        return cur.fetchone() is not None
+
+
+def compter_seances(compte_id: str) -> int:
+    with curseur() as cur:
+        cur.execute("SELECT COUNT(*) AS n FROM classeur WHERE compte_id = ?", (compte_id,))
+        return int(cur.fetchone()["n"])
+
+
+def lire_agenda(compte_id: str) -> dict[str, str] | None:
+    with curseur() as cur:
+        cur.execute("SELECT contenu, maj_le FROM agenda WHERE compte_id = ?", (compte_id,))
+        ligne = cur.fetchone()
+        return {"contenu": ligne["contenu"], "maj_le": ligne["maj_le"]} if ligne else None
+
+
+def poser_agenda(compte_id: str, contenu: str, maj_le: str) -> bool:
+    """Même règle que pour une séance : le plus récent gagne, sans fusion."""
+    with curseur() as cur:
+        cur.execute("SELECT maj_le FROM agenda WHERE compte_id = ?", (compte_id,))
+        ligne = cur.fetchone()
+        if ligne and ligne["maj_le"] >= maj_le:
+            return False
+        range_le = maintenant_precis()
+        cur.execute(
+            "INSERT INTO agenda (compte_id, contenu, maj_le, range_le) VALUES (?, ?, ?, ?)"
+            " ON CONFLICT(compte_id) DO UPDATE SET contenu = ?, maj_le = ?, range_le = ?",
+            (compte_id, contenu, maj_le, range_le, contenu, maj_le, range_le),
+        )
+        return True
+
+
+def oublier_seance(compte_id: str, seance_id: str) -> None:
+    """L'élève efface une séance sur son téléphone : elle doit partir du serveur
+    aussi, sinon la synchronisation suivante la ferait revenir."""
+    with curseur() as cur:
+        cur.execute("DELETE FROM classeur WHERE compte_id = ? AND seance_id = ?",
+                    (compte_id, seance_id))
 
 
 # --- Quotas ----------------------------------------------------------------

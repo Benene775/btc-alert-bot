@@ -202,16 +202,31 @@ def test_sortir_ne_jette_pas_le_travail():
     assert "removeItem" not in bloc and "clear()" not in bloc
 
 
-def test_la_page_ne_promet_pas_une_synchronisation_qui_n_existe_pas():
-    """Avec un compte, l'élève s'attend à retrouver ses fiches sur un autre
-    appareil. Ce n'est pas ce que fait le produit : elles vivent dans le
-    navigateur. Tant que ce n'est pas vrai, la page ne doit pas le dire."""
-    accueil = PAGE.split('id="ecran-accueil"')[1].split('id="ecran-connexion"')[0]
-    entree = PAGE.split('id="ecran-connexion"')[1].split("</section>")[0]
-    for promesse in ("n’importe quel appareil", "tous tes appareils", "synchronis",
-                     "partout", "d’un appareil à l’autre"):
-        for endroit, nom in ((accueil, "l'accueil"), (entree, "l'entrée")):
-            assert promesse not in endroit.lower(), f"« {promesse} » promis sur {nom}"
+def test_la_promesse_du_compte_est_tenue_par_le_code():
+    """Avec un compte, l'élève s'attend à retrouver ses affaires sur un autre
+    appareil. Ce test gardait autrefois l'inverse — interdire à la page de le
+    promettre tant que c'était faux. C'est vrai depuis que le classeur monte sur
+    le serveur, donc la garde s'inverse : c'est le mécanisme qui doit rester.
+
+    Sans lui, la page continuerait de laisser croire, et un élève qui change de
+    téléphone perdrait tout sans qu'aucun message ne l'en avertisse."""
+    script = (RACINE / "web" / "app.js").read_text(encoding="utf-8")
+    assert "function synchroniser()" in script, "plus rien ne descend le classeur"
+    assert "'/api/classeur'" in script, "plus rien ne le lit"
+    assert "'/api/classeur/'" in script, "plus rien ne le pousse"
+    # Et la descente doit se faire aux DEUX endroits où un compte arrive.
+    # Au démarrage : le cookie était déjà là.
+    demarrage = script[script.index("const moi = await qui();"):]
+    demarrage = demarrage[: demarrage.index("menageSessions();")]
+    assert "await synchroniser()" in demarrage
+
+    # Et après avoir tapé son mot de passe : c'est le cas de l'appareil neuf,
+    # celui pour lequel toute cette mécanique existe. La page est alors déjà
+    # chargée, donc la synchronisation du démarrage a été sautée — sans cette
+    # seconde, entrer sur l'ordinateur de la famille donne une page vide.
+    porte = script[script.index("async function ouvrirLaPorte("):]
+    porte = porte[: porte.index("\n}\n")]
+    assert "await synchroniser()" in porte, "se connecter ne descend pas le classeur"
 
 
 def test_apres_la_connexion_on_arrive_sur_sa_page():

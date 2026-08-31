@@ -137,65 +137,48 @@ test énumère l'application pour attraper celle qu'on ajouterait sans le garde-
 **Le droit à l'effacement est un bouton**, en bas de sa page : l'adresse et les séances
 partent du serveur, et le classeur de ce navigateur part avec.
 
-### Ce que le compte ne fait pas encore : tout garder
+### Le classeur suit l'élève
 
-**Décidé : le classeur ira sur le serveur.** Aujourd'hui les cours, les fiches et les
-contrôles vivent dans le navigateur où ils ont été faits ; se connecter sur un autre
-appareil donne un classeur vide. Avec un compte, l'élève s'attend à l'inverse, et il a
-raison. Tant que ce n'est pas fait, aucune page ne le promet — un test l'empêche.
+Le texte du classeur — cours transcrits, fiches, contrôles, corrections, agenda —
+monte sur le serveur, parce qu'un compte promet qu'on retrouve ses affaires
+ailleurs. Avant, tout vivait dans le seul navigateur où le travail avait été
+fait : changer d'appareil ou vider ses données perdait le classeur entier, sans
+message, sans rien. Pour un élève ce n'est pas un bug, c'est un produit qui a
+perdu son travail.
 
-Ce que ça demande, dans l'ordre où ça se construit.
+**Le modèle est volontairement pauvre.** Une séance entière, la plus récente
+gagne. Pas de fusion champ par champ : c'est un élève sur un ou deux appareils,
+qui travaille rarement sur les deux en même temps, et une vraie fusion coûterait
+des semaines pour un cas qui arrive deux fois par an — le prix se paierait en
+pertes silencieuses, la pire monnaie quand ce qu'on perd est le travail de
+quelqu'un.
 
-**1. Ce qui monte.** Le texte ne pèse rien : une séance complète (transcription du cours,
-fiches, contrôles et corrections) tient dans quelques dizaines de kilo-octets, soit moins
-d'un mégaoctet pour une année entière. Le stocker est gratuit à l'échelle d'un test.
+| | |
+|---|---|
+| `GET /api/classeur?depuis=…` | les séances rangées depuis, plus l'agenda |
+| `PUT /api/classeur/<seance>` | en pousse une ; `{"range": false}` si le serveur en a une plus récente |
+| `DELETE /api/classeur/<seance>` | effacée sur le téléphone, effacée ici — sinon elle revient |
+| `PUT /api/agenda` | l'agenda entier, quelques centaines d'octets |
 
-Les **photos du cahier** montent aussi — décidé. Au format que le produit fabrique
-(1568 px de côté, JPEG qualité 0.82), une page tourne autour de 200 à 400 Ko, cent fois le
-reste : quatre pages par cours, dix cours par trimestre, ~10 Mo par élève et par
-trimestre. Le coût n'est pas le sujet ; ce que ça engage l'est (point 4).
+**Deux horodatages, et ils ne servent pas à la même chose.** `maj_le` vient du
+navigateur et départage deux appareils ; `range_le` vient du serveur et répond à
+« qu'est-ce qui a bougé depuis ma dernière visite ». Les confondre paraît marcher
+tant que les horloges sont d'accord, puis fait sauter des séances chez l'élève
+dont le téléphone retarde — et personne ne s'en aperçoit. Un test le vérifie.
 
-C'est aussi ce qui rend la promesse tenable : sans les photos, un élève qui change de
-téléphone retrouve ses fiches mais plus le fragment de cahier qui les justifie — or c'est
-exactement ce qui distingue ce produit d'un générateur de fiches.
+Le navigateur reste la copie de travail : tout marche hors ligne, la montée se
+fait quand elle peut, et la descente a lieu aux deux endroits où un compte
+arrive — au démarrage si le cookie était là, et juste après avoir tapé son mot de
+passe, qui est précisément le cas de l'appareil neuf.
 
-**2. Le modèle de synchronisation.** Une séance entière, écrasée par la plus récente
-(`maj_le` en UTC). Pas de fusion champ par champ : c'est un élève, sur un ou deux
-appareils, qui travaille rarement sur les deux en même temps. Une vraie fusion coûterait
-des semaines pour un cas qui arrive deux fois par an, et le prix se paierait en bugs
-silencieux — la pire monnaie quand ce qu'on perd est le travail de quelqu'un.
-
-Concrètement : `GET /api/classeur?depuis=<horodatage>` rend les séances modifiées depuis,
-`PUT /api/classeur/<seance>` en pousse une. Le navigateur garde tout en local et reste
-utilisable hors ligne ; le serveur est la copie de référence quand les deux divergent.
-
-**3. La reprise de l'existant.** À la première connexion après la bascule, ce qui est dans
-le navigateur monte tel quel. Un élève qui a travaillé avant ne doit rien perdre — et ne
-doit pas avoir à comprendre qu'il s'est passé quelque chose.
-
-**4. Ce que ça change côté données personnelles — le vrai sujet.** Aujourd'hui le serveur
-détient une adresse, un prénom, une classe. Après, il détiendra **le cours d'un enfant,
-ses réponses, et les photos de son cahier** — parfois avec son nom écrit dessus, et
-l'écriture d'un mineur identifiable. Ce n'est pas la même ligne au registre des
-traitements.
-
-Ce qui devient obligatoire, et non plus recommandé :
-
-- le **consentement d'un titulaire de l'autorité parentale** avant l'ouverture du compte,
-  et non plus « à prévoir un jour » ;
-- un **contrat de sous-traitance** avec l'hébergeur (article 28 du RGPD), et un hébergement
-  dans l'Union ;
-- le **chiffrement au repos** des photos, et un accès qui passe par le compte — pas une URL
-  devinable ;
-- une **durée de conservation écrite** : l'année scolaire, puis effacement automatique ;
-- l'**export** de son classeur par l'élève, en plus de l'effacement qui existe déjà.
-
-Aucun de ces cinq points n'est du code compliqué. Ils sont simplement plus difficiles à
-ajouter après coup qu'à poser en même temps que le stockage — d'où cette liste ici, avant
-la première ligne.
-
-**5. Ce qui ne change pas.** Les quotas restent côté serveur, le corrigé du contrôle en
-cours reste hors de portée du navigateur, et il n'y a toujours aucune note.
+**Ce qui ne monte pas encore : les photos du cahier.** Elles vivent dans
+IndexedDB, sur l'appareil. Un élève qui change de téléphone retrouve donc ses
+fiches et ses contrôles, mais plus le fragment de cahier qui les justifie. C'est
+un choix, pas un oubli : stocker l'écriture manuscrite d'un mineur identifiable
+n'est pas la même ligne au registre des traitements que du texte, et cette
+décision se prend avec la politique de confidentialité, pas dans un commit. Ce
+qui monte aujourd'hui pèse quelques dizaines de kilo-octets par élève ; les
+photos, ce serait ~10 Mo par trimestre.
 
 ### Envoyer les codes de réinitialisation
 
