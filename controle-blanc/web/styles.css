@@ -3231,7 +3231,11 @@ h1 {
 .agenda-deplie {
   display: grid;
   grid-template-rows: 0fr;
-  transition: grid-template-rows .42s cubic-bezier(.2, .7, .3, 1);
+  /* La perspective se pose sur le PARENT, pas dans la transformation de
+     l'enfant : c'est ce qui donne une vraie fuite, et pas un aplatissement. */
+  perspective: 1100px;
+  perspective-origin: top center;
+  transition: grid-template-rows .62s cubic-bezier(.22, .9, .26, 1);
 }
 
 .agenda-deplie[data-ouvert="oui"] { grid-template-rows: 1fr; }
@@ -3239,24 +3243,46 @@ h1 {
 /* Le panneau bascule vers l'avant en s'ouvrant, comme une page qu'on rabat.
    L'origine est en haut : il pivote depuis la charnière, pas depuis son
    milieu. C'est ce qui fait qu'on lit « du papier » et pas « une div ». */
+/* La couverture qui se rabat.
+ *
+ * Fermé, le panneau est vu par la tranche : rotateX(-92deg), charnière en
+ * haut. Il bascule vers le lecteur comme on ouvre un agenda posé à plat.
+ * Sept degrés, c'était un frémissement que personne ne voyait — le geste doit
+ * être franc pour se lire comme un geste. */
 .agenda-dedans {
+  position: relative;
   overflow: hidden;
   min-height: 0;
   display: flex;
   flex-direction: column;
   gap: var(--e2);
-  opacity: 0;
   transform-origin: top center;
-  transform: perspective(1400px) rotateX(-7deg) translateY(-6px);
-  transition: opacity .34s ease .06s,
-              transform .46s cubic-bezier(.18, .78, .28, 1) .06s;
+  transform: rotateX(-92deg);
+  transition: transform .62s cubic-bezier(.22, .9, .26, 1);
 }
 
 .agenda-deplie[data-ouvert="oui"] .agenda-dedans {
-  opacity: 1;
-  transform: none;
+  transform: rotateX(0deg);
   padding-top: var(--e3);
 }
+
+/* L'ombre du pli : la page est dans l'ombre tant qu'elle est rabattue, et la
+   lumière la gagne à mesure qu'elle s'ouvre. Sans elle, la rotation se lit
+   comme un effet ; avec elle, comme du papier. */
+.agenda-dedans::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--encre) 30%, transparent),
+    color-mix(in srgb, var(--encre) 6%, transparent) 45%,
+    transparent 75%);
+  opacity: 1;
+  transition: opacity .62s ease;
+}
+
+.agenda-deplie[data-ouvert="oui"] .agenda-dedans::after { opacity: 0; }
 
 /* La vague. Les jours n'arrivent pas ligne par ligne — ça, c'est un balayage
    de machine — mais EN DIAGONALE depuis le lundi de la première semaine :
@@ -3267,7 +3293,9 @@ h1 {
    redessinée : la page tremblait sous le doigt de l'élève. */
 .agenda-deplie[data-anime="oui"] .jour {
   animation: jour-arrive .42s cubic-bezier(.2, .82, .28, 1) backwards;
-  animation-delay: calc(var(--i, 0) * 38ms);
+  /* Décalée du temps que met la couverture à s'ouvrir : jouée dessous, la
+     vague se perdrait derrière le pli. */
+  animation-delay: calc(.34s + var(--i, 0) * 38ms);
 }
 
 @keyframes jour-arrive {
@@ -3282,7 +3310,7 @@ h1 {
    Les dates passées ne clignotent pas : elles n'attendent plus rien. */
 .agenda-deplie[data-anime="oui"] .jour[data-occupe="oui"]:not([data-passe="oui"]) {
   animation: jour-arrive .42s cubic-bezier(.2, .82, .28, 1) backwards,
-             jour-signale .5s ease-out calc(var(--i, 0) * 38ms + .42s) backwards;
+             jour-signale .5s ease-out calc(.34s + var(--i, 0) * 38ms + .42s) backwards;
 }
 
 @keyframes jour-signale {
@@ -3294,6 +3322,7 @@ h1 {
   .frise-porte, .frise-chevron, .frise-invite,
   .agenda-deplie, .agenda-dedans { transition: none; }
   .agenda-dedans { transform: none; }
+  .agenda-dedans::after { display: none; }
   .agenda-deplie[data-anime="oui"] .jour,
   .agenda-deplie[data-anime="oui"] .jour[data-occupe="oui"]:not([data-passe="oui"]) {
     animation: none;

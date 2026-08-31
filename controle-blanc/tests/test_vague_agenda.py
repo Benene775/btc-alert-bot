@@ -54,12 +54,43 @@ def test_seules_les_dates_qui_attendent_quelque_chose_s_allument():
     assert "@keyframes jour-signale" in STYLE
 
 
+def test_la_couverture_se_rabat_franchement():
+    """Sept degrés, c'était un frémissement que personne ne voyait — l'élève a
+    signalé qu'il ne voyait aucune animation, et il avait raison. Un geste doit
+    être franc pour se lire comme un geste : le panneau part de la tranche."""
+    bloc = STYLE[STYLE.index(".agenda-dedans {"):]
+    bloc = bloc[: bloc.index("}")]
+    degres = float(bloc.split("rotateX(-")[1].split("deg)")[0])
+    assert degres >= 75, f"la couverture ne bascule que de {degres}°"
+    assert "transform-origin: top center" in bloc, "la charnière n'est pas en haut"
+
+    # La perspective se pose sur le parent : dans la transformation de l'enfant,
+    # elle s'applique après coup et le pli s'aplatit.
+    parent = STYLE[STYLE.index(".agenda-deplie {"):]
+    parent = parent[: parent.index("}")]
+    assert "perspective: " in parent, "sans perspective, la rotation écrase la page"
+
+
+def test_l_ombre_du_pli_se_retire_en_meme_temps():
+    """Sans elle, la rotation se lit comme un effet ; avec elle, comme du
+    papier qui prend la lumière en s'ouvrant."""
+    assert ".agenda-dedans::after" in STYLE
+    assert '.agenda-deplie[data-ouvert="oui"] .agenda-dedans::after { opacity: 0; }' in STYLE
+
+
+def test_la_vague_attend_que_la_couverture_soit_ouverte():
+    """Jouée sous le pli, elle se perdrait derrière."""
+    bloc = STYLE[STYLE.index('.agenda-deplie[data-anime="oui"] .jour {'):]
+    bloc = bloc[: bloc.index("}")]
+    assert "calc(.34s +" in bloc, "la vague part avant que la page soit ouverte"
+
+
 def test_l_allumage_attend_que_la_grille_soit_posee():
     """Allumé pendant la vague, il se noierait dedans. C'est l'instant où l'œil
     arrive qui compte."""
     bloc = STYLE[STYLE.index('.jour[data-occupe="oui"]:not([data-passe="oui"]) {'):]
     bloc = bloc[: bloc.index("}")]
-    assert "jour-signale" in bloc and "+ .42s" in bloc, (
+    assert "jour-signale" in bloc and ".34s +" in bloc and "+ .42s" in bloc, (
         "le halo ne part pas après l'arrivée de la case"
     )
 
