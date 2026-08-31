@@ -7,11 +7,19 @@ les trois choses qui la rendraient pénible plutôt que jolie.
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 RACINE = Path(__file__).resolve().parent.parent
+PAGE = (RACINE / "web" / "index.html").read_text(encoding="utf-8")
 SCRIPT = (RACINE / "web" / "app.js").read_text(encoding="utf-8")
 STYLE = (RACINE / "web" / "styles.css").read_text(encoding="utf-8")
+
+# Les commentaires disent souvent ce qu'on a REFUSÉ de faire — « pas de
+# backface-visibility: hidden », par exemple. Les chercher sans les retirer
+# ferait échouer un test sur la phrase qui explique précisément qu'on s'en
+# abstient.
+STYLE_NU = re.sub(r"/\*.*?\*/", "", STYLE, flags=re.S)
 
 
 def test_la_vague_ne_rejoue_pas_a_chaque_clic():
@@ -54,28 +62,50 @@ def test_seules_les_dates_qui_attendent_quelque_chose_s_allument():
     assert "@keyframes jour-signale" in STYLE
 
 
-def test_la_couverture_se_rabat_franchement():
-    """Sept degrés, c'était un frémissement que personne ne voyait — l'élève a
-    signalé qu'il ne voyait aucune animation, et il avait raison. Un geste doit
-    être franc pour se lire comme un geste : le panneau part de la tranche."""
+def test_l_agenda_a_une_couverture_qui_pivote():
+    """Un rabat vers l'avant restait « un panneau qui se déplie » — l'élève l'a
+    dit deux fois. Ce qu'on reconnaît, c'est une COUVERTURE qui pivote sur sa
+    charnière et découvre la page."""
+    assert 'class="agenda-couverture"' in PAGE
+    bloc = STYLE[STYLE.index(".agenda-couverture {"):]
+    bloc = bloc[: bloc.index("}")]
+    assert "transform-origin: left center" in bloc, "la charnière n'est pas sur le côté"
+    assert "rotateY(0deg)" in bloc, "fermée, la couverture doit être de face"
+
+    ouverte = STYLE[STYLE.index('[data-ouvert="oui"] .agenda-couverture {'):]
+    ouverte = ouverte[: ouverte.index("}")]
+    degres = float(ouverte.split("rotateY(-")[1].split("deg)")[0])
+    assert degres >= 110, f"la couverture ne s'écarte que de {degres}°"
+
+
+def test_la_perspective_est_sur_le_parent_direct():
+    """Posée plus haut, elle ne franchit pas l'étage intermédiaire : le pivot
+    s'écrase alors en un simple rétrécissement horizontal, et on ne lit plus
+    un carton qui tourne."""
     bloc = STYLE[STYLE.index(".agenda-dedans {"):]
     bloc = bloc[: bloc.index("}")]
-    degres = float(bloc.split("rotateX(-")[1].split("deg)")[0])
-    assert degres >= 75, f"la couverture ne bascule que de {degres}°"
-    assert "transform-origin: top center" in bloc, "la charnière n'est pas en haut"
-
-    # La perspective se pose sur le parent : dans la transformation de l'enfant,
-    # elle s'applique après coup et le pli s'aplatit.
-    parent = STYLE[STYLE.index(".agenda-deplie {"):]
-    parent = parent[: parent.index("}")]
-    assert "perspective: " in parent, "sans perspective, la rotation écrase la page"
+    assert "perspective:" in bloc
 
 
-def test_l_ombre_du_pli_se_retire_en_meme_temps():
-    """Sans elle, la rotation se lit comme un effet ; avec elle, comme du
-    papier qui prend la lumière en s'ouvrant."""
-    assert ".agenda-dedans::after" in STYLE
-    assert '.agenda-deplie[data-ouvert="oui"] .agenda-dedans::after { opacity: 0; }' in STYLE
+def test_la_couverture_ne_disparait_pas_au_milieu_du_geste():
+    """backface-visibility: hidden l'escamotait net au passage de la tranche,
+    en plein milieu. On voit son intérieur continuer de tourner."""
+    bloc = STYLE_NU[STYLE_NU.index(".agenda-couverture {"):]
+    bloc = bloc[: bloc.index("}")]
+    assert "backface-visibility: hidden" not in bloc
+
+
+def test_la_couverture_ne_parle_pas_aux_lecteurs_d_ecran():
+    """C'est du carton. Personne n'a à l'entendre s'ouvrir."""
+    bloc = PAGE[PAGE.index('class="agenda-couverture"') - 60:]
+    bloc = bloc[: bloc.index("</div>")]
+    assert 'aria-hidden="true"' in bloc
+
+
+def test_la_reliure_marque_le_pli():
+    """Sans elle, la page découverte est un rectangle ; avec, c'est la page de
+    droite d'un carnet ouvert."""
+    assert ".agenda-dedans::before" in STYLE
 
 
 def test_la_vague_attend_que_la_couverture_soit_ouverte():
@@ -96,10 +126,10 @@ def test_l_allumage_attend_que_la_grille_soit_posee():
 
 
 def test_tout_s_arrete_pour_qui_demande_moins_de_mouvement():
-    bloc = STYLE[STYLE.rindex("@media (prefers-reduced-motion: reduce) {"):]
-    # Le bloc qui suit la vague, celui qui couvre l'agenda.
     bloc = STYLE[STYLE.index("@keyframes jour-signale"):]
     bloc = bloc[bloc.index("@media (prefers-reduced-motion: reduce) {"):]
     bloc = bloc[: bloc.index("\n}\n")]
     assert "animation: none" in bloc
-    assert "transform: none" in bloc, "le pli de papier continue de basculer"
+    assert ".agenda-couverture { display: none; }" in bloc, (
+        "la couverture continue de pivoter"
+    )
