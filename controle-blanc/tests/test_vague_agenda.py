@@ -95,13 +95,21 @@ def test_l_agenda_avance_vers_le_lecteur():
     assert "scale(" in bloc and "translateZ(" in bloc, "l'agenda n'avance pas"
 
 
-def test_des_feuillets_defilent_de_chaque_cote():
-    """Deux cartons qui s'écartent ne font pas un feuilletage. Les pages doivent
-    suivre leur battant avec un retard croissant."""
-    assert PAGE.count('class="feuillet"') >= 6, "moins de trois pages par côté"
-    bloc = STYLE_NU[STYLE_NU.index(".feuillet {"):]
+def test_rien_ne_reste_en_travers_du_mois(client=None):
+    """Le bug signalé, et la raison d'avoir simplifié.
+
+    Les feuillets d'une version précédente tournaient EN PLUS de leur battant :
+    passé un certain angle leur rotation cumulée les ramenait de face, et ils
+    restaient plantés en travers de la grille — un grand bloc crème sur la
+    moitié du mois, une fois l'ouverture terminée.
+
+    Le dos masqué ne suffit donc pas à garantir qu'il ne reste rien : la
+    couverture s'éteint aussi, explicitement, à la fin du geste."""
+    assert "feuillet" not in PAGE, "les feuillets sont revenus"
+    bloc = STYLE_NU[STYLE_NU.index(".agenda-couverture {"):]
     bloc = bloc[: bloc.index("}")]
-    assert "var(--f, 1) * .075s" in bloc, "les feuillets partent tous en même temps"
+    assert "opacity: 1" in bloc
+    assert '[data-ouvert="oui"] .agenda-couverture { opacity: 0; }' in STYLE_NU
 
 
 def test_la_perspective_traverse_les_deux_etages():
@@ -109,21 +117,18 @@ def test_la_perspective_traverse_les_deux_etages():
     plus bas. Sans preserve-3d sur le chemin, la rotation s'aplatit en un simple
     rétrécissement horizontal — et on ne lit plus un carton qui tourne."""
     assert "perspective: " in STYLE_NU[STYLE_NU.index(".agenda-deplie {"):][:400]
-    for classe in (".agenda-dedans {", ".agenda-couverture {", ".volet {"):
+    for classe in (".agenda-dedans {", ".agenda-couverture {"):
         bloc = STYLE_NU[STYLE_NU.index(classe):]
         bloc = bloc[: bloc.index("}")]
         assert "transform-style: preserve-3d" in bloc, classe
 
 
-def test_chaque_epaisseur_s_escamote_en_passant_le_profil():
-    """L'inverse du réglage précédent, et pour une bonne raison : avec deux
-    battants, ce qui passe la tranche montre son dos. Sans dos masqué, les trois
-    feuillets de chaque côté restaient opaques tout le geste et formaient un
-    bloc crème qui cachait le mois — l'effet inverse de celui recherché."""
-    for classe in (".volet-peau {", ".feuillet {"):
-        bloc = STYLE_NU[STYLE_NU.index(classe):]
-        bloc = bloc[: bloc.index("}")]
-        assert "backface-visibility: hidden" in bloc, classe
+def test_le_battant_ne_montre_pas_son_dos():
+    """Ce qui passe la tranche montrerait son envers, et le mot « Agenda » y
+    reviendrait à l'endroit inverse."""
+    bloc = STYLE_NU[STYLE_NU.index(".volet {"):]
+    bloc = bloc[: bloc.index("}")]
+    assert "backface-visibility: hidden" in bloc
 
 
 def test_la_couverture_ne_parle_pas_aux_lecteurs_d_ecran():
@@ -145,7 +150,7 @@ def test_la_vague_attend_que_la_couverture_soit_ouverte():
     """Jouée sous le pli, elle se perdrait derrière."""
     bloc = STYLE[STYLE.index('.agenda-deplie[data-anime="oui"] .jour {'):]
     bloc = bloc[: bloc.index("}")]
-    assert "calc(.34s +" in bloc, "la vague part avant que la page soit ouverte"
+    assert "calc(.22s +" in bloc, "la vague part avant que la page soit ouverte"
 
 
 def test_l_allumage_attend_que_la_grille_soit_posee():
@@ -153,7 +158,7 @@ def test_l_allumage_attend_que_la_grille_soit_posee():
     arrive qui compte."""
     bloc = STYLE[STYLE.index('.jour[data-occupe="oui"]:not([data-passe="oui"]) {'):]
     bloc = bloc[: bloc.index("}")]
-    assert "jour-signale" in bloc and ".34s +" in bloc and "+ .42s" in bloc, (
+    assert "jour-signale" in bloc and ".22s +" in bloc and "+ .38s" in bloc, (
         "le halo ne part pas après l'arrivée de la case"
     )
 
