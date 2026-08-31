@@ -832,6 +832,7 @@ def enregistrer_usage(session_id: str, action: str, usage: dict[str, Any] | None
 
 TYPES_EVENEMENTS = {
     "ouverture",            # le lien a été ouvert
+    "espace",               # la page perso a été ouverte
     "photos_analysees",
     "perimetre_confirme",
     "chemin_choisi",        # details: {"chemin": "revise" | "teste"}
@@ -839,6 +840,7 @@ TYPES_EVENEMENTS = {
     "controle_commence",    # details: {"rang": n}
     "controle_termine",
     "question_signalee",
+    "transcription_signalee",  # details: {"chapitre": "..."} — le cours a été mal lu
     "correction_vue",
 }
 

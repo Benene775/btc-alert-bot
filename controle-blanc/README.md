@@ -411,8 +411,14 @@ Deux réglages, parce que les cinq appels n'ont pas le même risque.
 Un seul appel lit de l'écriture manuscrite, et tout le reste est bâti sur ce
 qu'il en tire : la fiche, le contrôle et la correction lisent la transcription,
 jamais les images. Une ligne mal lue ne reste donc pas locale — elle se propage
-jusque dans la copie corrigée, d'autant que **la transcription n'est jamais
-montrée à l'élève** : il n'a aucun moyen de repérer l'erreur à sa source.
+jusque dans la copie corrigée, et un modèle qui lit de travers ne le signale pas
+(contrairement à un modèle qui n'arrive pas à lire, qui met `lisible = false`).
+
+C'est pourquoi l'écran de périmètre montre la transcription sous chaque chapitre
+— « Voir ce que j'ai lu », replié par défaut — avec un bouton « Ce n'est pas ce
+que dit mon cours ». C'est le seul contrôle qui existe sur cette étape, et
+pendant la phase de test c'est le signal qui dira si le modèle choisi lit assez
+bien : chaque clic enregistre un événement `transcription_signalee`.
 
 Les deux défauts sont au tarif bas, et c'est un choix de **phase de test** : les
 testeurs sont des élèves qu'on connaît, à qui rien n'est facturé et qu'on a

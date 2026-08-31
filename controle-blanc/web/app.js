@@ -2696,8 +2696,92 @@ function dessinerPerimetre() {
     bloc.append(titre, notions);
     entete.append(case_, bloc);
     element.appendChild(entete);
+    const relecture = blocRelecture(chapitre);
+    if (relecture) element.appendChild(relecture);
     liste.appendChild(element);
   });
+}
+
+/* « [[page N]] » dit au modèle de quelle photo vient un passage — c'est ce qui
+ * lui permet de renvoyer l'élève à sa propre page. Mais N part de zéro : laissé
+ * tel quel, l'élève lit « [[page 0]] » et croit à un bug. On le rend en
+ * séparateur, numéroté comme il compte ses feuilles.
+ *
+ * Tout entre par textContent : ce texte sort du modèle. */
+const MARQUEUR_PAGE = /\[\[page\s+(\d+)\]\]\s*/g;
+
+function morceauTranscription(cible, morceau) {
+  const propre = morceau.replace(/^\n+|\n+$/g, '');
+  if (!propre) return;
+  const bloc = document.createElement('p');
+  bloc.className = 'relire-bout';
+  bloc.textContent = propre;
+  cible.appendChild(bloc);
+}
+
+function remplirTranscription(cible, texte) {
+  let position = 0;
+  let trouve;
+  MARQUEUR_PAGE.lastIndex = 0;
+  while ((trouve = MARQUEUR_PAGE.exec(texte)) !== null) {
+    morceauTranscription(cible, texte.slice(position, trouve.index));
+    const etiquette = document.createElement('p');
+    etiquette.className = 'relire-page';
+    etiquette.textContent = 'Page ' + (Number(trouve[1]) + 1);
+    cible.appendChild(etiquette);
+    position = trouve.index + trouve[0].length;
+  }
+  morceauTranscription(cible, texte.slice(position));
+}
+
+/* « Voici ce que j'ai lu de ton cours. »
+ *
+ * Tout part de cette transcription : la fiche, le contrôle, la correction
+ * lisent ce texte et jamais les photos. Une ligne mal lue se propage donc
+ * partout — et sans cet écran l'élève n'a aucun moyen de s'en apercevoir, parce
+ * qu'une fiche fausse a l'air d'une fiche.
+ *
+ * Replié par défaut : la question de cet écran reste « c'est bien tout ce qui
+ * tombe ? », pas « relis trois pages ». Celui qui doute ouvre.
+ */
+function blocRelecture(chapitre) {
+  const texte = (chapitre.transcription || '').trim();
+  if (!texte) return null;
+
+  const details = document.createElement('details');
+  details.className = 'relire';
+
+  const resume = document.createElement('summary');
+  resume.className = 'relire-titre';
+  resume.textContent = 'Voir ce que j’ai lu';
+  details.appendChild(resume);
+
+  const mot = document.createElement('p');
+  mot.className = 'relire-mot';
+  mot.textContent = 'Compare avec ton cahier : ta fiche et ton contrôle partiront '
+    + 'de ce texte-là, pas des photos.';
+  details.appendChild(mot);
+
+  const corps = document.createElement('div');
+  corps.className = 'relire-texte';
+  remplirTranscription(corps, texte);
+  details.appendChild(corps);
+
+  const faux = document.createElement('button');
+  faux.type = 'button';
+  faux.className = 'relire-faux';
+  faux.textContent = 'Ce n’est pas ce que dit mon cours';
+  faux.onclick = () => {
+    tracer('transcription_signalee', { chapitre: chapitre.titre || '' });
+    const merci = document.createElement('p');
+    merci.className = 'relire-merci';
+    merci.textContent = 'C’est noté, merci. Reprends la photo de cette partie en '
+      + 'cadrant plus près : c’est ce qui marche le mieux.';
+    faux.replaceWith(merci);
+  };
+  details.appendChild(faux);
+
+  return details;
 }
 
 function chapitresRetenus() {

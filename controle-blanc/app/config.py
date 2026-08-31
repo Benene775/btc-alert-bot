@@ -35,8 +35,10 @@ def _int(name: str, default: int) -> int:
 # la transcription, jamais les images. Une ligne mal lue ne reste donc pas
 # locale : elle se propage, avec assurance, jusque dans la copie corrigée. Un
 # modèle qui dit « je n'arrive pas à lire » est rattrapable ; un modèle qui lit
-# de travers sans le signaler ne l'est pas, d'autant que la transcription n'est
-# jamais montrée à l'élève.
+# de travers ne le signale pas — c'est pour ça que l'écran de périmètre montre
+# la transcription et laisse dire « ce n'est pas ce que dit mon cours »
+# (événement « transcription_signalee »). C'est le seul contrôle qui existe sur
+# cette étape, et le signal qui dira si le modèle choisi lit assez bien.
 #
 # PENDANT LA PHASE DE TEST, c'est quand même le modèle le moins cher qui lit les
 # photos. C'est un choix, pas un oubli : les testeurs sont des élèves qu'on
