@@ -62,37 +62,68 @@ def test_seules_les_dates_qui_attendent_quelque_chose_s_allument():
     assert "@keyframes jour-signale" in STYLE
 
 
-def test_l_agenda_a_une_couverture_qui_pivote():
-    """Un rabat vers l'avant restait « un panneau qui se déplie » — l'élève l'a
-    dit deux fois. Ce qu'on reconnaît, c'est une COUVERTURE qui pivote sur sa
-    charnière et découvre la page."""
-    assert 'class="agenda-couverture"' in PAGE
-    bloc = STYLE[STYLE.index(".agenda-couverture {"):]
+def test_l_agenda_s_ouvre_par_ses_deux_battants():
+    """Un seul battant, c'était encore « un panneau qui bascule ». Deux battants
+    articulés sur la reliure centrale, qui s'écartent vers l'extérieur, c'est le
+    geste qu'on fait avec un carnet posé à plat."""
+    assert 'class="volet volet-gauche"' in PAGE
+    assert 'class="volet volet-droit"' in PAGE
+
+    gauche = STYLE_NU[STYLE_NU.index(".volet-gauche {"):]
+    gauche = gauche[: gauche.index("}")]
+    assert "transform-origin: right center" in gauche, "la charnière gauche n'est pas au centre"
+
+    droit = STYLE_NU[STYLE_NU.index(".volet-droit {"):]
+    droit = droit[: droit.index("}")]
+    assert "transform-origin: left center" in droit, "la charnière droite n'est pas au centre"
+
+    # Et ils partent dans des sens opposés, sinon ils se suivent au lieu de
+    # s'ouvrir.
+    ouvert = STYLE_NU[STYLE_NU.index('[data-ouvert="oui"] .volet-gauche {'):]
+    ouvert = ouvert[: ouvert.index("}")]
+    assert "rotateY(-" in ouvert
+    suite = STYLE_NU[STYLE_NU.index('[data-ouvert="oui"] .volet-droit {'):]
+    suite = suite[: suite.index("}")]
+    assert "rotateY(1" in suite, "les deux battants tournent du même côté"
+
+
+def test_l_agenda_avance_vers_le_lecteur():
+    """« Comme si on l'ouvrait devant nous » : sans ce rapprochement, l'objet
+    reste plaqué au fond de la page."""
+    bloc = STYLE_NU[STYLE_NU.index(".agenda-dedans {"):]
     bloc = bloc[: bloc.index("}")]
-    assert "transform-origin: left center" in bloc, "la charnière n'est pas sur le côté"
-    assert "rotateY(0deg)" in bloc, "fermée, la couverture doit être de face"
-
-    ouverte = STYLE[STYLE.index('[data-ouvert="oui"] .agenda-couverture {'):]
-    ouverte = ouverte[: ouverte.index("}")]
-    degres = float(ouverte.split("rotateY(-")[1].split("deg)")[0])
-    assert degres >= 110, f"la couverture ne s'écarte que de {degres}°"
+    assert "scale(" in bloc and "translateZ(" in bloc, "l'agenda n'avance pas"
 
 
-def test_la_perspective_est_sur_le_parent_direct():
-    """Posée plus haut, elle ne franchit pas l'étage intermédiaire : le pivot
-    s'écrase alors en un simple rétrécissement horizontal, et on ne lit plus
-    un carton qui tourne."""
-    bloc = STYLE[STYLE.index(".agenda-dedans {"):]
+def test_des_feuillets_defilent_de_chaque_cote():
+    """Deux cartons qui s'écartent ne font pas un feuilletage. Les pages doivent
+    suivre leur battant avec un retard croissant."""
+    assert PAGE.count('class="feuillet"') >= 6, "moins de trois pages par côté"
+    bloc = STYLE_NU[STYLE_NU.index(".feuillet {"):]
     bloc = bloc[: bloc.index("}")]
-    assert "perspective:" in bloc
+    assert "var(--f, 1) * .075s" in bloc, "les feuillets partent tous en même temps"
 
 
-def test_la_couverture_ne_disparait_pas_au_milieu_du_geste():
-    """backface-visibility: hidden l'escamotait net au passage de la tranche,
-    en plein milieu. On voit son intérieur continuer de tourner."""
-    bloc = STYLE_NU[STYLE_NU.index(".agenda-couverture {"):]
-    bloc = bloc[: bloc.index("}")]
-    assert "backface-visibility: hidden" not in bloc
+def test_la_perspective_traverse_les_deux_etages():
+    """Elle vient de .agenda-deplie et doit atteindre les battants, deux niveaux
+    plus bas. Sans preserve-3d sur le chemin, la rotation s'aplatit en un simple
+    rétrécissement horizontal — et on ne lit plus un carton qui tourne."""
+    assert "perspective: " in STYLE_NU[STYLE_NU.index(".agenda-deplie {"):][:400]
+    for classe in (".agenda-dedans {", ".agenda-couverture {", ".volet {"):
+        bloc = STYLE_NU[STYLE_NU.index(classe):]
+        bloc = bloc[: bloc.index("}")]
+        assert "transform-style: preserve-3d" in bloc, classe
+
+
+def test_chaque_epaisseur_s_escamote_en_passant_le_profil():
+    """L'inverse du réglage précédent, et pour une bonne raison : avec deux
+    battants, ce qui passe la tranche montre son dos. Sans dos masqué, les trois
+    feuillets de chaque côté restaient opaques tout le geste et formaient un
+    bloc crème qui cachait le mois — l'effet inverse de celui recherché."""
+    for classe in (".volet-peau {", ".feuillet {"):
+        bloc = STYLE_NU[STYLE_NU.index(classe):]
+        bloc = bloc[: bloc.index("}")]
+        assert "backface-visibility: hidden" in bloc, classe
 
 
 def test_la_couverture_ne_parle_pas_aux_lecteurs_d_ecran():
@@ -102,10 +133,12 @@ def test_la_couverture_ne_parle_pas_aux_lecteurs_d_ecran():
     assert 'aria-hidden="true"' in bloc
 
 
-def test_la_reliure_marque_le_pli():
-    """Sans elle, la page découverte est un rectangle ; avec, c'est la page de
-    droite d'un carnet ouvert."""
+def test_la_reliure_ne_reste_pas_une_fois_le_mois_affiche():
+    """Elle marque le pli pendant l'ouverture. Après, la grille occupe toute la
+    largeur : une ombre centrale permanente ne se lit plus comme une reliure,
+    mais comme un défaut d'affichage."""
     assert ".agenda-dedans::before" in STYLE
+    assert '[data-ouvert="oui"] .agenda-dedans::before { opacity: 0; }' in STYLE_NU
 
 
 def test_la_vague_attend_que_la_couverture_soit_ouverte():

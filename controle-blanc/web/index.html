@@ -396,8 +396,24 @@
                un lecteur d'écran n'a pas à entendre qu'un carton pivote. Elle
                s'ouvre sur sa charnière gauche et découvre le mois. -->
           <div class="agenda-couverture" aria-hidden="true">
-            <span class="couverture-titre">Agenda</span>
-            <span class="couverture-elastique"></span>
+            <!-- Chaque battant : des feuillets dessous, la couverture dessus.
+                 Dans l'autre ordre, les feuillets masquaient le carton et
+                 l'agenda fermé apparaissait beige au lieu d'ocre. -->
+            <span class="volet volet-gauche">
+              <i class="feuillet" style="--f: 3"></i>
+              <i class="feuillet" style="--f: 2"></i>
+              <i class="feuillet" style="--f: 1"></i>
+              <span class="volet-peau"></span>
+            </span>
+            <span class="volet volet-droit">
+              <i class="feuillet" style="--f: 3"></i>
+              <i class="feuillet" style="--f: 2"></i>
+              <i class="feuillet" style="--f: 1"></i>
+              <span class="volet-peau">
+                <span class="couverture-titre">Agenda</span>
+                <span class="couverture-elastique"></span>
+              </span>
+            </span>
           </div>
           <div class="mois-barre">
             <button type="button" id="mois-precedent" class="mois-fleche" aria-label="Mois précédent">‹</button>

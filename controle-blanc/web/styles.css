@@ -3235,6 +3235,8 @@ h1 {
      l'enfant : c'est ce qui donne une vraie fuite, et pas un aplatissement. */
   /* La hauteur s'ouvre vite : ce qu'on doit voir tout de suite, c'est l'objet
      fermé. Le geste, c'est la couverture qui s'écarte ensuite. */
+  perspective: 1600px;
+  perspective-origin: center 40%;
   transition: grid-template-rows .3s cubic-bezier(.22, .9, .26, 1);
 }
 
@@ -3243,15 +3245,17 @@ h1 {
 /* Le panneau bascule vers l'avant en s'ouvrant, comme une page qu'on rabat.
    L'origine est en haut : il pivote depuis la charnière, pas depuis son
    milieu. C'est ce qui fait qu'on lit « du papier » et pas « une div ». */
-/* Un agenda qui s'ouvre.
+/* Un agenda qui s'ouvre devant soi.
  *
- * Le rabat vers l'avant ne suffisait pas : ça restait un panneau qui se
- * déplie. Ici c'est une COUVERTURE, qui pivote sur sa charnière gauche et
- * découvre la page. C'est le geste qu'on fait avec un agenda posé à plat.
+ * Deux battants articulés sur la reliure centrale s'écartent — le geste qu'on
+ * fait avec un carnet posé à plat — pendant que l'ensemble avance vers le
+ * lecteur. Chaque battant emporte quelques feuillets qui se déploient en
+ * éventail avec un léger retard : c'est ça qui fait « des pages », et pas
+ * « deux cartons ».
  *
- * La perspective se pose sur .agenda-dedans, parent direct de la couverture :
- * posée plus haut, elle ne franchirait pas l'étage intermédiaire, et le pivot
- * s'écraserait en un simple rétrécissement horizontal. */
+ * La perspective vient de .agenda-deplie et doit traverser deux étages :
+ * .agenda-dedans et .agenda-couverture portent donc preserve-3d. Sans ça, la
+ * rotation s'aplatit en un rétrécissement horizontal. */
 .agenda-dedans {
   position: relative;
   overflow: hidden;
@@ -3259,64 +3263,117 @@ h1 {
   display: flex;
   flex-direction: column;
   gap: var(--e2);
-  perspective: 1500px;
-  perspective-origin: 30% center;
+  transform-style: preserve-3d;
+  /* Le zoom : l'agenda arrive vers soi en s'ouvrant. */
+  transform: scale(.82) translateZ(-90px);
+  transform-origin: center 30%;
+  transition: transform .86s cubic-bezier(.24, .86, .24, 1);
 }
 
-.agenda-deplie[data-ouvert="oui"] .agenda-dedans { padding-top: var(--e3); }
+.agenda-deplie[data-ouvert="oui"] .agenda-dedans {
+  transform: none;
+  padding-top: var(--e3);
+}
 
-/* La reliure : l'ombre du pli, à gauche de la page découverte. C'est ce qui
-   fait lire « page de droite d'un carnet ouvert » plutôt que « rectangle ». */
+/* La reliure. Elle ne marque le pli QUE pendant l'ouverture : une fois le mois
+   affiché, la grille occupe toute la largeur et une ombre centrale permanente
+   ne se lit plus comme une reliure, mais comme un défaut d'affichage. */
 .agenda-dedans::before {
   content: "";
   position: absolute;
-  inset: 0 auto 0 0;
-  width: 26px;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 30px;
+  margin-left: -15px;
   z-index: 2;
   pointer-events: none;
   background: linear-gradient(90deg,
-    color-mix(in srgb, var(--encre) 16%, transparent),
+    transparent,
+    color-mix(in srgb, var(--encre) 13%, transparent) 46%,
+    color-mix(in srgb, var(--encre) 13%, transparent) 54%,
     transparent);
-  opacity: 0;
-  transition: opacity .4s ease .34s;
+  opacity: 1;
+  transition: opacity .34s ease .78s;
 }
 
-.agenda-deplie[data-ouvert="oui"] .agenda-dedans::before { opacity: 1; }
+.agenda-deplie[data-ouvert="oui"] .agenda-dedans::before { opacity: 0; }
 
 .agenda-couverture {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  transform-style: preserve-3d;
+  pointer-events: none;
+}
+
+.volet {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+  transform-style: preserve-3d;
+  transition: transform .8s cubic-bezier(.4, .02, .2, 1) .22s;
+}
+
+/* Les charnières sont au centre : les deux battants tournent le dos à la
+   reliure et s'ouvrent vers l'extérieur, comme un carnet posé à plat. */
+.volet-gauche { left: 0; transform-origin: right center; transform: rotateY(0deg); }
+.volet-droit { right: 0; transform-origin: left center; transform: rotateY(0deg); }
+
+.agenda-deplie[data-ouvert="oui"] .volet-gauche { transform: rotateY(-160deg); }
+.agenda-deplie[data-ouvert="oui"] .volet-droit { transform: rotateY(160deg); }
+
+/* Le carton. backface-visibility le retire au passage de la tranche : sans
+   ça, le mot « Agenda » revenait à l'envers au dos du battant. */
+.volet-peau {
   position: absolute;
   inset: 0;
   z-index: 4;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: inherit;
+  backface-visibility: hidden;
   background:
     linear-gradient(115deg,
       color-mix(in srgb, var(--accent) 92%, #fff),
       var(--accent) 40%,
       color-mix(in srgb, var(--accent) 74%, #000));
-  /* La charnière est à gauche, et le carton a une épaisseur : l'ombre portée
-     vers la droite est ce qui le décolle de la page. */
-  transform-origin: left center;
-  transform: rotateY(0deg);
-  box-shadow: 6px 0 30px rgba(0, 0, 0, .3);
-  /* Pas de backface-visibility: hidden. Elle escamotait la couverture net au
-     passage de la tranche, en plein milieu du geste ; on voit maintenant son
-     intérieur continuer de tourner, comme un vrai carton, et c'est l'opacité
-     qui la retire une fois qu'elle a fini sa course. */
-  transition: transform .78s cubic-bezier(.42, .02, .18, 1) .26s,
-              opacity .3s ease .74s;
 }
 
-.agenda-deplie[data-ouvert="oui"] .agenda-couverture {
-  transform: rotateY(-135deg);
-  opacity: 0;
+.volet-gauche .volet-peau { box-shadow: inset -14px 0 26px rgba(0, 0, 0, .24); }
+.volet-droit .volet-peau { box-shadow: inset 14px 0 26px rgba(0, 0, 0, .24); }
+
+/* Les feuillets, sous le carton. Ils suivent leur battant avec un retard
+   croissant et s'arrêtent un peu avant lui : c'est ce décalage qui fait « des
+   pages qui défilent » plutôt que « deux cartons qui s'écartent ». */
+.feuillet {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--papier) 92%, var(--accent));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--encre) 7%, transparent);
+  /* Le dos masqué, comme le carton. Sans lui, chaque feuillet restait opaque
+     au-delà de la tranche : trois par côté, ça faisait un bloc crème qui
+     cachait le mois pendant tout le geste. Avec, ils s'escamotent l'un après
+     l'autre en passant le profil — et c'est précisément ça, un feuilletage. */
+  backface-visibility: hidden;
+  transition: transform .8s cubic-bezier(.4, .02, .2, 1) calc(.22s + var(--f, 1) * .075s);
+}
+
+.volet-gauche .feuillet { transform-origin: right center; }
+.volet-droit .feuillet { transform-origin: left center; }
+
+.agenda-deplie[data-ouvert="oui"] .volet-gauche .feuillet {
+  transform: rotateY(calc(-160deg + var(--f, 1) * 11deg));
+}
+
+.agenda-deplie[data-ouvert="oui"] .volet-droit .feuillet {
+  transform: rotateY(calc(160deg - var(--f, 1) * 11deg));
 }
 
 .couverture-titre {
   font-family: var(--titre);
-  font-size: 1.5rem;
+  font-size: 1.4rem;
   letter-spacing: .02em;
   color: var(--sur-accent);
   opacity: .92;
@@ -3328,7 +3385,7 @@ h1 {
   position: absolute;
   top: 0;
   bottom: 0;
-  right: 14%;
+  right: 22%;
   width: 7px;
   border-radius: 4px;
   background: color-mix(in srgb, #000 26%, transparent);
@@ -3373,6 +3430,7 @@ h1 {
   .frise-porte, .frise-chevron, .frise-invite,
   .agenda-deplie, .agenda-dedans { transition: none; }
   .agenda-couverture { display: none; }
+  .agenda-dedans { transition: none; transform: none; }
   .agenda-dedans::before { transition: none; opacity: 1; }
   .agenda-deplie[data-anime="oui"] .jour,
   .agenda-deplie[data-anime="oui"] .jour[data-occupe="oui"]:not([data-passe="oui"]) {
