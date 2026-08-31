@@ -1415,16 +1415,16 @@ select {
 .paquet[data-vue="colonne"] .retenir { margin-top: 0; }
 .paquet[data-vue="colonne"] .carte-retenir .carte-corps { display: block; }
 
-/* --- Le quiz éclair ------------------------------------------------------
+/* --- L'atelier : sur quel cours ? ----------------------------------------
  *
- * L'objet complémentaire du contrôle blanc. Le contrôle est plein écran et
- * chronométré ; le quiz se lit en colonne, une question à la fois, et se refait
- * autant qu'on veut. La différence doit se voir : ici, pas de compte à rebours,
- * pas de jauge qui se vide — trois traits qui se remplissent.
+ * Le contrôle blanc et la fiche de révision ne servaient qu'à l'intérieur d'une
+ * séance ouverte. Depuis sa page, on les lance sur n'importe quel cours déjà
+ * photographié : deux tuiles, puis un écran de choix commun.
  */
-/* Les trois façons de repasser un cours, côte à côte. Elles ne font pas la même
-   chose — reconnaître, rédiger, relire — et c'est justement pour ça qu'elles se
-   présentent ensemble : le choix est le geste. */
+
+/* Les deux façons de repasser un cours, côte à côte. Elles ne font pas la même
+   chose — rédiger, relire — et c'est justement pour ça qu'elles se présentent
+   ensemble : le choix est le geste. */
 .trio { display: grid; gap: var(--e2); grid-template-columns: 1fr; }
 
 .outil {
@@ -1485,10 +1485,10 @@ select {
   color: var(--encre-douce);
 }
 
-/* À partir de 700 px les trois tiennent de front, et chacune se lit en colonne :
-   le signe au-dessus du nom, comme trois cartes posées. */
+/* À partir de 700 px elles tiennent de front, et chacune se lit en colonne :
+   le signe au-dessus du nom, comme des cartes posées. */
 @media (min-width: 700px) {
-  .trio { grid-template-columns: repeat(3, 1fr); }
+  .trio { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
   .outil {
     grid-template-columns: 1fr;
     grid-template-areas: "signe" "nom" "mot" "duree";
@@ -1501,13 +1501,9 @@ select {
 
 .ecran-atelier { display: flex; flex-direction: column; }
 
-.quiz-chapeau { color: var(--encre-douce); font-size: .93rem; margin: 0 0 var(--e3); }
+.atelier-chapeau { color: var(--encre-douce); font-size: .93rem; margin: 0 0 var(--e3); }
 
-.ecran-quiz { display: flex; flex-direction: column; }
-
-.quiz-choix, .quiz-jeu, .quiz-bilan { display: flex; flex-direction: column; }
-
-.quiz-etiquette {
+.atelier-etiquette-champ {
   font-family: var(--mono);
   font-size: .64rem;
   letter-spacing: .1em;
@@ -1516,11 +1512,11 @@ select {
   margin: var(--e3) 0 var(--e1);
 }
 
-.quiz-chapitres { display: flex; flex-direction: column; gap: 8px; }
+.atelier-chapitres { display: flex; flex-direction: column; gap: 8px; }
 
 /* Une case par chapitre : « réviser le chapitre 3 » est une demande plus
    fréquente que « réviser l'année ». */
-.quiz-chapitre {
+.atelier-chapitre {
   display: flex;
   align-items: flex-start;
   gap: 12px;
@@ -1532,157 +1528,17 @@ select {
   min-height: 52px;
 }
 
-.quiz-chapitre:hover { border-color: var(--trait-fort); }
-.quiz-chapitre:has(input:checked) { border-color: var(--accent); background: var(--accent-doux); }
+.atelier-chapitre:hover { border-color: var(--trait-fort); }
+.atelier-chapitre:has(input:checked) { border-color: var(--accent); background: var(--accent-doux); }
 
-.quiz-chapitre input { margin-top: 3px; accent-color: var(--accent); width: 18px; height: 18px; }
-.quiz-chapitre span { display: flex; flex-direction: column; }
-.quiz-chapitre b { font-size: .94rem; font-weight: 600; }
-.quiz-chapitre i {
+.atelier-chapitre input { margin-top: 3px; accent-color: var(--accent); width: 18px; height: 18px; }
+.atelier-chapitre span { display: flex; flex-direction: column; }
+.atelier-chapitre b { font-size: .94rem; font-weight: 600; }
+.atelier-chapitre i {
   font-style: normal;
   font-size: .78rem;
   color: var(--encre-douce);
   margin-top: 2px;
-}
-
-.quiz-barre { display: flex; flex-direction: column; gap: var(--e1); margin-bottom: var(--e3); }
-
-.quiz-titre {
-  margin: 0;
-  font-family: var(--mono);
-  font-size: .64rem;
-  letter-spacing: .1em;
-  text-transform: uppercase;
-  color: var(--encre-douce);
-}
-
-/* Trois traits qui se remplissent, pas un chronomètre qui se vide : le quiz ne
-   met pas sous pression, c'est tout ce qui le sépare du contrôle. */
-.quiz-jauge { list-style: none; margin: 0; padding: 0; display: flex; gap: 5px; }
-
-.quiz-jauge li {
-  height: 4px;
-  flex: 1;
-  border-radius: 2px;
-  background: var(--trait);
-  transition: background .35s ease;
-}
-
-.quiz-jauge li[data-etat="courante"] { background: var(--trait-fort); }
-.quiz-jauge li[data-etat="juste"] { background: var(--acquis); }
-.quiz-jauge li[data-etat="faux"] { background: var(--partiel); }
-
-.quiz-notion {
-  margin: 0 0 6px;
-  font-size: .8rem;
-  color: var(--encre-douce);
-}
-
-.quiz-enonce {
-  margin: 0 0 var(--e3);
-  font-size: 1.3rem;
-  line-height: 1.3;
-}
-
-.quiz-propositions { display: flex; flex-direction: column; gap: 10px; }
-
-/* Mêmes règles que les choix du contrôle : une cible par ligne, jamais deux
-   colonnes au pouce — un choix de travers se paie en confiance. */
-.quiz-proposition {
-  text-align: left;
-  font: inherit;
-  font-size: .96rem;
-  line-height: 1.4;
-  color: var(--encre);
-  background: var(--carte);
-  border: 1.5px solid var(--trait);
-  border-radius: var(--rayon);
-  padding: 14px 44px 14px 16px;
-  min-height: 54px;
-  position: relative;
-  transition: border-color .18s ease, background .18s ease, transform .15s ease;
-}
-
-.quiz-proposition:hover:not([data-etat]) { border-color: var(--trait-fort); }
-.quiz-proposition:active:not([data-etat]) { transform: scale(.988); }
-.quiz-proposition[data-etat] { cursor: default; }
-.quiz-proposition[data-etat="juste"] { border-color: var(--acquis); background: var(--acquis-doux); }
-.quiz-proposition[data-etat="faux"] { border-color: var(--rouge); background: var(--rouge-doux); }
-.quiz-proposition[data-etat="ratee"] { border-color: var(--acquis); border-style: dashed; }
-.quiz-proposition[data-etat="ecartee"] { opacity: .45; }
-
-.quiz-proposition[data-etat]::after {
-  position: absolute;
-  right: 15px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 1rem;
-  line-height: 1;
-}
-
-.quiz-proposition[data-etat="juste"]::after { content: "✓"; color: var(--acquis); }
-.quiz-proposition[data-etat="faux"]::after { content: "✗"; color: var(--rouge); }
-.quiz-proposition[data-etat="ratee"]::after { content: "✓"; color: var(--acquis); opacity: .55; }
-
-.quiz-verdict { margin-top: var(--e3); display: flex; flex-direction: column; gap: 6px; }
-
-.quiz-pourquoi {
-  margin: 0;
-  padding-left: 13px;
-  border-left: 2px solid color-mix(in srgb, var(--rouge) 40%, transparent);
-  color: var(--rouge);
-  font-size: .92rem;
-  line-height: 1.5;
-}
-
-.quiz-pourquoi[data-juste="oui"] {
-  color: var(--acquis);
-  border-left-color: color-mix(in srgb, var(--acquis) 45%, transparent);
-}
-
-.quiz-bonne { margin: 0; padding-left: 13px; font-size: .9rem; color: var(--encre-douce); }
-
-/* Le renvoi au cours : c'est le cœur du produit, il est bleu partout ailleurs. */
-.quiz-ou {
-  margin: 2px 0 0;
-  padding-left: 13px;
-  font-size: .86rem;
-  color: var(--stylo-eleve);
-}
-
-.quiz-liste { list-style: none; margin: var(--e2) 0 0; padding: 0; display: flex;
-  flex-direction: column; gap: 10px; }
-
-.quiz-a-revoir-ligne {
-  background: var(--partiel-doux);
-  border-left: 3px solid var(--partiel);
-  border-radius: 0 var(--rayon) var(--rayon) 0;
-  padding: 12px 15px;
-}
-
-.quiz-a-revoir-ligne b { font-weight: 600; font-size: .96rem; }
-.quiz-a-revoir-ligne span {
-  display: block;
-  margin-top: 3px;
-  font-size: .85rem;
-  color: var(--encre-douce);
-}
-
-.quiz-acquis { margin: var(--e2) 0 0; font-size: .9rem; color: var(--acquis); }
-
-/* La règle du produit, à la place exacte où un quiz mettrait « 6/8 ». */
-.quiz-sans-note {
-  margin: var(--e3) 0 0;
-  padding-top: var(--e2);
-  border-top: 1px solid var(--trait);
-  font-size: .9rem;
-  color: var(--encre-douce);
-}
-
-.quiz-sans-note b { color: var(--encre); font-weight: 600; }
-
-@media (prefers-reduced-motion: reduce) {
-  .quiz-proposition, .quiz-jauge li { transition: none; }
 }
 
 /* --- Le contrôle -------------------------------------------------------- */

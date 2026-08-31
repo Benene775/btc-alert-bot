@@ -10,9 +10,6 @@ const DELAIS = {
   '/api/correction': 1600,
   '/api/fiche/generale': 1200,
   '/api/fiche/ciblee': 1100,
-  // Le quiz coûte moins qu'un contrôle : moins de jetons, des propositions
-  // d'une ligne. L'attente le dit.
-  '/api/quiz': 900,
 };
 
 const corrigesEnMemoire = {};
@@ -267,34 +264,6 @@ async function api(chemin, options = {}) {
       duree_minutes: questions.reduce((total, q) => total + q.duree_minutes, 0),
       // Comme sur le serveur, les réponses attendues ne partent pas avec les énoncés.
       questions: questions.map(({ points_attendus, ou_dans_le_cours, ...reste }) => reste),
-    };
-  }
-
-  /* Le quiz éclair. Comme sur le serveur, le corrigé reste ici : le navigateur
-     reçoit les propositions, il renvoie un rang, on lui dit ce qu'il en est. */
-  if (chemin === '/api/quiz') {
-    const identifiant = identifiantAleatoire();
-    corrigesEnMemoire[identifiant] = QUIZ;
-    return {
-      quiz_id: identifiant,
-      titre: 'Quiz éclair — ' + CHAPITRES[0].titre,
-      matiere: MATIERE_DETECTEE,
-      questions: QUIZ.map(({ juste, pourquoi_juste, pourquoi_faux, ou_dans_le_cours, ...reste }) => reste),
-    };
-  }
-
-  if (chemin === '/api/quiz/reponse') {
-    const questions = corrigesEnMemoire[corps.quiz_id] || QUIZ;
-    const question = questions.find((q) => q.numero === corps.numero);
-    if (!question) throw new ErreurApi('Cette question n’existe plus.', 'session');
-    const juste = corps.choix === question.juste;
-    return {
-      juste,
-      bonne: question.juste,
-      pourquoi: juste ? question.pourquoi_juste : (question.pourquoi_faux[corps.choix] || ''),
-      pourquoi_juste: question.pourquoi_juste,
-      ou_dans_le_cours: question.ou_dans_le_cours,
-      notion: question.notion,
     };
   }
 

@@ -406,21 +406,15 @@
   </div>
   </div>
 
-  <!-- Les trois façons de repasser un cours déjà photographié. Elles ne font
-       pas la même chose : le quiz fait reconnaître, le contrôle fait rédiger,
-       la fiche fait relire. Les trois méritent donc d'être visibles ensemble —
-       et chacune ouvre sa page, où l'on choisit le cours. -->
+  <!-- Les deux façons de repasser un cours déjà photographié. Elles ne font
+       pas la même chose : le contrôle fait rédiger, la fiche fait relire. Les
+       deux méritent donc d'être visibles ensemble — et chacune ouvre sa page,
+       où l'on choisit le cours. -->
   <section class="pan" id="pan-outils">
     <div class="pan-tete">
       <h2 class="pan-titre">Repasser un cours</h2>
     </div>
     <div class="trio">
-      <button type="button" class="outil" id="outil-quiz">
-        <span class="outil-signe" aria-hidden="true">?</span>
-        <span class="outil-nom">Quiz éclair</span>
-        <span class="outil-mot">Des QCM courts. Pour faire tenir avant le jour J.</span>
-        <span class="outil-duree">5 min</span>
-      </button>
       <button type="button" class="outil" id="outil-controle">
         <span class="outil-signe" aria-hidden="true">✎</span>
         <span class="outil-nom">Contrôle blanc</span>
@@ -588,8 +582,8 @@
 </section>
 
 <!-- ÉTAPE 4 — le contrôle blanc -->
-<!-- L'ATELIER — sur quel cours ? Un seul écran pour les trois outils : ils
-     posent la même question, et trois copies auraient divergé à la première
+<!-- L'ATELIER — sur quel cours ? Un seul écran pour les deux outils : ils
+     posent la même question, et deux copies auraient divergé à la première
      retouche. Le titre, la phrase et le bouton changent selon l'outil. -->
 <section id="ecran-atelier" class="ecran ecran-atelier" hidden>
   <button type="button" class="retour" id="atelier-retour">← Ma page</button>
@@ -597,47 +591,14 @@
   <h2 id="atelier-titre"></h2>
   <p class="chapeau" id="atelier-chapeau"></p>
 
-  <label for="quiz-matiere">La matière</label>
-  <select id="quiz-matiere"></select>
+  <label for="atelier-matiere">La matière</label>
+  <select id="atelier-matiere"></select>
 
-  <p class="quiz-etiquette">Les chapitres</p>
-  <div class="quiz-chapitres" id="quiz-chapitres"></div>
+  <p class="atelier-etiquette-champ">Les chapitres</p>
+  <div class="atelier-chapitres" id="atelier-chapitres"></div>
 
-  <p class="aide" id="quiz-aide">Tout est coché : décoche ce que tu ne révises pas.</p>
+  <p class="aide" id="atelier-aide">Tout est coché : décoche ce que tu ne révises pas.</p>
   <button type="button" class="principal" id="bouton-lancer-atelier"></button>
-</section>
-
-<!-- LE QUIZ ÉCLAIR — les questions, puis le bilan -->
-<section id="ecran-quiz" class="ecran ecran-quiz" hidden>
-
-  <button type="button" class="retour" id="quiz-retour">← Ma page</button>
-
-  <div class="quiz-jeu" id="quiz-jeu" hidden>
-    <div class="quiz-barre">
-      <p class="quiz-titre" id="quiz-titre"></p>
-      <ol class="quiz-jauge" id="quiz-jauge"></ol>
-    </div>
-    <p class="quiz-notion" id="quiz-notion"></p>
-    <h2 class="quiz-enonce" id="quiz-enonce"></h2>
-    <div class="quiz-propositions" id="quiz-propositions"></div>
-    <div class="quiz-verdict" id="quiz-verdict" hidden aria-live="polite"></div>
-    <button type="button" class="principal" id="bouton-quiz-suivant" hidden></button>
-  </div>
-
-  <!-- Le bilan. Des notions, jamais une note. -->
-  <div class="quiz-bilan" id="quiz-bilan" hidden>
-    <p class="etape">Quiz terminé</p>
-    <h2 id="quiz-bilan-titre"></h2>
-    <ul class="quiz-liste" id="quiz-a-revoir"></ul>
-    <p class="quiz-acquis" id="quiz-acquis"></p>
-    <p class="quiz-sans-note">
-      <b>Pas de note</b> — ni ici, ni ailleurs. Repère te dit ce qu’il te reste à
-      revoir, pas ce que tu vaudrais.
-    </p>
-    <button type="button" class="principal" id="bouton-quiz-refaire">Refaire un quiz</button>
-    <button type="button" class="discret" id="bouton-quiz-fini">Revenir à ma page</button>
-  </div>
-
 </section>
 
 <section id="ecran-controle" class="ecran ecran-plein" hidden>

@@ -103,7 +103,7 @@ def test_le_bandeau_se_cale_sur_l_ecran_qu_il_coiffe():
     # Les écrans larges sont exactement ceux qui tiennent --large — et la liste
     # vit en double, dans la feuille de style et dans le script. Si elles
     # divergent, le bandeau se met à coiffer un écran d'une autre largeur : on
-    # l'a vu avec le quiz, bandeau de 1120 px au-dessus d'un écran de 620.
+    # l'a vu avec l'atelier, bandeau de 1120 px au-dessus d'un écran de 620.
     import re as _re
     regle = next(l for l in STYLE.splitlines() if "max-width: var(--large)" in l)
     du_style = {m for m in _re.findall(r"ecran-[a-z]+", regle)}
