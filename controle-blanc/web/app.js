@@ -1099,7 +1099,7 @@ function dessinerAtelier() {
  * mois, qui est le même geste. Sans ce marqueur elle rejouait à chaque clic sur
  * une date : la grille est redessinée à chaque fois, donc les cases sont neuves
  * et l'animation repartait de zéro sous le doigt de l'élève. */
-const DUREE_VAGUE = 1000;   // battants (560) + vague (240) + halo (440), à la louche
+const DUREE_VAGUE = 1700;   // couverture (620) + vague (380) + halo (500) + marge
 let minuteurVague = null;
 
 function animerAgenda() {

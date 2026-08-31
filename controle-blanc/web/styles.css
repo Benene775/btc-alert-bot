@@ -3233,11 +3233,9 @@ h1 {
   grid-template-rows: 0fr;
   /* La perspective se pose sur le PARENT, pas dans la transformation de
      l'enfant : c'est ce qui donne une vraie fuite, et pas un aplatissement. */
-  /* La hauteur s'ouvre vite : ce qu'on doit voir tout de suite, c'est l'objet
-     fermé. Le geste, c'est la couverture qui s'écarte ensuite. */
-  perspective: 1600px;
-  perspective-origin: center 40%;
-  transition: grid-template-rows .22s cubic-bezier(.22, .9, .26, 1);
+  perspective: 1100px;
+  perspective-origin: top center;
+  transition: grid-template-rows .62s cubic-bezier(.22, .9, .26, 1);
 }
 
 .agenda-deplie[data-ouvert="oui"] { grid-template-rows: 1fr; }
@@ -3245,19 +3243,12 @@ h1 {
 /* Le panneau bascule vers l'avant en s'ouvrant, comme une page qu'on rabat.
    L'origine est en haut : il pivote depuis la charnière, pas depuis son
    milieu. C'est ce qui fait qu'on lit « du papier » et pas « une div ». */
-/* Un agenda qui s'ouvre devant soi.
+/* La couverture qui se rabat.
  *
- * Deux battants articulés sur la reliure centrale s'écartent — le geste qu'on
- * fait avec un carnet posé à plat — pendant que l'ensemble avance vers le
- * lecteur.
- *
- * Volontairement dépouillé : une version précédente empilait des feuillets
- * par battant, et c'est exactement cette pièce en plus qui a cassé. Deux
- * cartons qui s'écartent suffisent à dire « un agenda s'ouvre ».
- *
- * La perspective vient de .agenda-deplie et doit traverser deux étages :
- * .agenda-dedans et .agenda-couverture portent donc preserve-3d. Sans ça, la
- * rotation s'aplatit en un rétrécissement horizontal. */
+ * Fermé, le panneau est vu par la tranche : rotateX(-92deg), charnière en
+ * haut. Il bascule vers le lecteur comme on ouvre un agenda posé à plat.
+ * Sept degrés, c'était un frémissement que personne ne voyait — le geste doit
+ * être franc pour se lire comme un geste. */
 .agenda-dedans {
   position: relative;
   overflow: hidden;
@@ -3265,117 +3256,33 @@ h1 {
   display: flex;
   flex-direction: column;
   gap: var(--e2);
-  transform-style: preserve-3d;
-  /* Le zoom : l'agenda arrive vers soi en s'ouvrant. */
-  transform: scale(.86) translateZ(-70px);
-  transform-origin: center 30%;
-  transition: transform .52s cubic-bezier(.24, .86, .24, 1);
+  transform-origin: top center;
+  transform: rotateX(-92deg);
+  transition: transform .62s cubic-bezier(.22, .9, .26, 1);
 }
 
 .agenda-deplie[data-ouvert="oui"] .agenda-dedans {
-  transform: none;
+  transform: rotateX(0deg);
   padding-top: var(--e3);
 }
 
-/* La reliure, le temps de l'ouverture seulement : une fois le mois affiché, la
-   grille occupe toute la largeur et une ombre centrale permanente ne se lit
-   plus comme une reliure, mais comme un défaut d'affichage. */
-.agenda-dedans::before {
+/* L'ombre du pli : la page est dans l'ombre tant qu'elle est rabattue, et la
+   lumière la gagne à mesure qu'elle s'ouvre. Sans elle, la rotation se lit
+   comme un effet ; avec elle, comme du papier. */
+.agenda-dedans::after {
   content: "";
   position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 50%;
-  width: 28px;
-  margin-left: -14px;
-  z-index: 2;
-  pointer-events: none;
-  background: linear-gradient(90deg,
-    transparent,
-    color-mix(in srgb, var(--encre) 13%, transparent) 46%,
-    color-mix(in srgb, var(--encre) 13%, transparent) 54%,
-    transparent);
-  opacity: 1;
-  transition: opacity .26s ease .42s;
-}
-
-.agenda-deplie[data-ouvert="oui"] .agenda-dedans::before { opacity: 0; }
-
-/* La couverture s'efface franchement à la fin.
- *
- * Ce n'est pas une coquetterie : la version précédente empilait des feuillets
- * dont la rotation s'AJOUTAIT à celle du battant. Passé un certain angle ils
- * repassaient de face, et restaient plantés en travers du mois — un grand
- * bloc crème sur la moitié de la grille. Le dos masqué ne suffit donc pas à
- * garantir qu'il ne reste rien : on l'éteint aussi, explicitement. */
-.agenda-couverture {
-  position: absolute;
   inset: 0;
-  z-index: 4;
-  transform-style: preserve-3d;
   pointer-events: none;
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--encre) 30%, transparent),
+    color-mix(in srgb, var(--encre) 6%, transparent) 45%,
+    transparent 75%);
   opacity: 1;
-  transition: opacity .01s linear .52s;
+  transition: opacity .62s ease;
 }
 
-.agenda-deplie[data-ouvert="oui"] .agenda-couverture { opacity: 0; }
-
-.volet {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  backface-visibility: hidden;
-  background:
-    linear-gradient(115deg,
-      color-mix(in srgb, var(--accent) 92%, #fff),
-      var(--accent) 40%,
-      color-mix(in srgb, var(--accent) 74%, #000));
-  transition: transform .46s cubic-bezier(.38, .02, .2, 1) .1s;
-}
-
-/* Les charnières sont au centre : les deux battants tournent le dos à la
-   reliure et s'ouvrent vers l'extérieur, comme un carnet posé à plat. */
-.volet-gauche {
-  left: 0;
-  transform-origin: right center;
-  transform: rotateY(0deg);
-  box-shadow: inset -14px 0 26px rgba(0, 0, 0, .24);
-}
-
-.volet-droit {
-  right: 0;
-  transform-origin: left center;
-  transform: rotateY(0deg);
-  box-shadow: inset 14px 0 26px rgba(0, 0, 0, .24);
-}
-
-.agenda-deplie[data-ouvert="oui"] .volet-gauche { transform: rotateY(-118deg); }
-.agenda-deplie[data-ouvert="oui"] .volet-droit { transform: rotateY(118deg); }
-
-.couverture-titre {
-  font-family: var(--titre);
-  font-size: 1.4rem;
-  letter-spacing: .02em;
-  color: var(--sur-accent);
-  opacity: .92;
-}
-
-/* L'élastique, celui qui tient un carnet fermé. Un seul détail concret suffit
-   à dire « agenda » — deux feraient déguisement. */
-.couverture-elastique {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  right: 22%;
-  width: 7px;
-  border-radius: 4px;
-  background: color-mix(in srgb, #000 26%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, #fff 16%, transparent);
-}
+.agenda-deplie[data-ouvert="oui"] .agenda-dedans::after { opacity: 0; }
 
 /* La vague. Les jours n'arrivent pas ligne par ligne — ça, c'est un balayage
    de machine — mais EN DIAGONALE depuis le lundi de la première semaine :
@@ -3385,10 +3292,10 @@ h1 {
    ce garde-fou elle rejouait à chaque clic sur une date, la grille étant
    redessinée : la page tremblait sous le doigt de l'élève. */
 .agenda-deplie[data-anime="oui"] .jour {
-  animation: jour-arrive .34s cubic-bezier(.2, .82, .28, 1) backwards;
+  animation: jour-arrive .42s cubic-bezier(.2, .82, .28, 1) backwards;
   /* Décalée du temps que met la couverture à s'ouvrir : jouée dessous, la
      vague se perdrait derrière le pli. */
-  animation-delay: calc(.22s + var(--i, 0) * 24ms);
+  animation-delay: calc(.34s + var(--i, 0) * 38ms);
 }
 
 @keyframes jour-arrive {
@@ -3402,8 +3309,8 @@ h1 {
    pour quoi l'élève a ouvert son agenda, pas sur une grille uniforme.
    Les dates passées ne clignotent pas : elles n'attendent plus rien. */
 .agenda-deplie[data-anime="oui"] .jour[data-occupe="oui"]:not([data-passe="oui"]) {
-  animation: jour-arrive .34s cubic-bezier(.2, .82, .28, 1) backwards,
-             jour-signale .44s ease-out calc(.22s + var(--i, 0) * 24ms + .38s) backwards;
+  animation: jour-arrive .42s cubic-bezier(.2, .82, .28, 1) backwards,
+             jour-signale .5s ease-out calc(.34s + var(--i, 0) * 38ms + .42s) backwards;
 }
 
 @keyframes jour-signale {
@@ -3414,9 +3321,8 @@ h1 {
 @media (prefers-reduced-motion: reduce) {
   .frise-porte, .frise-chevron, .frise-invite,
   .agenda-deplie, .agenda-dedans { transition: none; }
-  .agenda-couverture { display: none; }
-  .agenda-dedans { transition: none; transform: none; }
-  .agenda-dedans::before { transition: none; opacity: 1; }
+  .agenda-dedans { transform: none; }
+  .agenda-dedans::after { display: none; }
   .agenda-deplie[data-anime="oui"] .jour,
   .agenda-deplie[data-anime="oui"] .jour[data-occupe="oui"]:not([data-passe="oui"]) {
     animation: none;
