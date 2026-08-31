@@ -7,6 +7,8 @@ vérifie surtout ce fichier — le reste (les messages, l'affichage) découle.
 
 from __future__ import annotations
 
+import re
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -178,3 +180,17 @@ def test_les_tuiles_pointent_vers_de_vraies_actions():
     for action in ("controle", "fiche_generale"):
         assert f"'{action}'" in bloc, action
         assert action in config.QUOTAS_MOIS, action
+
+
+def test_la_demonstration_annonce_les_memes_plafonds_que_le_produit():
+    """La démonstration autonome tient ses propres compteurs, faute de serveur.
+    S'ils s'écartent de config.py, elle ment sur ce que l'abonnement donne — à
+    l'endroit précis où on la montre à quelqu'un pour le convaincre."""
+    import json
+
+    source = (Path(__file__).resolve().parent.parent
+              / "outils" / "demonstration" / "faux-serveur.js").read_text(encoding="utf-8")
+    brut = source[source.index("const PLAFONDS_MOIS = {"):]
+    brut = brut[brut.index("{"): brut.index("}") + 1]
+    plafonds = json.loads(re.sub(r"(\w+):", r'"\1":', brut).replace("'", '"'))
+    assert plafonds == config.QUOTAS_MOIS

@@ -96,3 +96,16 @@ def test_une_longue_transcription_ne_pousse_pas_le_bouton_hors_de_l_ecran():
     assert "overflow-y: auto" in bloc
     # Les retours à la ligne du cours sont ce qui le rend relisable.
     assert "white-space: pre-wrap" in bloc
+
+
+def test_la_demonstration_montre_une_vraie_transcription():
+    """L'écran de périmètre affiche ce texte. Un bouchon d'une ligne ferait
+    croire, à qui feuillette la démonstration, que la lecture du cours a raté —
+    exactement le défaut que cet écran sert à rendre visible."""
+    from app import demo
+
+    js = (RACINE / "outils" / "demonstration" / "histoire.js").read_text(encoding="utf-8")
+    debut = js.index("transcription: `") + len("transcription: `")
+    assert js[debut:js.index("`", debut)] == demo.TRANSCRIPTION, (
+        "la démonstration autonome et le mode démonstration du serveur ont divergé"
+    )

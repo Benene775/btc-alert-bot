@@ -207,6 +207,18 @@ async function api(chemin, options = {}) {
 
   if (chemin === '/api/session/contexte' || chemin === '/api/evenement') return { etat: 'ok' };
 
+  // Les plafonds du mois. Dans le produit ils sont comptés côté serveur, seul
+  // endroit où le compte est infalsifiable ; ici on les tient en mémoire, pour
+  // que le compteur sous chaque outil de la page perso montre autre chose qu'un
+  // blanc — et qu'il baisse vraiment quand on génère.
+  if (chemin === '/api/compte/quotas') {
+    return { mois: new Date().toISOString().slice(0, 7), quotas: etatDesQuotas() };
+  }
+
+  // Le vrai serveur décompte à chaque appel facturé (store.enregistrer_usage).
+  // La correction n'y est pas : elle fait partie du contrôle déjà compté.
+  if (ACTION_FACTUREE[chemin]) decompter(ACTION_FACTUREE[chemin]);
+
   if (chemin.startsWith('/api/session/')) {
     // Pas de session partagée entre appareils dans la démonstration.
     throw new ErreurApi("Cette session n’existe plus. On en recommence une.", 'session');
@@ -328,3 +340,30 @@ function envoyerJson(chemin, corps) {
 }
 
 function tracer() { /* les mesures partent au serveur dans le produit ; ici, nulle part. */ }
+
+/* Les plafonds mensuels, en mémoire.
+ *
+ * Les mêmes chiffres que app/config.py — s'ils divergent, la démonstration
+ * ment sur ce que l'abonnement donne. Ils repartent à chaque rechargement :
+ * une démonstration n'a pas de mois. */
+const PLAFONDS_MOIS = { analyse: 8, fiche_generale: 8, controle: 8, fiche_ciblee: 8 };
+const consommes = { analyse: 0, fiche_generale: 0, controle: 0, fiche_ciblee: 0 };
+
+const ACTION_FACTUREE = {
+  '/api/analyse': 'analyse',
+  '/api/fiche/generale': 'fiche_generale',
+  '/api/fiche/ciblee': 'fiche_ciblee',
+  '/api/controle': 'controle',
+};
+
+function decompter(action) {
+  if (action in consommes) consommes[action] += 1;
+}
+
+function etatDesQuotas() {
+  const etat = {};
+  Object.entries(PLAFONDS_MOIS).forEach(([action, plafond]) => {
+    etat[action] = { plafond, restant: Math.max(0, plafond - consommes[action]) };
+  });
+  return etat;
+}

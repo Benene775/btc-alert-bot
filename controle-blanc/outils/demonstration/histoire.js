@@ -11,7 +11,44 @@ const CHAPITRE = {
     "La mobilisation de l’arrière et le rôle des femmes",
     "1917, année de crise",
   ],
-  transcription: "I. Une guerre d’un type nouveau…",
+  // La transcription réelle, celle que sert app/demo.py — l'écran de périmètre
+  // l'affiche désormais (« Voir ce que j'ai lu »), et un bouchon d'une ligne y
+  // ferait croire à une lecture ratée. Un test les tient identiques.
+  transcription: `[[page 0]]
+I. Une guerre d’un type nouveau
+
+La Première Guerre mondiale commence en août 1914 et s’achève le 11 novembre 1918.
+Elle oppose la Triple-Entente (France, Royaume-Uni, Russie) aux Empires centraux
+(Allemagne, Autriche-Hongrie).
+
+Trois phases : la guerre de mouvement (août-novembre 1914), la guerre de position
+ou guerre de tranchées (1915-1917), puis le retour de la guerre de mouvement en 1918.
+
+Guerre totale : toutes les ressources d’un pays — économiques, humaines, scientifiques —
+sont mobilisées pour la guerre.
+
+II. La violence de masse
+
+Verdun, février-décembre 1916 : bataille emblématique de la guerre de position.
+Environ 700 000 morts, blessés et disparus des deux côtés.
+Les soldats vivent dans les tranchées : boue, rats, obus, gaz de combat.
+On appelle « poilus » les soldats français du front.
+
+[[page 1]]
+Génocide des Arméniens, 1915-1916, dans l’Empire ottoman : environ 1,2 million de morts.
+Génocide = extermination programmée d’un peuple entier.
+
+III. L’arrière et les civils
+
+Les femmes remplacent les hommes dans les usines (les « munitionnettes ») et aux champs.
+L’État emprunte auprès des populations et impose la censure et la propagande
+(le « bourrage de crâne »).
+
+[[page 2]]
+1917 : année de crise. Mutineries dans l’armée française après l’échec du Chemin des Dames,
+révolutions en Russie, entrée en guerre des États-Unis en avril.
+
+À retenir : 1914 début, 1916 Verdun, 1917 année de crise, 11 novembre 1918 armistice.`,
   photos: [0, 1, 2],
 };
 
