@@ -52,7 +52,8 @@ CREATE TABLE IF NOT EXISTS usages (
     tokens_entree  INTEGER DEFAULT 0,
     tokens_sortie  INTEGER DEFAULT 0,
     cache_ecriture INTEGER DEFAULT 0,
-    cache_lecture  INTEGER DEFAULT 0
+    cache_lecture  INTEGER DEFAULT 0,
+    modele         TEXT NOT NULL DEFAULT ''
 );
 CREATE INDEX IF NOT EXISTS idx_usages_session ON usages (session_id, action, jour);
 
@@ -147,6 +148,10 @@ def _init(conn: sqlite3.Connection) -> None:
     if "compte_id" not in colonnes:
         conn.execute("ALTER TABLE sessions ADD COLUMN compte_id TEXT")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_sessions_compte ON sessions (compte_id)")
+    # Les usages d'avant la comparaison de modèles ne disent pas lequel a servi.
+    usages = {ligne[1] for ligne in conn.execute("PRAGMA table_info(usages)")}
+    if usages and "modele" not in usages:
+        conn.execute("ALTER TABLE usages ADD COLUMN modele TEXT NOT NULL DEFAULT ''")
     demandes = {ligne[1] for ligne in conn.execute("PRAGMA table_info(demandes_code)")}
     if demandes and "source" not in demandes:
         conn.execute("ALTER TABLE demandes_code ADD COLUMN source TEXT NOT NULL DEFAULT ''")
@@ -807,16 +812,18 @@ def verifier_quota(session_id: str, action: str) -> None:
         )
 
 
-def enregistrer_usage(session_id: str, action: str, usage: dict[str, int] | None = None) -> None:
+def enregistrer_usage(session_id: str, action: str, usage: dict[str, Any] | None = None) -> None:
     usage = usage or {}
     with curseur() as cur:
         cur.execute(
             "INSERT INTO usages (session_id, action, jour, horodatage, tokens_entree,"
-            " tokens_sortie, cache_ecriture, cache_lecture) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            " tokens_sortie, cache_ecriture, cache_lecture, modele)"
+            " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 session_id, action, aujourdhui(), maintenant(),
                 usage.get("tokens_entree", 0), usage.get("tokens_sortie", 0),
                 usage.get("cache_ecriture", 0), usage.get("cache_lecture", 0),
+                usage.get("modele", ""),
             ),
         )
 
@@ -946,22 +953,42 @@ def metriques() -> dict[str, Any]:
         cur.execute("SELECT COUNT(*) AS n FROM evenements WHERE type = 'question_signalee'")
         questions_signalees = int(cur.fetchone()["n"])
 
+        # Le coût, par action ET par modèle. Sans le modèle, un essai Sonnet
+        # serait chiffré au tarif Opus et le banc d'essai ne prouverait rien.
         cur.execute(
-            "SELECT action, COUNT(*) AS n, SUM(tokens_entree) AS e, SUM(tokens_sortie) AS s,"
-            " SUM(cache_ecriture) AS ce, SUM(cache_lecture) AS cl FROM usages GROUP BY action"
+            "SELECT action, modele, COUNT(*) AS n, SUM(tokens_entree) AS e,"
+            " SUM(tokens_sortie) AS s, SUM(cache_ecriture) AS ce, SUM(cache_lecture) AS cl"
+            " FROM usages GROUP BY action, modele"
         )
         cout_total = 0.0
         detail_cout = []
+        tarifs_inconnus: set[str] = set()
         for ligne in cur.fetchall():
-            p = config.PRIX_USD_PAR_MTOK
-            cout = (
-                (ligne["e"] or 0) * p["entree"]
-                + (ligne["s"] or 0) * p["sortie"]
-                + (ligne["ce"] or 0) * p["cache_ecriture"]
-                + (ligne["cl"] or 0) * p["cache_lecture"]
-            ) / 1_000_000
+            cout = _cout_usd(ligne, tarifs_inconnus)
             cout_total += cout
-            detail_cout.append({"action": ligne["action"], "appels": ligne["n"], "cout_usd": round(cout, 4)})
+            detail_cout.append({
+                "action": ligne["action"],
+                "modele": ligne["modele"] or "—",
+                "appels": ligne["n"],
+                "cout_usd": round(cout, 4),
+            })
+        detail_cout.sort(key=lambda d: -d["cout_usd"])
+
+        # Le chiffre qui décide du prix de l'abonnement : ce que coûte un compte
+        # sur un mois. Pas le pire cas — la moyenne, et le maximum à côté pour
+        # savoir si les plafonds tiennent.
+        cur.execute(
+            "SELECT s.compte_id AS compte, substr(u.jour, 1, 7) AS mois, u.modele AS modele,"
+            " COUNT(*) AS n, SUM(u.tokens_entree) AS e, SUM(u.tokens_sortie) AS s,"
+            " SUM(u.cache_ecriture) AS ce, SUM(u.cache_lecture) AS cl"
+            " FROM usages u JOIN sessions s ON s.id = u.session_id"
+            " WHERE s.compte_id IS NOT NULL GROUP BY s.compte_id, mois, u.modele"
+        )
+        par_compte_mois: dict[tuple[str, str], float] = {}
+        for ligne in cur.fetchall():
+            cle = (ligne["compte"], ligne["mois"])
+            par_compte_mois[cle] = par_compte_mois.get(cle, 0.0) + _cout_usd(ligne, tarifs_inconnus)
+        couts_mensuels = sorted(par_compte_mois.values())
 
         cur.execute("SELECT COUNT(*) AS n FROM sessions")
         sessions_creees = int(cur.fetchone()["n"])
@@ -978,7 +1005,30 @@ def metriques() -> dict[str, Any]:
         "cout_usd_total": round(cout_total, 4),
         "cout_usd_par_session": round(cout_total / sessions_creees, 4) if sessions_creees else 0.0,
         "detail_cout": detail_cout,
+        "comptes_mois_mesures": len(couts_mensuels),
+        "cout_usd_moyen_compte_mois": (
+            round(sum(couts_mensuels) / len(couts_mensuels), 4) if couts_mensuels else 0.0
+        ),
+        "cout_usd_median_compte_mois": (
+            round(couts_mensuels[len(couts_mensuels) // 2], 4) if couts_mensuels else 0.0
+        ),
+        "cout_usd_max_compte_mois": round(couts_mensuels[-1], 4) if couts_mensuels else 0.0,
+        # Un tarif manquant fausse tout le tableau en silence : on le nomme.
+        "tarifs_inconnus": sorted(tarifs_inconnus),
     }
+
+
+def _cout_usd(ligne: Any, inconnus: set[str] | None = None) -> float:
+    """Le coût d'un paquet d'appels, au tarif du modèle qui les a servis."""
+    prix, connu = config.prix_du_modele(ligne["modele"] or "")
+    if not connu and inconnus is not None and (ligne["e"] or ligne["s"]):
+        inconnus.add(ligne["modele"] or "(non enregistré)")
+    return (
+        (ligne["e"] or 0) * prix["entree"]
+        + (ligne["s"] or 0) * prix["sortie"]
+        + (ligne["ce"] or 0) * prix["cache_ecriture"]
+        + (ligne["cl"] or 0) * prix["cache_lecture"]
+    ) / 1_000_000
 
 
 def questions_signalees_detail(limite: int = 50) -> list[dict[str, Any]]:

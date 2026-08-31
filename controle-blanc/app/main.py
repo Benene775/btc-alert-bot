@@ -554,9 +554,17 @@ def tableau_de_bord(token: str = "") -> HTMLResponse:
 
     couts = "".join(
         f"<tr><th>{txt(d['action'])}</th><td class='v'>{d['appels']}</td>"
-        f"<td class='n'>{d['cout_usd']} $</td></tr>"
+        f"<td class='n'>{d['cout_usd']} $ &middot; {txt(d['modele'])}</td></tr>"
         for d in m["detail_cout"]
     ) or "<tr><td colspan='3' class='n'>Aucun appel facturé.</td></tr>"
+
+    # Un tarif manquant fausse la colonne entière sans rien casser : on le dit.
+    alerte_tarifs = (
+        "<p class='alerte'>Tarif inconnu pour "
+        + txt(", ".join(m["tarifs_inconnus"]))
+        + " — ces lignes sont chiffrées au tarif par défaut, donc fausses. "
+        + "Ajouter le modèle dans <code>PRIX_USD_PAR_MTOK_PAR_MODELE</code>.</p>"
+    ) if m["tarifs_inconnus"] else ""
 
     liste_signalees = "".join(
         f"<li><b>Q{txt(signal.get('numero', '?'))}</b> — {txt(signal.get('enonce', '')[:160])}"
@@ -579,6 +587,9 @@ def tableau_de_bord(token: str = "") -> HTMLResponse:
  td.v {{ text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; width: 90px; }}
  td.n {{ color: #6b6560; font-size: .85rem; padding-left: 16px; }}
  .cle td.v {{ color: #b4530a; font-size: 1.3rem; }}
+ .alerte {{ background: #fdf1e3; border-left: 3px solid #b4530a; padding: 10px 14px;
+            font-size: .85rem; margin: 12px 0; }}
+ code {{ font-size: .85em; }}
  ul {{ padding-left: 18px; }} li {{ margin-bottom: 10px; font-size: .9rem; }}
 </style>
 <h1>Repère — mesures du test</h1>
@@ -597,10 +608,21 @@ def tableau_de_bord(token: str = "") -> HTMLResponse:
 </table>
 <h2>Étape 3 — quel chemin, et lequel fait revenir</h2>
 <table>{chemins}</table>
-<h2>Coût</h2>
+<h2>Coût par appel</h2>
+{alerte_tarifs}
 <table>
  {couts}
- {ligne("Total", f"{m['cout_usd_total']} $", f"{m['cout_usd_par_session']} $ par session")}
+ {ligne("Total", f"{m['cout_usd_total']} $", f"{m['cout_usd_par_session']} $ par séance")}
+</table>
+<h2>Coût par compte et par mois</h2>
+<p class='n'>C'est ce chiffre-là qui décide du prix de l'abonnement — pas le pire cas,
+qui suppose un élève saturant les quatre compteurs.</p>
+<table>
+ {ligne("Moyenne", f"{m['cout_usd_moyen_compte_mois']} $",
+        "à comparer à ce qu'un abonnement encaisse net", classe="cle")}
+ {ligne("Médiane", f"{m['cout_usd_median_compte_mois']} $", "l'élève ordinaire")}
+ {ligne("Maximum", f"{m['cout_usd_max_compte_mois']} $", "le plus gourmand : les plafonds tiennent-ils ?")}
+ {ligne("Mesuré sur", m["comptes_mois_mesures"], "couples compte × mois")}
 </table>
 <h2>Questions signalées</h2>
 <ul>{liste_signalees}</ul>

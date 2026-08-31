@@ -62,14 +62,21 @@ QUOTAS: dict[str, dict[str, int]] = {
 # l'élève et tout à nous. C'est celui-ci qui tient l'abonnement.
 #
 # Calibré sur un abonnement à 7,99 € TTC, soit ~6,20 € net une fois la TVA et
-# les frais de paiement retirés. Au plafond, le mois le plus cher possible
-# revient à ~4 € d'appels modèle. Attention : cette estimation est calculée à
-# partir de la taille des prompts, elle n'a jamais été mesurée contre l'API.
-# Elle sera à refaire avec les vrais chiffres du banc d'essai.
+# les frais de paiement retirés.
+#
+# Ce n'est PAS le pire cas qu'on budgète : saturer les quatre compteurs le même
+# mois demande un acharnement que presque personne n'a, et dimensionner dessus
+# revient à priver tout le monde pour un élève sur vingt. C'est le coût MOYEN
+# par compte qui décide, et c'est celui que /admin/metriques mesure une fois
+# une vraie clé posée.
+#
+# Ordre de grandeur, à partir de la taille des prompts et JAMAIS mesuré contre
+# l'API : au plafond des quatre compteurs, ~5,30 € contre ~6,20 € encaissés ;
+# un élève ordinaire tourne bien plus bas. À refaire avec les vrais chiffres.
 QUOTAS_MOIS: dict[str, int] = {
     "analyse": _int("CB_QUOTA_ANALYSE_MOIS", 8),
     "fiche_generale": _int("CB_QUOTA_FICHE_MOIS", 8),
-    "controle": _int("CB_QUOTA_CONTROLE_MOIS", 4),
+    "controle": _int("CB_QUOTA_CONTROLE_MOIS", 8),
     "fiche_ciblee": _int("CB_QUOTA_CIBLEE_MOIS", 8),
 }
 
@@ -80,14 +87,29 @@ MAX_OCTETS_PAR_PHOTO = _int("CB_MAX_OCTETS_PHOTO", 5 * 1024 * 1024)
 # pour que le navigateur ne les voie pas avant d'avoir répondu).
 RETENTION_CORRIGES_JOURS = _int("CB_RETENTION_JOURS", 30)
 
-# Tarifs Claude Opus 5, $/million de tokens — sert uniquement à afficher un coût
-# estimé dans le tableau de bord.
-PRIX_USD_PAR_MTOK = {
-    "entree": 5.0,
-    "sortie": 25.0,
-    "cache_ecriture": 6.25,
-    "cache_lecture": 0.50,
+# Tarifs en $/million de tokens, par modèle — sert à chiffrer les appels dans
+# /admin/metriques. La clé est un morceau du nom de modèle renvoyé par l'API
+# (usages.modele), pour qu'un essai Sonnet ne soit pas facturé au tarif Opus :
+# c'est précisément l'erreur qu'un banc d'essai doit éviter.
+#
+# CES CHIFFRES SONT À VÉRIFIER sur la page de tarifs avant de s'y fier. Ils ne
+# sont pas lus depuis l'API — rien ne les corrige tout seuls s'ils vieillissent.
+PRIX_USD_PAR_MTOK_PAR_MODELE: dict[str, dict[str, float]] = {
+    "opus": {"entree": 5.0, "sortie": 25.0, "cache_ecriture": 6.25, "cache_lecture": 0.50},
 }
+
+# Utilisé quand le nom du modèle n'est pas reconnu. Le tableau de bord le
+# signale au lieu d'afficher un chiffre faux sans le dire.
+PRIX_USD_PAR_MTOK = PRIX_USD_PAR_MTOK_PAR_MODELE["opus"]
+
+
+def prix_du_modele(modele: str) -> tuple[dict[str, float], bool]:
+    """Les tarifs pour ce modèle, et si on les connaît vraiment."""
+    nom = (modele or "").lower()
+    for cle, prix in PRIX_USD_PAR_MTOK_PAR_MODELE.items():
+        if cle in nom:
+            return prix, True
+    return PRIX_USD_PAR_MTOK, False
 
 
 # --- Le compte --------------------------------------------------------------

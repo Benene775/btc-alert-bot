@@ -38,7 +38,13 @@ def client() -> Any:
     return _client
 
 
-def _usage(reponse: Any) -> dict[str, int]:
+def _usage(reponse: Any) -> dict[str, Any]:
+    """Les compteurs que l'API renvoie, plus le modèle qui a servi l'appel.
+
+    On lit le modèle sur la RÉPONSE, pas sur config.MODEL : c'est ce qui a
+    réellement tourné. Sans lui, comparer deux modèles est impossible — tous
+    les appels finiraient chiffrés au même tarif dans le même sac.
+    """
     u = getattr(reponse, "usage", None)
     if u is None:
         return {}
@@ -47,6 +53,7 @@ def _usage(reponse: Any) -> dict[str, int]:
         "tokens_sortie": getattr(u, "output_tokens", 0) or 0,
         "cache_ecriture": getattr(u, "cache_creation_input_tokens", 0) or 0,
         "cache_lecture": getattr(u, "cache_read_input_tokens", 0) or 0,
+        "modele": getattr(reponse, "model", "") or "",
     }
 
 
@@ -57,7 +64,7 @@ def _appel(
     schema: dict[str, Any],
     max_tokens: int = 16000,
     effort: str = "high",
-) -> tuple[dict[str, Any], dict[str, int]]:
+) -> tuple[dict[str, Any], dict[str, Any]]:
     import anthropic
 
     try:
@@ -123,7 +130,7 @@ def _systeme_avec_cours(niveau: str, chapitres: list[dict]) -> list[dict[str, An
 
 def analyser_photos(
     images: list[tuple[str, bytes]], niveau: str, matiere: str
-) -> tuple[dict[str, Any], dict[str, int]]:
+) -> tuple[dict[str, Any], dict[str, Any]]:
     """images : liste de (type MIME, octets). Les photos ne sont jamais stockées."""
     if config.DEMO_MODE:
         return demo.analyse(len(images)), {}
@@ -163,7 +170,7 @@ def analyser_photos(
 
 def fiche_generale(
     chapitres: list[dict], niveau: str
-) -> tuple[dict[str, Any], dict[str, int]]:
+) -> tuple[dict[str, Any], dict[str, Any]]:
     if config.DEMO_MODE:
         return demo.fiche_generale(chapitres), {}
     return _appel(
@@ -176,7 +183,7 @@ def fiche_generale(
 
 def fiche_ciblee(
     chapitres: list[dict], niveau: str, notions: list[dict]
-) -> tuple[dict[str, Any], dict[str, int]]:
+) -> tuple[dict[str, Any], dict[str, Any]]:
     if config.DEMO_MODE:
         return demo.fiche_ciblee(notions), {}
     liste = "\n".join(
@@ -204,7 +211,7 @@ def generer_controle(
     duree: int,
     notions_ciblees: list[str] | None = None,
     enonces_deja_poses: list[str] | None = None,
-) -> tuple[dict[str, Any], dict[str, int]]:
+) -> tuple[dict[str, Any], dict[str, Any]]:
     if config.DEMO_MODE:
         return demo.controle(chapitres, notions_ciblees, bool(enonces_deja_poses)), {}
 
@@ -252,7 +259,7 @@ def corriger(
     questions: list[dict],
     reponses: dict[int, str],
     numeros_signales: set[int],
-) -> tuple[dict[str, Any], dict[str, int]]:
+) -> tuple[dict[str, Any], dict[str, Any]]:
     if config.DEMO_MODE:
         return demo.correction(questions, reponses, numeros_signales), {}
 

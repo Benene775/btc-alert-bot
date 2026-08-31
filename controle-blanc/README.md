@@ -367,7 +367,7 @@ Quotas par défaut, tous réglables par variable d'environnement :
 |---|---|---|---|
 | Analyse de photos | 4 | 20 | 8 |
 | Fiche générale | 3 | 12 | 8 |
-| Contrôle blanc | 3 | 12 | 4 |
+| Contrôle blanc | 3 | 12 | 8 |
 | Fiche ciblée | 5 | 20 | 8 |
 
 Le plafond du mois est le seul qui tienne l'abonnement. Les deux autres se comptent
@@ -375,9 +375,14 @@ par séance : en ouvrir une nouvelle les remet à zéro, ce qui est gratuit et s
 en un clic. Le mensuel, lui, passe par `sessions.compte_id`, donc il suit l'élève.
 
 Il est calibré sur un abonnement à 7,99 € TTC (~6,20 € net de TVA et de frais de
-paiement) : au plafond, le mois le plus cher possible revient à ~4 € d'appels
-modèle. **Cette estimation vient de la taille des prompts, pas d'une mesure contre
-l'API.** Elle est à refaire avec les vrais chiffres.
+paiement). Ce n'est pas le **pire cas** qu'on budgète : saturer les quatre compteurs
+le même mois demande un acharnement que presque personne n'a, et dimensionner dessus
+revient à priver tout le monde pour un élève sur vingt. C'est le **coût moyen par
+compte** qui décide.
+
+**Ces plafonds reposent sur une estimation, pas sur une mesure** — elle vient de la
+taille des prompts, aucun appel n'a jamais été passé à l'API. Voir « Chiffrer le coût »
+ci-dessous pour les remplacer par de vrais chiffres.
 
 La correction n'est pas décomptée : elle fait partie du contrôle déjà compté. Faire
 payer un contrôle sans résultat n'aurait pas de sens.
@@ -391,6 +396,40 @@ lendemain qui refusera pareil.
 Ce qu'il reste du mois s'affiche sous chaque outil de la page perso
 (`GET /api/compte/quotas`). La tuile reste cliquable même à zéro : ce compteur peut
 être en retard, et c'est le serveur qui refuse, avec la vraie raison.
+
+---
+
+## Chiffrer le coût
+
+Rien à estimer : **chaque appel enregistre déjà les compteurs que l'API renvoie
+elle-même** (`llm._usage` lit `input_tokens`, `output_tokens`,
+`cache_creation_input_tokens`, `cache_read_input_tokens`, plus le modèle qui a
+réellement servi), et `store.enregistrer_usage` les range dans `usages`. Il manque
+seulement d'avoir tourné avec une vraie clé.
+
+La marche à suivre :
+
+1. Poser `ANTHROPIC_API_KEY` (ce qui sort du mode démonstration tout seul) et un
+   `CB_DB_PATH` persistant.
+2. Vérifier `PRIX_USD_PAR_MTOK_PAR_MODELE` dans `app/config.py` contre la page de
+   tarifs. Ces nombres sont écrits à la main et rien ne les met à jour ; un modèle
+   absent de la table est chiffré au tarif par défaut, et le tableau de bord le
+   signale en rouge plutôt que d'afficher un chiffre faux en silence.
+3. Faire passer un lot de cours réels — une vingtaine suffit à sortir du bruit.
+4. Lire `GET /admin/metriques?token=…` :
+   * **coût par appel**, ventilé par action *et par modèle* (indispensable pour
+     comparer deux modèles : sans ça tout finirait au même tarif) ;
+   * **coût par compte et par mois** — moyenne, médiane, maximum. C'est la seule
+     unité qui se compare au prix de l'abonnement ; le coût par séance n'en dit
+     rien, puisqu'un élève ouvre autant de séances qu'il veut.
+5. Recouper le total avec la facturation de la console Anthropic. Si les deux
+   divergent, c'est la table de tarifs qui a vieilli.
+
+Ce que ça ne mesure pas : la **qualité**. Un modèle deux fois moins cher qui
+transcrit mal un cours coûte bien plus qu'il n'économise, puisque la fiche, le
+contrôle et la correction sont tous bâtis sur la transcription, pas sur les photos.
+Comparer deux modèles demande de relire les transcriptions à la main sur le même
+lot de cours.
 
 ---
 
