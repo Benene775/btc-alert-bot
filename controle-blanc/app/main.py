@@ -72,6 +72,16 @@ async def cycle_de_vie(_: FastAPI):
             "MODE DÉMONSTRATION : aucun appel au modèle, contenus factices. "
             "Définir ANTHROPIC_API_KEY et CB_DEMO_MODE=0 pour le mode réel."
         )
+    # Et le refus, pour ce qui ne doit pas atteindre un élève. Un avertissement
+    # de plus dans les journaux n'aurait servi à rien : personne ne les lit au
+    # moment où ça compte.
+    fautes = config.fautes_de_configuration()
+    if fautes:
+        for faute in fautes:
+            logger.error("CONFIGURATION REFUSÉE : %s", faute)
+        raise SystemExit(
+            "Démarrage refusé : " + " | ".join(fautes)
+        )
     yield
 
 

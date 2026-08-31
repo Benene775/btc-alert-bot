@@ -330,6 +330,24 @@ Variables à définir : `ANTHROPIC_API_KEY`, `CB_ADMIN_TOKEN`, `CB_PUBLIC_BASE_U
 `CB_DB_PATH` doit pointer vers un disque persistant, sinon les quotas et les mesures
 repartent de zéro à chaque redéploiement.
 
+**Le démarrage refuse deux configurations**, dès que `CB_PUBLIC_BASE_URL` est définie
+— c'est le signal qu'on déploie, et rien ne gêne en local :
+
+* le **mode démonstration**, qui s'active tout seul quand `ANTHROPIC_API_KEY` manque.
+  Une variable oubliée suffirait à servir des contenus factices à de vrais élèves, et
+  la seule mention à l'écran est sur l'accueil — qu'un élève connecté ne voit jamais.
+  Il photographierait son cours de maths pour recevoir une fiche sur la Première
+  Guerre mondiale ;
+* `CB_AUTH_CODE_EN_CLAIR`, qui renvoie le code de réinitialisation dans la réponse
+  HTTP : n'importe qui prendrait n'importe quel compte.
+
+`CB_DEMO_ASSUMEE=1` lève les deux — pour mettre la démonstration en ligne exprès. Les
+deux ensemble, parce qu'ils décrivent la même situation.
+
+Un avertissement de plus dans les journaux n'aurait servi à rien : personne ne les lit
+au moment où ça compte. Mieux vaut un déploiement qui échoue bruyamment qu'un site qui
+ment poliment.
+
 ---
 
 ## Ce que ça coûte, et ce qui le borne

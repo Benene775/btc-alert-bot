@@ -200,3 +200,49 @@ SMTP_EXPEDITEUR = os.environ.get("CB_SMTP_EXPEDITEUR", "Repère <ne-pas-repondre
 # serveur de courrier. C'est la porte grande ouverte : réservé à la
 # démonstration, et refusé dès qu'un SMTP est configuré.
 AUTH_CODE_EN_CLAIR = _flag("CB_AUTH_CODE_EN_CLAIR", default=DEMO_MODE) and not SMTP_HOTE
+
+
+# --- Le garde-fou du démarrage ----------------------------------------------
+#
+# Deux réglages sont sans danger en local et catastrophiques en ligne. Le
+# problème est qu'ils ne font pas de bruit : le site démarre, il répond, il a
+# l'air d'aller bien.
+#
+# Le mode démonstration en est un. Il s'active TOUT SEUL quand ANTHROPIC_API_KEY
+# manque — une variable oubliée au déploiement suffit. Un élève photographie son
+# cours de maths et reçoit une fiche sur la Première Guerre mondiale ; la seule
+# mention à l'écran est sur l'accueil, or un élève connecté arrive sur sa page et
+# ne la voit jamais. Pendant une phase de test dont on mesure la qualité, ça
+# empoisonne toutes les données sans qu'on l'apprenne avant la fin.
+#
+# On préfère un démarrage qui échoue bruyamment. Se déployer est un geste
+# délibéré ; servir de la fiction à des élèves ne doit jamais l'être par défaut.
+#
+# CB_DEMO_ASSUMEE=1 lève les deux garde-fous d'un coup, et c'est voulu : ils
+# décrivent la même situation — une démonstration mise en ligne exprès, où les
+# contenus sont factices ET les portes ouvertes. Les séparer laisserait croire
+# qu'on peut assumer l'un sans l'autre.
+DEMO_ASSUMEE = _flag("CB_DEMO_ASSUMEE", default=False)
+
+
+def fautes_de_configuration() -> list[str]:
+    """Ce qui ne doit jamais partir en ligne. Vide si tout va bien.
+
+    Le signal de « en ligne », c'est CB_PUBLIC_BASE_URL : on ne la définit que
+    pour déployer. Tourner en local n'est donc jamais gêné.
+    """
+    fautes = []
+    if not PUBLIC_BASE_URL:
+        return fautes
+    if DEMO_MODE and not DEMO_ASSUMEE:
+        fautes.append(
+            "MODE DÉMONSTRATION à une adresse publique : les élèves recevraient des "
+            "contenus factices sans le savoir. Définir ANTHROPIC_API_KEY. "
+            "Pour montrer la démonstration en connaissance de cause : CB_DEMO_ASSUMEE=1."
+        )
+    if AUTH_CODE_EN_CLAIR and not DEMO_ASSUMEE:
+        fautes.append(
+            "CB_AUTH_CODE_EN_CLAIR à une adresse publique : le code de réinitialisation "
+            "revient dans la réponse HTTP, donc n'importe qui prend n'importe quel compte."
+        )
+    return fautes

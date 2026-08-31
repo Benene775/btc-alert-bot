@@ -16,6 +16,10 @@ os.environ["CB_DEMO_MODE"] = "1"
 os.environ["CB_DB_PATH"] = str(_base)
 os.environ["CB_ADMIN_TOKEN"] = "jeton-de-test"
 os.environ["CB_PUBLIC_BASE_URL"] = "https://exemple.test"
+# La suite tourne en mode démonstration à une adresse publique factice — soit
+# exactement ce que le garde-fou de démarrage refuse. Elle l'assume, comme
+# devrait le faire toute démonstration mise en ligne volontairement.
+os.environ["CB_DEMO_ASSUMEE"] = "1"
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
