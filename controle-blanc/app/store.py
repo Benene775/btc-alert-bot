@@ -53,7 +53,8 @@ CREATE TABLE IF NOT EXISTS usages (
     tokens_sortie  INTEGER DEFAULT 0,
     cache_ecriture INTEGER DEFAULT 0,
     cache_lecture  INTEGER DEFAULT 0,
-    modele         TEXT NOT NULL DEFAULT ''
+    modele         TEXT NOT NULL DEFAULT '',
+    quantite       INTEGER NOT NULL DEFAULT 1
 );
 CREATE INDEX IF NOT EXISTS idx_usages_session ON usages (session_id, action, jour);
 
@@ -152,6 +153,10 @@ def _init(conn: sqlite3.Connection) -> None:
     usages = {ligne[1] for ligne in conn.execute("PRAGMA table_info(usages)")}
     if usages and "modele" not in usages:
         conn.execute("ALTER TABLE usages ADD COLUMN modele TEXT NOT NULL DEFAULT ''")
+    # Ce que l'appel a consommé dans son unité : des pages pour l'analyse, un
+    # appel pour tout le reste. Les usages d'avant comptaient pour un.
+    if usages and "quantite" not in usages:
+        conn.execute("ALTER TABLE usages ADD COLUMN quantite INTEGER NOT NULL DEFAULT 1")
     demandes = {ligne[1] for ligne in conn.execute("PRAGMA table_info(demandes_code)")}
     if demandes and "source" not in demandes:
         conn.execute("ALTER TABLE demandes_code ADD COLUMN source TEXT NOT NULL DEFAULT ''")
@@ -673,15 +678,22 @@ class QuotaDepasse(Exception):
 
 
 def _compte(session_id: str, action: str, jour: str | None) -> int:
+    """Ce que cette séance a consommé, dans l'unité de l'action.
+
+    SUM et non COUNT : une analyse consomme autant de pages qu'elle porte de
+    photos. Pour tout le reste quantite vaut 1, donc la somme est le compte.
+    """
     with curseur() as cur:
         if jour:
             cur.execute(
-                "SELECT COUNT(*) AS n FROM usages WHERE session_id = ? AND action = ? AND jour = ?",
+                "SELECT COALESCE(SUM(quantite), 0) AS n FROM usages"
+                " WHERE session_id = ? AND action = ? AND jour = ?",
                 (session_id, action, jour),
             )
         else:
             cur.execute(
-                "SELECT COUNT(*) AS n FROM usages WHERE session_id = ? AND action = ?",
+                "SELECT COALESCE(SUM(quantite), 0) AS n FROM usages"
+                " WHERE session_id = ? AND action = ?",
                 (session_id, action),
             )
         return int(cur.fetchone()["n"])
@@ -697,7 +709,8 @@ def _usages_du_mois(compte_id: str, action: str, mois: str) -> int:
     """
     with curseur() as cur:
         cur.execute(
-            "SELECT COUNT(*) AS n FROM usages u JOIN sessions s ON s.id = u.session_id"
+            "SELECT COALESCE(SUM(u.quantite), 0) AS n FROM usages u"
+            " JOIN sessions s ON s.id = u.session_id"
             " WHERE s.compte_id = ? AND u.action = ? AND substr(u.jour, 1, 7) = ?",
             (compte_id, action, mois),
         )
@@ -715,8 +728,8 @@ def _compte_du_mois(session_id: str, action: str, mois: str) -> int:
     # plafonne sur elle-même. Personne n'en ouvre plus de pareilles.
     with curseur() as cur:
         cur.execute(
-            "SELECT COUNT(*) AS n FROM usages WHERE session_id = ? AND action = ?"
-            " AND substr(jour, 1, 7) = ?",
+            "SELECT COALESCE(SUM(quantite), 0) AS n FROM usages WHERE session_id = ?"
+            " AND action = ? AND substr(jour, 1, 7) = ?",
             (session_id, action, mois),
         )
         return int(cur.fetchone()["n"])
@@ -762,16 +775,18 @@ MESSAGES_QUOTA = {
         "Tu as atteint le nombre de contrôles blancs prévus pour ce cours."
     ),
     ("analyse", "jour"): (
-        "Tu as déjà analysé plusieurs séries de photos aujourd'hui. Reviens demain "
-        "pour en ajouter d'autres."
+        "Ça dépasse tes pages du jour. Retires-en quelques-unes, ou reviens demain."
     ),
     ("fiche_generale", "jour"): "Tu as déjà généré tes fiches générales du jour. Reviens demain.",
     ("fiche_ciblee", "jour"): "Tu as déjà généré tes fiches ciblées du jour. Reviens demain.",
     # Le mois, lui, ne se rattrape pas demain : le message doit le dire, et
     # rappeler que ce qui est déjà fait reste sur la page perso.
+    # Ce message sert dans deux cas : le compteur est à zéro, ou l'envoi est plus
+    # gros que ce qu'il reste. « Tu as tout rentré » serait faux dans le second,
+    # où il reste des pages — il faut qu'il tienne dans les deux.
     ("analyse", "mois"): (
-        "Tu as photographié tous les cours prévus ce mois-ci. Ton compteur repart le 1er ; "
-        "les cours déjà rentrés restent là."
+        "Ça dépasse tes pages du mois. Retire quelques photos et réessaie : le "
+        "compteur repart le 1er, et les cours déjà rentrés restent là."
     ),
     ("fiche_generale", "mois"): (
         "Tu as fait toutes tes fiches du mois. Celles que tu as déjà sont toujours sur ta page ; "
@@ -787,12 +802,18 @@ MESSAGES_QUOTA = {
 }
 
 
-def verifier_quota(session_id: str, action: str) -> None:
+def verifier_quota(session_id: str, action: str, quantite: int = 1) -> None:
+    """quantite : ce que l'appel VA consommer — le nombre de photos pour une
+    analyse. Vérifié avant l'appel, pour refuser ce qui dépasserait plutôt que
+    de laisser passer un dépassement et le constater après."""
     # Le mois passe en premier : c'est le plafond de l'abonnement, et lui seul
     # ne se rattrape pas. Annoncer « reviens demain » alors que le mois est
     # épuisé enverrait l'élève se cogner à la même porte le lendemain.
     plafond_mois = config.QUOTAS_MOIS.get(action)
-    if plafond_mois and _compte_du_mois(session_id, action, mois_courant()) >= plafond_mois:
+    if plafond_mois and _compte_du_mois(session_id, action, mois_courant()) + quantite > plafond_mois:
+        # Le message dit la limite, pas la marche à suivre : celui qui envoie
+        # douze pages avec trois de libres doit comprendre qu'en envoyer moins
+        # passerait. La quantité restante part avec l'erreur (voir main.py).
         raise QuotaDepasse(
             action, "mois",
             MESSAGES_QUOTA.get((action, "mois"), "Tu as atteint ta limite du mois."),
@@ -800,30 +821,31 @@ def verifier_quota(session_id: str, action: str) -> None:
     limites = config.QUOTAS.get(action)
     if not limites:
         return
-    if _compte(session_id, action, None) >= limites["session"]:
+    if _compte(session_id, action, None) + quantite > limites["session"]:
         raise QuotaDepasse(
             action, "session",
             MESSAGES_QUOTA.get((action, "session"), "Limite atteinte pour ce cours."),
         )
-    if _compte(session_id, action, aujourdhui()) >= limites["jour"]:
+    if _compte(session_id, action, aujourdhui()) + quantite > limites["jour"]:
         raise QuotaDepasse(
             action, "jour",
             MESSAGES_QUOTA.get((action, "jour"), "Limite atteinte pour aujourd'hui. Reviens demain."),
         )
 
 
-def enregistrer_usage(session_id: str, action: str, usage: dict[str, Any] | None = None) -> None:
+def enregistrer_usage(session_id: str, action: str, usage: dict[str, Any] | None = None,
+                      quantite: int = 1) -> None:
     usage = usage or {}
     with curseur() as cur:
         cur.execute(
             "INSERT INTO usages (session_id, action, jour, horodatage, tokens_entree,"
-            " tokens_sortie, cache_ecriture, cache_lecture, modele)"
-            " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            " tokens_sortie, cache_ecriture, cache_lecture, modele, quantite)"
+            " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 session_id, action, aujourdhui(), maintenant(),
                 usage.get("tokens_entree", 0), usage.get("tokens_sortie", 0),
                 usage.get("cache_ecriture", 0), usage.get("cache_lecture", 0),
-                usage.get("modele", ""),
+                usage.get("modele", ""), max(1, quantite),
             ),
         )
 

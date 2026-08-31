@@ -217,7 +217,12 @@ async function api(chemin, options = {}) {
 
   // Le vrai serveur décompte à chaque appel facturé (store.enregistrer_usage).
   // La correction n'y est pas : elle fait partie du contrôle déjà compté.
-  if (ACTION_FACTUREE[chemin]) decompter(ACTION_FACTUREE[chemin]);
+  // Une analyse consomme autant de pages qu'elle porte de photos.
+  if (ACTION_FACTUREE[chemin]) {
+    const pages = chemin === '/api/analyse' && options.body
+      ? options.body.getAll('photos').length : 1;
+    decompter(ACTION_FACTUREE[chemin], Math.max(1, pages));
+  }
 
   if (chemin.startsWith('/api/session/')) {
     // Pas de session partagée entre appareils dans la démonstration.
@@ -346,7 +351,8 @@ function tracer() { /* les mesures partent au serveur dans le produit ; ici, nul
  * Les mêmes chiffres que app/config.py — s'ils divergent, la démonstration
  * ment sur ce que l'abonnement donne. Ils repartent à chaque rechargement :
  * une démonstration n'a pas de mois. */
-const PLAFONDS_MOIS = { analyse: 8, fiche_generale: 8, controle: 8, fiche_ciblee: 8 };
+// L'analyse se compte en PAGES : mêmes chiffres que app/config.py.
+const PLAFONDS_MOIS = { analyse: 96, fiche_generale: 8, controle: 8, fiche_ciblee: 8 };
 const consommes = { analyse: 0, fiche_generale: 0, controle: 0, fiche_ciblee: 0 };
 
 const ACTION_FACTUREE = {
@@ -356,8 +362,8 @@ const ACTION_FACTUREE = {
   '/api/controle': 'controle',
 };
 
-function decompter(action) {
-  if (action in consommes) consommes[action] += 1;
+function decompter(action, quantite = 1) {
+  if (action in consommes) consommes[action] += quantite;
 }
 
 function etatDesQuotas() {

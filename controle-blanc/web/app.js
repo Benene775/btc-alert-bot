@@ -2089,6 +2089,7 @@ function montrer(id) {
   // La fiche du jour vit hors des écrans — sinon « position: fixed » se cale
   // sur la section, qui porte un transform. Elle ne se cache donc pas avec eux :
   // on la referme à la main en quittant sa page.
+  if (id === 'ecran-photos') rafraichirQuotas();
   if (id !== 'ecran-espace') {
     if (!$('fiche-jour').hidden) { jourChoisi = null; fermerFicheJour(); }
     if ($('ecran-espace').dataset.agenda) basculerAgenda(false);
@@ -2379,9 +2380,45 @@ function reduirePhoto(fichier) {
  * sans rien dire. L'élève doit pouvoir corriger — d'où le numéro visible et la
  * poignée ci-dessous.
  */
+/* Ce qu'il reste de pages, là où l'élève en ajoute.
+ *
+ * L'analyse est le seul compteur qui se compte en pages, parce que les photos
+ * font 55 à 79 % du coût d'un parcours : compter les envois revenait à facturer
+ * pareil quatre pages et cinquante. C'est aussi l'unité qu'un élève comprend
+ * sans explication — il voit ses feuilles.
+ *
+ * Il ne s'affiche qu'à l'approche de la limite : un compteur permanent
+ * transformerait « photographie ton cours » en « attention à ta consommation ».
+ */
+const SEUIL_RESTE_PAGES = 20;
+
+function peindreRestePages() {
+  const cible = $('reste-pages');
+  if (!cible) return;
+  const etat = quotasMois && quotasMois.analyse;
+  const restant = etat ? etat.restant - photosEnAttente.length : null;
+  if (restant === null || etat.restant > SEUIL_RESTE_PAGES) {
+    cible.hidden = true;
+    return;
+  }
+  cible.hidden = false;
+  if (restant > 0) {
+    cible.textContent = 'Il te reste ' + restant + (restant > 1 ? ' pages' : ' page')
+      + ' à rentrer ce mois-ci.';
+    delete cible.dataset.epuise;
+  } else {
+    cible.textContent = restant === 0
+      ? 'Avec celles-ci, tu auras rentré toutes tes pages du mois.'
+      : 'Ça fait ' + (-restant) + ' page(s) de trop pour ce mois-ci. Retires-en, '
+        + 'ou garde le reste pour le 1er.';
+    cible.dataset.epuise = 'oui';
+  }
+}
+
 function dessinerPhotos() {
   const liste = $('liste-photos');
   const total = photosEnAttente.length;
+  peindreRestePages();
   liste.innerHTML = '';
   photosEnAttente.forEach((photo, index) => {
     const element = document.createElement('li');
@@ -3569,6 +3606,7 @@ async function rafraichirQuotas() {
 }
 
 function peindreQuotas() {
+  peindreRestePages();
   Object.entries(ACTIONS_OUTILS).forEach(([outil, action]) => {
     const cible = $('reste-' + outil);
     if (!cible) return;

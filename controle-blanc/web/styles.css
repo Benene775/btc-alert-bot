@@ -710,6 +710,10 @@ select {
 /* « Voir ce que j'ai lu » : la transcription, dépliable, sous chaque chapitre.
    Un <details> natif — il s'ouvre au clavier, il s'imprime ouvert, et il ne
    demande aucun état à tenir en JavaScript. */
+/* Le reste de pages : une aide, pas une alarme — jusqu'à ce que ça dépasse. */
+.reste-pages { font-family: var(--mono); font-size: .72rem; letter-spacing: .03em; }
+.reste-pages[data-epuise] { color: var(--rouge); }
+
 .relire { margin: 12px 0 0 36px; }
 
 .relire-titre {

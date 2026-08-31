@@ -365,10 +365,19 @@ Quotas par défaut, tous réglables par variable d'environnement :
 
 | Action | Par jour | Par séance | Par mois et par compte |
 |---|---|---|---|
-| Analyse de photos | 4 | 20 | 8 |
+| Analyse de photos **(en pages)** | 48 | 96 | 96 |
 | Fiche générale | 3 | 12 | 8 |
 | Contrôle blanc | 3 | 12 | 8 |
 | Fiche ciblée | 5 | 20 | 8 |
+
+**L'analyse se compte en pages, pas en envois.** Une page photographiée vaut
+~2 350 tokens d'entrée (le navigateur la réduit à 1568 px, le modèle la découpe en
+carreaux de 28×28 px), et les photos font 55 à 79 % du coût d'un parcours complet
+— mesuré sur les prompts réels. Compter les envois revenait donc à facturer pareil
+quatre pages et cinquante. C'est aussi l'unité qu'un élève comprend sans qu'on la
+lui explique : il voit ses feuilles. L'écran des photos affiche ce qu'il lui reste
+dès qu'il approche de la limite, et un envoi qui dépasserait est refusé **avant**
+l'appel, pas constaté après.
 
 Le plafond du mois est le seul qui tienne l'abonnement. Les deux autres se comptent
 par séance : en ouvrir une nouvelle les remet à zéro, ce qui est gratuit et se fait
@@ -430,6 +439,21 @@ en gamme haute **sans toucher aux quatre autres appels** — on garde donc
 l'essentiel de l'économie. Ce découpage ne coûte aucune lecture de cache : le
 bloc de cours mis en cache ne sert qu'aux appels « texte », l'analyse tournant
 avant que le cours existe.
+
+---
+
+## Ce que le navigateur peut renvoyer
+
+Le navigateur garde le cours et le renvoie à chaque appel ; ce texte part au
+modèle en entrée. Sans plafond, un appel coûterait ce que le navigateur décide,
+et le quota compterait quand même « une fiche ». `app/schemas.py` borne donc les
+trois choses qui font la taille d'une requête : la transcription d'un chapitre
+(60 000 caractères), le nombre de chapitres (40), et surtout **le total de
+transcription d'un appel** (200 000 caractères, ≈ 54 000 tokens). La copie de
+l'élève, qui repart au modèle pour la correction, est bornée de même.
+
+Ces valeurs gênent l'absurde, pas l'usage : un trimestre entier de cours dense
+passe largement en dessous. Un test le vérifie dans les deux sens.
 
 ---
 

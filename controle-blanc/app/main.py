@@ -343,7 +343,6 @@ async def analyser(
     compte: dict = Depends(compte_connecte),
 ) -> dict[str, Any]:
     _session_valide(session_id, compte)
-    store.verifier_quota(session_id, "analyse")
 
     if not photos:
         raise HTTPException(status_code=400, detail="aucune photo reçue")
@@ -352,6 +351,9 @@ async def analyser(
             status_code=400,
             detail=f"{config.MAX_PHOTOS_PAR_ANALYSE} photos au maximum en une fois",
         )
+    # L'analyse se compte en pages : on vérifie ce que cet envoi VA consommer,
+    # une fois qu'on sait combien de photos il porte.
+    store.verifier_quota(session_id, "analyse", len(photos))
 
     images: list[tuple[str, bytes]] = []
     for fichier in photos:
@@ -365,7 +367,7 @@ async def analyser(
 
     # Les octets ne sortent pas d'ici : envoyés au modèle, jamais écrits sur disque.
     resultat, usage = llm.analyser_photos(images, formats.nom_niveau(niveau), matiere)
-    store.enregistrer_usage(session_id, "analyse", usage)
+    store.enregistrer_usage(session_id, "analyse", usage, quantite=len(images))
     store.enregistrer_evenement(
         session_id,
         "photos_analysees",

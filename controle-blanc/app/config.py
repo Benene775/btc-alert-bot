@@ -82,8 +82,13 @@ PUBLIC_BASE_URL = os.environ.get("CB_PUBLIC_BASE_URL", "").strip().rstrip("/")
 # Chaque appel coûte de l'argent. Le premier contrôle blanc passe forcément ;
 # ensuite on plafonne par jour, ce qui pousse aussi à revenir le lendemain
 # (c'est la métrique qui nous intéresse).
+# L'analyse se compte en PAGES, pas en appels : c'est la seule unité qui suive
+# la dépense. Une page photographiée vaut ~2 350 tokens d'entrée (réduite à
+# 1568 px par le navigateur, découpée en carreaux de 28×28 px), et les photos
+# font 55 à 79 % du coût d'un parcours. Compter les appels revenait à facturer
+# pareil quatre pages et cinquante. C'est aussi l'unité que l'élève comprend.
 QUOTAS: dict[str, dict[str, int]] = {
-    "analyse": {"jour": _int("CB_QUOTA_ANALYSE_JOUR", 4), "session": _int("CB_QUOTA_ANALYSE_SESSION", 20)},
+    "analyse": {"jour": _int("CB_QUOTA_ANALYSE_JOUR", 48), "session": _int("CB_QUOTA_ANALYSE_SESSION", 96)},
     "fiche_generale": {"jour": _int("CB_QUOTA_FICHE_JOUR", 3), "session": _int("CB_QUOTA_FICHE_SESSION", 12)},
     "controle": {"jour": _int("CB_QUOTA_CONTROLE_JOUR", 3), "session": _int("CB_QUOTA_CONTROLE_SESSION", 12)},
     "fiche_ciblee": {"jour": _int("CB_QUOTA_CIBLEE_JOUR", 5), "session": _int("CB_QUOTA_CIBLEE_SESSION", 20)},
@@ -109,7 +114,7 @@ QUOTAS: dict[str, dict[str, int]] = {
 # l'API : au plafond des quatre compteurs, ~5,30 € contre ~6,20 € encaissés ;
 # un élève ordinaire tourne bien plus bas. À refaire avec les vrais chiffres.
 QUOTAS_MOIS: dict[str, int] = {
-    "analyse": _int("CB_QUOTA_ANALYSE_MOIS", 8),
+    "analyse": _int("CB_QUOTA_ANALYSE_MOIS", 96),   # en pages : 8 analyses pleines
     "fiche_generale": _int("CB_QUOTA_FICHE_MOIS", 8),
     "controle": _int("CB_QUOTA_CONTROLE_MOIS", 8),
     "fiche_ciblee": _int("CB_QUOTA_CIBLEE_MOIS", 8),

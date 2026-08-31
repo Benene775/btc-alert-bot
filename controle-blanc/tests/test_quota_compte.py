@@ -35,9 +35,9 @@ def large(monkeypatch):
 
 def test_le_plafond_du_mois_survit_a_une_nouvelle_seance(client, photo_factice, large,
                                                          monkeypatch):
-    """Le cœur du sujet : deux analyses autorisées, réparties sur deux séances,
-    et la troisième est refusée même dans une séance toute neuve."""
-    monkeypatch.setitem(config.QUOTAS_MOIS, "analyse", 2)
+    """Le cœur du sujet : quatre pages autorisées, réparties sur deux séances de
+    deux photos, et la troisième séance est refusée bien qu'elle soit neuve."""
+    monkeypatch.setitem(config.QUOTAS_MOIS, "analyse", 4)
 
     premiere = client.post("/api/session").json()["session_id"]
     assert _analyser(client, premiere, photo_factice).status_code == 200
@@ -53,7 +53,7 @@ def test_le_plafond_du_mois_survit_a_une_nouvelle_seance(client, photo_factice, 
 
 def test_deux_comptes_ne_partagent_pas_le_compteur(photo_factice, large, monkeypatch):
     """Le plafond suit le compte, pas la machine ni le jour."""
-    monkeypatch.setitem(config.QUOTAS_MOIS, "analyse", 1)
+    monkeypatch.setitem(config.QUOTAS_MOIS, "analyse", 2)  # deux pages : un seul envoi
 
     with TestClient(app) as lina:
         inscrire(lina)
@@ -73,8 +73,8 @@ def test_deux_comptes_ne_partagent_pas_le_compteur(photo_factice, large, monkeyp
 def test_le_mois_passe_avant_le_jour(client, session, photo_factice, monkeypatch):
     """Si les deux limites tombent, c'est le mois qu'on annonce : « reviens
     demain » serait faux, et l'élève reviendrait se cogner à la même porte."""
-    monkeypatch.setitem(config.QUOTAS_MOIS, "analyse", 1)
-    monkeypatch.setitem(config.QUOTAS, "analyse", {"jour": 1, "session": 1})
+    monkeypatch.setitem(config.QUOTAS_MOIS, "analyse", 2)
+    monkeypatch.setitem(config.QUOTAS, "analyse", {"jour": 2, "session": 2})
 
     assert _analyser(client, session, photo_factice).status_code == 200
     refus = _analyser(client, session, photo_factice)
@@ -101,15 +101,15 @@ def test_toutes_les_actions_ont_un_message_du_mois():
 
 def test_la_page_perso_lit_ce_qu_il_reste(client, session, photo_factice, large,
                                           monkeypatch):
-    monkeypatch.setitem(config.QUOTAS_MOIS, "analyse", 3)
+    monkeypatch.setitem(config.QUOTAS_MOIS, "analyse", 6)
 
     avant = client.get("/api/compte/quotas").json()
-    assert avant["quotas"]["analyse"] == {"plafond": 3, "restant": 3}
+    assert avant["quotas"]["analyse"] == {"plafond": 6, "restant": 6}
 
-    _analyser(client, session, photo_factice)
+    _analyser(client, session, photo_factice, nombre=2)
 
     apres = client.get("/api/compte/quotas").json()
-    assert apres["quotas"]["analyse"]["restant"] == 2, "le compteur affiché ne bouge pas"
+    assert apres["quotas"]["analyse"]["restant"] == 4, "deux pages doivent en retirer deux"
 
 
 def test_ce_qu_il_reste_est_ferme_aux_visiteurs(visiteur):
@@ -180,6 +180,38 @@ def test_les_tuiles_pointent_vers_de_vraies_actions():
     for action in ("controle", "fiche_generale"):
         assert f"'{action}'" in bloc, action
         assert action in config.QUOTAS_MOIS, action
+
+
+def test_une_analyse_coute_ce_qu_elle_porte_de_pages(client, session, photo_factice,
+                                                     large, monkeypatch):
+    """Le point de départ : compter les appels facturait pareil quatre pages et
+    cinquante, alors que les photos font 55 à 79 % du coût d'un parcours."""
+    monkeypatch.setitem(config.QUOTAS_MOIS, "analyse", 20)
+
+    _analyser(client, session, photo_factice, nombre=2)
+    apres_deux = client.get("/api/compte/quotas").json()["quotas"]["analyse"]["restant"]
+
+    _analyser(client, session, photo_factice, nombre=8)
+    apres_huit = client.get("/api/compte/quotas").json()["quotas"]["analyse"]["restant"]
+
+    assert apres_deux == 18
+    assert apres_huit == 10, "un envoi de huit pages doit coûter quatre fois celui de deux"
+
+
+def test_un_envoi_qui_depasserait_est_refuse_avant_l_appel(client, session, photo_factice,
+                                                           large, monkeypatch):
+    """Vérifier après coup laisserait passer le dépassement — et le facturerait.
+    Trois pages libres, un envoi de huit : refusé, et rien n'est consommé."""
+    monkeypatch.setitem(config.QUOTAS_MOIS, "analyse", 3)
+
+    refus = _analyser(client, session, photo_factice, nombre=8)
+    assert refus.status_code == 429
+    assert refus.json()["portee"] == "mois"
+    reste = client.get("/api/compte/quotas").json()["quotas"]["analyse"]["restant"]
+    assert reste == 3, "un envoi refusé ne doit rien consommer"
+
+    # Et ce qui tient encore passe : la limite porte sur les pages, pas sur le geste.
+    assert _analyser(client, session, photo_factice, nombre=3).status_code == 200
 
 
 def test_la_demonstration_annonce_les_memes_plafonds_que_le_produit():
