@@ -212,7 +212,10 @@ async function api(chemin, options = {}) {
   // qu'un navigateur et pas de serveur : elle accepte les montées sans rien
   // ranger, et ne descend jamais rien. Sans ces réponses, la synchronisation
   // réessaierait en boucle.
-  if (chemin === '/api/classeur') return { seances: [], maintenant: new Date().toISOString() };
+  if (chemin === '/api/classeur') {
+    return { seances: [], agenda: null, maintenant: new Date().toISOString() };
+  }
+  if (chemin === '/api/agenda') return { range: true };
   if (chemin.startsWith('/api/classeur/')) return { range: true };
 
   // Les plafonds du mois. Dans le produit ils sont comptés côté serveur, seul
@@ -348,8 +351,10 @@ async function api(chemin, options = {}) {
   throw new ErreurApi("Ça n’a pas marché. Réessaie.", 'autre');
 }
 
-function envoyerJson(chemin, corps) {
-  return api(chemin, { method: 'POST', headers: {}, body: JSON.stringify(corps) });
+function envoyerJson(chemin, corps, methode = 'POST') {
+  return api(chemin, { method: methode, headers: {},
+                       body: corps === null || corps === undefined
+                         ? undefined : JSON.stringify(corps) });
 }
 
 function tracer() { /* les mesures partent au serveur dans le produit ; ici, nulle part. */ }

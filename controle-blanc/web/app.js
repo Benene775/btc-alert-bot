@@ -2056,56 +2056,6 @@ function effacerLeNavigateur(identifiant) {
   try { indexedDB.deleteDatabase('cb-pages-' + identifiant); } catch (e) { /* idem */ }
 }
 
-/* ------------------------------------------------------------------ api --- */
-
-async function api(chemin, options = {}) {
-  const reponse = await fetch(chemin, options);
-  if (reponse.ok) return reponse.json();
-
-  let corps = {};
-  try { corps = await reponse.json(); } catch (e) { /* réponse non JSON */ }
-
-  if (reponse.status === 401) {
-    // Le jeton a expiré, ou n’a jamais existé. On ne dit pas « erreur » : on
-    // rouvre la porte, ce que l’élève doit faire de toute façon.
-    throw new ErreurApi('Il faut entrer pour continuer.', 'entree');
-  }
-  if (reponse.status === 400 && corps.erreur === 'auth') {
-    const erreur = new ErreurApi(corps.message || 'Ça n’a pas marché.', 'auth');
-    erreur.attendre = corps.attendre || 0;
-    // Le genre dit ce qui n'allait pas : « existe » emmène au bon volet.
-    erreur.genreAuth = corps.genre || '';
-    throw erreur;
-  }
-  if (reponse.status === 404 && corps.detail === 'session inconnue') {
-    throw new ErreurApi("Cette session n’existe plus sur le serveur. On en recommence une.", 'session');
-  }
-  if (reponse.status === 429) {
-    throw new ErreurApi(corps.message || 'Limite atteinte pour aujourd’hui.', 'quota');
-  }
-  if (reponse.status === 503) {
-    throw new ErreurApi(corps.message || 'Le service est indisponible. Réessaie.', 'modele');
-  }
-  throw new ErreurApi(corps.detail || corps.message || "Ça n’a pas marché. Réessaie.", 'autre');
-}
-
-class ErreurApi extends Error {
-  constructor(message, genre) {
-    super(message);
-    this.genre = genre;
-    this.attendre = 0;
-  }
-}
-
-function envoyerJson(chemin, corps, methode = 'POST') {
-  const options = { method: methode, headers: {} };
-  if (corps !== null && corps !== undefined) {
-    options.headers['Content-Type'] = 'application/json';
-    options.body = JSON.stringify(corps);
-  }
-  return api(chemin, options);
-}
-
 /* ------------------------------------------------------------- classeur --- */
 
 /*
@@ -2220,6 +2170,56 @@ function tracer(type, details = {}) {
   if (!etat) return;
   // Sans await : une mesure ne doit jamais faire attendre un élève.
   envoyerJson('/api/evenement', { session_id: etat.sessionId, type, details }).catch(() => {});
+}
+
+/* ------------------------------------------------------------------ api --- */
+
+async function api(chemin, options = {}) {
+  const reponse = await fetch(chemin, options);
+  if (reponse.ok) return reponse.json();
+
+  let corps = {};
+  try { corps = await reponse.json(); } catch (e) { /* réponse non JSON */ }
+
+  if (reponse.status === 401) {
+    // Le jeton a expiré, ou n’a jamais existé. On ne dit pas « erreur » : on
+    // rouvre la porte, ce que l’élève doit faire de toute façon.
+    throw new ErreurApi('Il faut entrer pour continuer.', 'entree');
+  }
+  if (reponse.status === 400 && corps.erreur === 'auth') {
+    const erreur = new ErreurApi(corps.message || 'Ça n’a pas marché.', 'auth');
+    erreur.attendre = corps.attendre || 0;
+    // Le genre dit ce qui n'allait pas : « existe » emmène au bon volet.
+    erreur.genreAuth = corps.genre || '';
+    throw erreur;
+  }
+  if (reponse.status === 404 && corps.detail === 'session inconnue') {
+    throw new ErreurApi("Cette session n’existe plus sur le serveur. On en recommence une.", 'session');
+  }
+  if (reponse.status === 429) {
+    throw new ErreurApi(corps.message || 'Limite atteinte pour aujourd’hui.', 'quota');
+  }
+  if (reponse.status === 503) {
+    throw new ErreurApi(corps.message || 'Le service est indisponible. Réessaie.', 'modele');
+  }
+  throw new ErreurApi(corps.detail || corps.message || "Ça n’a pas marché. Réessaie.", 'autre');
+}
+
+class ErreurApi extends Error {
+  constructor(message, genre) {
+    super(message);
+    this.genre = genre;
+    this.attendre = 0;
+  }
+}
+
+function envoyerJson(chemin, corps, methode = 'POST') {
+  const options = { method: methode, headers: {} };
+  if (corps !== null && corps !== undefined) {
+    options.headers['Content-Type'] = 'application/json';
+    options.body = JSON.stringify(corps);
+  }
+  return api(chemin, options);
 }
 
 /* --------------------------------------------------------------- écrans --- */

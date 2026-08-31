@@ -32,11 +32,34 @@ MENTION = (
 )
 
 
+# Ce que la démonstration a le droit de perdre : la couche de transport, que le
+# faux serveur remplace fonction pour fonction. Rien d'autre.
+TRANSPORT = {"api", "envoyerJson", "tracer", "ErreurApi"}
+
+
 def sans_couche_reseau(source: str) -> str:
-    """Retire api(), envoyerJson() et tracer() : le faux serveur les remplace."""
+    """Retire api(), envoyerJson() et tracer() : le faux serveur les remplace.
+
+    La découpe se fait entre deux bannières, ce qui emporte tout ce qui a été
+    écrit entre les deux. Une fonction de produit posée là disparaît du paquet
+    sans un mot : la page se charge, l'écran s'affiche, et le premier clic tombe
+    sur un « ... is not defined » que personne ne verra avant l'élève. C'est
+    arrivé au classeur. D'où le contrôle ci-dessous.
+    """
     debut = source.index("/* ------------------------------------------------------------------ api --- */")
     fin = source.index("/* --------------------------------------------------------------- écrans --- */")
+    retire = source[debut:fin]
     allege = source[:debut] + source[fin:]
+
+    emportees = set(re.findall(r"^(?:async )?function (\w+)", retire, re.M))
+    emportees |= set(re.findall(r"^class (\w+)", retire, re.M))
+    de_trop = sorted(emportees - TRANSPORT)
+    if de_trop:
+        raise SystemExit(
+            "la découpe emporterait des fonctions de produit : " + ", ".join(de_trop)
+            + "\nDéplace-les hors du bloc « api », ou ajoute-les au faux serveur."
+        )
+
     if "fetch(" in allege:
         raise SystemExit("il reste un appel réseau dans app.js")
     return allege
