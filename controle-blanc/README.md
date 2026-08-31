@@ -412,9 +412,12 @@ La marche à suivre :
 1. Poser `ANTHROPIC_API_KEY` (ce qui sort du mode démonstration tout seul) et un
    `CB_DB_PATH` persistant.
 2. Vérifier `PRIX_USD_PAR_MTOK_PAR_MODELE` dans `app/config.py` contre la page de
-   tarifs. Ces nombres sont écrits à la main et rien ne les met à jour ; un modèle
-   absent de la table est chiffré au tarif par défaut, et le tableau de bord le
-   signale en rouge plutôt que d'afficher un chiffre faux en silence.
+   tarifs. Ces nombres sont écrits à la main et rien ne les met à jour. La table
+   connaît Opus (5 / 25 $ par million de tokens) et Sonnet 5 (2 / 10 $) ; tout
+   autre modèle est chiffré au tarif par défaut, et le tableau de bord le signale
+   en rouge plutôt que d'afficher un chiffre faux en silence. Les clés sont
+   volontairement précises — `sonnet-5`, pas `sonnet`, qui attraperait Sonnet 4.6
+   et son tarif différent.
 3. Faire passer un lot de cours réels — une vingtaine suffit à sortir du bruit.
 4. Lire `GET /admin/metriques?token=…` :
    * **coût par appel**, ventilé par action *et par modèle* (indispensable pour

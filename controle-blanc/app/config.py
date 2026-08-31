@@ -94,8 +94,15 @@ RETENTION_CORRIGES_JOURS = _int("CB_RETENTION_JOURS", 30)
 #
 # CES CHIFFRES SONT À VÉRIFIER sur la page de tarifs avant de s'y fier. Ils ne
 # sont pas lus depuis l'API — rien ne les corrige tout seuls s'ils vieillissent.
+#
+# La clé doit être assez précise pour ne pas attraper un voisin moins cher ou
+# plus cher : « sonnet » tout court ramasserait Sonnet 4.6, qui n'est pas au
+# tarif de Sonnet 5. Un modèle absent d'ici n'est pas deviné — il est signalé.
+# L'écriture de cache vaut 1,25 fois l'entrée, la lecture 0,1 fois.
 PRIX_USD_PAR_MTOK_PAR_MODELE: dict[str, dict[str, float]] = {
+    # Opus 5, 4.8, 4.7 et 4.6 partagent le même tarif.
     "opus": {"entree": 5.0, "sortie": 25.0, "cache_ecriture": 6.25, "cache_lecture": 0.50},
+    "sonnet-5": {"entree": 2.0, "sortie": 10.0, "cache_ecriture": 2.50, "cache_lecture": 0.20},
 }
 
 # Utilisé quand le nom du modèle n'est pas reconnu. Le tableau de bord le
@@ -106,9 +113,11 @@ PRIX_USD_PAR_MTOK = PRIX_USD_PAR_MTOK_PAR_MODELE["opus"]
 def prix_du_modele(modele: str) -> tuple[dict[str, float], bool]:
     """Les tarifs pour ce modèle, et si on les connaît vraiment."""
     nom = (modele or "").lower()
-    for cle, prix in PRIX_USD_PAR_MTOK_PAR_MODELE.items():
+    # La clé la plus longue gagne : « sonnet-5 » doit passer avant un éventuel
+    # « sonnet » générique, sinon la plus vague raflerait la mise.
+    for cle in sorted(PRIX_USD_PAR_MTOK_PAR_MODELE, key=len, reverse=True):
         if cle in nom:
-            return prix, True
+            return PRIX_USD_PAR_MTOK_PAR_MODELE[cle], True
     return PRIX_USD_PAR_MTOK, False
 
 

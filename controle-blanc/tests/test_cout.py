@@ -117,3 +117,39 @@ def test_le_tableau_de_bord_montre_le_cout_par_compte(client, session, usage_nu)
     page = client.get("/admin/metriques", params={"token": "jeton-de-test"}).text
     assert "Coût par compte et par mois" in page
     assert "Médiane" in page
+
+
+# --- La table de tarifs elle-même -------------------------------------------
+
+
+def test_sonnet_5_a_son_propre_tarif():
+    """Ajouté pour pouvoir comparer les modèles sans fausser la comparaison."""
+    prix, connu = config.prix_du_modele("claude-sonnet-5")
+    assert connu
+    assert (prix["entree"], prix["sortie"]) == (2.0, 10.0)
+
+
+def test_une_cle_vague_n_attrape_pas_un_voisin_au_mauvais_tarif():
+    """« sonnet » tout court ramasserait Sonnet 4.6, qui n'est pas au tarif de
+    Sonnet 5. Mieux vaut un modèle signalé comme inconnu qu'un chiffre faux
+    présenté comme juste — c'est toute la raison d'être de cette table."""
+    _, connu = config.prix_du_modele("claude-sonnet-4-6")
+    assert not connu, "Sonnet 4.6 serait chiffré au tarif de Sonnet 5"
+
+
+def test_la_cle_la_plus_precise_gagne(monkeypatch):
+    """Sans tri par longueur, l'ordre du dictionnaire déciderait du tarif."""
+    monkeypatch.setattr(config, "PRIX_USD_PAR_MTOK_PAR_MODELE", {
+        "sonnet": {"entree": 3.0, "sortie": 15.0, "cache_ecriture": 3.75, "cache_lecture": 0.30},
+        "sonnet-5": {"entree": 2.0, "sortie": 10.0, "cache_ecriture": 2.50, "cache_lecture": 0.20},
+    })
+    assert config.prix_du_modele("claude-sonnet-5")[0]["entree"] == 2.0
+    assert config.prix_du_modele("claude-sonnet-4-6")[0]["entree"] == 3.0
+
+
+def test_le_cache_est_dix_fois_moins_cher_que_l_entree():
+    """C'est tout l'intérêt de mettre le cours en cache : si ce rapport se perd
+    dans la table, l'économie qu'on croit faire n'existe plus."""
+    for modele, prix in config.PRIX_USD_PAR_MTOK_PAR_MODELE.items():
+        assert prix["cache_lecture"] == pytest.approx(prix["entree"] * 0.1), modele
+        assert prix["cache_ecriture"] == pytest.approx(prix["entree"] * 1.25), modele
