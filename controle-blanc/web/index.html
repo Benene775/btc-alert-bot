@@ -29,10 +29,33 @@
 </svg>
 
 <header id="bandeau" hidden>
-  <button type="button" id="bouton-accueil" class="lien-bandeau" aria-label="Revenir à ma session">
-    <svg class="logo-marque logo-bandeau" aria-hidden="true" focusable="false"><use href="#glyphe-repere"/></svg>
-    <span id="bandeau-matiere">Repère</span>
-  </button>
+  <!-- La marque ouvre un menu : depuis n'importe quel écran, l'élève doit
+       pouvoir rejoindre sa page, un contrôle blanc ou une fiche sans avoir à
+       deviner par où repasser. -->
+  <div class="marque-menu">
+    <button type="button" id="bouton-accueil" class="lien-bandeau"
+            aria-haspopup="true" aria-expanded="false" aria-controls="menu-marque">
+      <svg class="logo-marque logo-bandeau" aria-hidden="true" focusable="false"><use href="#glyphe-repere"/></svg>
+      <span id="bandeau-matiere">Repère</span>
+      <span class="marque-chevron" aria-hidden="true">⌄</span>
+    </button>
+    <div class="menu-marque" id="menu-marque" role="menu" hidden>
+      <button type="button" class="menu-entree" role="menuitem" id="menu-espace">
+        <!-- Pas le même signe que la fiche : deux entrées identiques à l'œil
+             obligent à lire, et un menu se parcourt du regard. -->
+        <span class="menu-signe" aria-hidden="true">⌂</span>Ma page
+      </button>
+      <button type="button" class="menu-entree" role="menuitem" id="menu-controle">
+        <span class="menu-signe" aria-hidden="true">✎</span>Contrôle blanc
+      </button>
+      <button type="button" class="menu-entree" role="menuitem" id="menu-fiche">
+        <span class="menu-signe" aria-hidden="true">▤</span>Fiche de révision
+      </button>
+      <button type="button" class="menu-entree" role="menuitem" id="menu-reprendre" hidden>
+        <span class="menu-signe" aria-hidden="true">↩</span>Reprendre où j’en étais
+      </button>
+    </div>
+  </div>
   <div class="bandeau-droite">
     <span id="bandeau-compte" class="compte-a-rebours"></span>
     <button type="button" id="bouton-espace" class="rond-perso rond-perso-bandeau"

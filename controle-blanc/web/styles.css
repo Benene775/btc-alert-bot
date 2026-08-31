@@ -197,6 +197,62 @@ body {
    bord gauche pendant que le texte est au milieu. */
 #bandeau > * { position: relative; }
 
+/* Le menu de la marque. Ancré sous le bouton, pas sur la fenêtre : le bandeau
+   est « sticky », donc un position: fixed se calerait ailleurs qu'on ne croit. */
+.marque-menu { position: relative; }
+
+.marque-chevron {
+  font-size: .8em;
+  opacity: .55;
+  transition: transform .18s ease;
+}
+
+#bouton-accueil[aria-expanded="true"] .marque-chevron { transform: rotate(180deg); }
+
+.menu-marque {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 20;
+  min-width: 210px;
+  display: flex;
+  flex-direction: column;
+  padding: 6px;
+  border: 1px solid var(--trait);
+  border-radius: var(--rayon);
+  background: var(--carte);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .13);
+}
+
+.menu-entree {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  font: inherit;
+  font-size: .95rem;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.menu-entree:hover,
+.menu-entree:focus-visible { background: var(--accent-doux); color: var(--accent); }
+
+.menu-signe {
+  width: 22px;
+  font-family: var(--titre);
+  color: var(--accent);
+  text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marque-chevron { transition: none; }
+}
+
 @media (min-width: 660px) {
   #bandeau {
     padding-inline: max(var(--gouttiere), calc((100vw - var(--colonne)) / 2));

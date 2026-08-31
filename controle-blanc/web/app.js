@@ -2229,6 +2229,7 @@ function montrer(id) {
   // La fiche du jour vit hors des écrans — sinon « position: fixed » se cale
   // sur la section, qui porte un transform. Elle ne se cache donc pas avec eux :
   // on la referme à la main en quittant sa page.
+  if ($('menu-marque') && !$('menu-marque').hidden) ouvrirMenuMarque(false);
   if (id === 'ecran-photos') rafraichirQuotas();
   if (id !== 'ecran-espace') {
     if (!$('fiche-jour').hidden) { jourChoisi = null; fermerFicheJour(); }
@@ -2441,6 +2442,65 @@ async function demarrerSession(depuisAgenda = null) {
     if (depuisAgenda && depuisAgenda.versPhotos) return validerContexte();
     montrer('ecran-contexte');
   } catch (e) { gererErreur(e); }
+}
+
+/* --- Le menu de la marque ------------------------------------------------
+ *
+ * Depuis n'importe quel écran, l'élève doit pouvoir rejoindre sa page, lancer
+ * un contrôle blanc ou une fiche. Sans ça il fallait repasser par sa page —
+ * et savoir que c'était par là, ce qui n'est écrit nulle part.
+ *
+ * Les entrées qui ne mènent à rien ne s'affichent pas : proposer un contrôle
+ * blanc à qui n'a pas encore photographié de cours ouvrirait un atelier vide,
+ * et l'élève chercherait ce qu'il a mal fait.
+ */
+function ouvrirMenuMarque(ouvre) {
+  const menu = $('menu-marque');
+  const bouton = $('bouton-accueil');
+  const veut = ouvre === undefined ? menu.hidden : ouvre;
+  if (veut) {
+    const cours = coursRepassables();
+    $('menu-controle').hidden = cours.size === 0;
+    $('menu-fiche').hidden = cours.size === 0;
+    // « Reprendre » n'a de sens qu'avec une séance en cours, et pas quand on y
+    // est déjà : le proposer là ferait un aller-retour sur place.
+    $('menu-reprendre').hidden = !etat || ecranVisible() === 'ecran-reprise';
+  }
+  menu.hidden = !veut;
+  bouton.setAttribute('aria-expanded', String(veut));
+  if (veut) {
+    const premiere = menu.querySelector('.menu-entree:not([hidden])');
+    if (premiere) premiere.focus();
+  }
+}
+
+function ecranVisible() {
+  const ouvert = [...document.querySelectorAll('.ecran')].find((e) => !e.hidden);
+  return ouvert ? ouvert.id : '';
+}
+
+function armerMenuMarque() {
+  const menu = $('menu-marque');
+  $('bouton-accueil').onclick = (evenement) => {
+    evenement.stopPropagation();
+    ouvrirMenuMarque();
+  };
+  $('menu-espace').onclick = () => { ouvrirMenuMarque(false); ouvrirEspace(); };
+  $('menu-controle').onclick = () => { ouvrirMenuMarque(false); ouvrirAtelier('controle'); };
+  $('menu-fiche').onclick = () => { ouvrirMenuMarque(false); ouvrirAtelier('fiche'); };
+  $('menu-reprendre').onclick = () => { ouvrirMenuMarque(false); reprendre(); };
+
+  // Un menu qu'on ne peut pas refermer sans choisir est un piège : cliquer à
+  // côté et Échap doivent tous les deux marcher.
+  document.addEventListener('click', (evenement) => {
+    if (!menu.hidden && !menu.contains(evenement.target)) ouvrirMenuMarque(false);
+  });
+  document.addEventListener('keydown', (evenement) => {
+    if (evenement.key === 'Escape' && !menu.hidden) {
+      ouvrirMenuMarque(false);
+      $('bouton-accueil').focus();
+    }
+  });
 }
 
 function reprendre() {
@@ -4441,7 +4501,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('bouton-plus-de-photos').onclick = () => montrer('ecran-photos');
 
   $('bouton-correction-accueil').onclick = reprendre;
-  $('bouton-accueil').onclick = reprendre;
+  armerMenuMarque();
 
   $('bouton-question-suivante').onclick = questionSuivante;
   $('bouton-signaler').onclick = () => {
