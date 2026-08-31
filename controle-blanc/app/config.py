@@ -57,6 +57,22 @@ QUOTAS: dict[str, dict[str, int]] = {
 # La correction n'est pas comptée : elle fait partie du contrôle déjà décompté.
 # Facturer la correction reviendrait à faire payer un contrôle sans résultat.
 
+# Et le plafond du mois, par compte cette fois. Les limites ci-dessus sont par
+# séance : en ouvrir une nouvelle les remet à zéro, ce qui ne coûte rien à
+# l'élève et tout à nous. C'est celui-ci qui tient l'abonnement.
+#
+# Calibré sur un abonnement à 7,99 € TTC, soit ~6,20 € net une fois la TVA et
+# les frais de paiement retirés. Au plafond, le mois le plus cher possible
+# revient à ~4 € d'appels modèle. Attention : cette estimation est calculée à
+# partir de la taille des prompts, elle n'a jamais été mesurée contre l'API.
+# Elle sera à refaire avec les vrais chiffres du banc d'essai.
+QUOTAS_MOIS: dict[str, int] = {
+    "analyse": _int("CB_QUOTA_ANALYSE_MOIS", 8),
+    "fiche_generale": _int("CB_QUOTA_FICHE_MOIS", 8),
+    "controle": _int("CB_QUOTA_CONTROLE_MOIS", 4),
+    "fiche_ciblee": _int("CB_QUOTA_CIBLEE_MOIS", 8),
+}
+
 MAX_PHOTOS_PAR_ANALYSE = _int("CB_MAX_PHOTOS", 12)
 MAX_OCTETS_PAR_PHOTO = _int("CB_MAX_OCTETS_PHOTO", 5 * 1024 * 1024)
 

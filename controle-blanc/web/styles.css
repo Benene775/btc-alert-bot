@@ -1430,7 +1430,7 @@ select {
 .outil {
   display: grid;
   grid-template-columns: 44px minmax(0, 1fr) auto;
-  grid-template-areas: "signe nom duree" "signe mot mot";
+  grid-template-areas: "signe nom duree" "signe mot mot" "signe reste reste";
   align-items: center;
   gap: 2px var(--e2);
   text-align: left;
@@ -1473,6 +1473,21 @@ select {
   line-height: 1.4;
   color: var(--encre-douce);
 }
+
+/* Ce qu'il reste ce mois-ci. Voir la limite venir vaut mieux que la découvrir
+   après avoir choisi ses chapitres et attendu. La tuile reste cliquable même à
+   zéro : ce compteur peut être en retard (l'élève a pu générer ailleurs), et
+   c'est le serveur qui dit non, avec la vraie raison. */
+.outil-reste {
+  grid-area: reste;
+  margin-top: 4px;
+  font-family: var(--mono);
+  font-size: .66rem;
+  letter-spacing: .04em;
+  color: var(--encre-douce);
+}
+
+.outil-reste[data-epuise] { color: var(--accent); }
 
 .outil-duree {
   grid-area: duree;

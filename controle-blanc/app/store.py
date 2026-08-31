@@ -135,6 +135,10 @@ def aujourdhui() -> str:
     return datetime.now(timezone.utc).date().isoformat()
 
 
+def mois_courant() -> str:
+    return datetime.now(timezone.utc).strftime("%Y-%m")
+
+
 def _init(conn: sqlite3.Connection) -> None:
     conn.executescript(SCHEMA)
     # Les séances d'avant les comptes n'ont pas de colonne compte_id.
@@ -678,13 +682,69 @@ def _compte(session_id: str, action: str, jour: str | None) -> int:
         return int(cur.fetchone()["n"])
 
 
+def _usages_du_mois(compte_id: str, action: str, mois: str) -> int:
+    """Les usages de tout le compte sur le mois, séances confondues.
+
+    C'est là toute la différence avec _compte() : le passage par
+    sessions.compte_id fait qu'ouvrir une nouvelle séance ne remet rien à zéro.
+    Toute séance appartient à un compte (creer_session en exige un), il n'y a
+    donc pas de porte de côté.
+    """
+    with curseur() as cur:
+        cur.execute(
+            "SELECT COUNT(*) AS n FROM usages u JOIN sessions s ON s.id = u.session_id"
+            " WHERE s.compte_id = ? AND u.action = ? AND substr(u.jour, 1, 7) = ?",
+            (compte_id, action, mois),
+        )
+        return int(cur.fetchone()["n"])
+
+
+def _compte_du_mois(session_id: str, action: str, mois: str) -> int:
+    with curseur() as cur:
+        cur.execute("SELECT compte_id FROM sessions WHERE id = ?", (session_id,))
+        ligne = cur.fetchone()
+    compte_id = ligne["compte_id"] if ligne else None
+    if compte_id:
+        return _usages_du_mois(compte_id, action, mois)
+    # Une séance d'avant les comptes : faute de compte à qui la rattacher, on la
+    # plafonne sur elle-même. Personne n'en ouvre plus de pareilles.
+    with curseur() as cur:
+        cur.execute(
+            "SELECT COUNT(*) AS n FROM usages WHERE session_id = ? AND action = ?"
+            " AND substr(jour, 1, 7) = ?",
+            (session_id, action, mois),
+        )
+        return int(cur.fetchone()["n"])
+
+
+def quotas_du_compte(compte_id: str) -> dict[str, dict[str, int]]:
+    """Ce qu'il reste à ce compte ce mois-ci, action par action.
+
+    Sert à l'afficher sur la page perso : mieux vaut voir venir la limite que
+    la découvrir au moment de lancer un contrôle.
+    """
+    mois = mois_courant()
+    return {
+        action: {
+            "plafond": plafond,
+            "restant": max(0, plafond - _usages_du_mois(compte_id, action, mois)),
+        }
+        for action, plafond in config.QUOTAS_MOIS.items()
+    }
+
+
 def etat_quota(session_id: str, action: str) -> dict[str, int]:
     limites = config.QUOTAS.get(action)
+    plafond_mois = config.QUOTAS_MOIS.get(action)
     if not limites:
-        return {"restant_jour": 9999, "restant_session": 9999}
+        return {"restant_jour": 9999, "restant_session": 9999, "restant_mois": 9999}
     return {
         "restant_jour": max(0, limites["jour"] - _compte(session_id, action, aujourdhui())),
         "restant_session": max(0, limites["session"] - _compte(session_id, action, None)),
+        "restant_mois": (
+            max(0, plafond_mois - _compte_du_mois(session_id, action, mois_courant()))
+            if plafond_mois else 9999
+        ),
     }
 
 
@@ -702,10 +762,36 @@ MESSAGES_QUOTA = {
     ),
     ("fiche_generale", "jour"): "Tu as déjà généré tes fiches générales du jour. Reviens demain.",
     ("fiche_ciblee", "jour"): "Tu as déjà généré tes fiches ciblées du jour. Reviens demain.",
+    # Le mois, lui, ne se rattrape pas demain : le message doit le dire, et
+    # rappeler que ce qui est déjà fait reste sur la page perso.
+    ("analyse", "mois"): (
+        "Tu as photographié tous les cours prévus ce mois-ci. Ton compteur repart le 1er ; "
+        "les cours déjà rentrés restent là."
+    ),
+    ("fiche_generale", "mois"): (
+        "Tu as fait toutes tes fiches du mois. Celles que tu as déjà sont toujours sur ta page ; "
+        "le compteur repart le 1er."
+    ),
+    ("controle", "mois"): (
+        "Tu as passé tous tes contrôles blancs du mois. Tes corrections restent consultables ; "
+        "le compteur repart le 1er."
+    ),
+    ("fiche_ciblee", "mois"): (
+        "Tu as fait toutes tes fiches ciblées du mois. Le compteur repart le 1er."
+    ),
 }
 
 
 def verifier_quota(session_id: str, action: str) -> None:
+    # Le mois passe en premier : c'est le plafond de l'abonnement, et lui seul
+    # ne se rattrape pas. Annoncer « reviens demain » alors que le mois est
+    # épuisé enverrait l'élève se cogner à la même porte le lendemain.
+    plafond_mois = config.QUOTAS_MOIS.get(action)
+    if plafond_mois and _compte_du_mois(session_id, action, mois_courant()) >= plafond_mois:
+        raise QuotaDepasse(
+            action, "mois",
+            MESSAGES_QUOTA.get((action, "mois"), "Tu as atteint ta limite du mois."),
+        )
     limites = config.QUOTAS.get(action)
     if not limites:
         return

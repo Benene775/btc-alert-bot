@@ -439,6 +439,8 @@ function dessinerEspace() {
   const echeances = dessinerAgenda(sessions);
   $('compte-agenda').textContent = echeances ? String(echeances) : '';
   soignerTypographie($('ecran-espace'));
+  // Sans await : la page est déjà dessinée, le compteur se posera dessus.
+  rafraichirQuotas();
 }
 
 /* Trois notions au plus, en haut de page : celles qui sont revenues. Le détail
@@ -3458,6 +3460,47 @@ function dessinerAccesOutils() {
   const cours = coursRepassables();
   $('vide-outils').hidden = cours.size > 0;
   $('pan-outils').querySelector('.trio').hidden = cours.size === 0;
+  peindreQuotas();
+}
+
+/* Les plafonds du mois.
+ *
+ * Ils sont tenus par le serveur, qui seul peut les compter honnêtement (voir
+ * store.verifier_quota). Ici on ne fait que les montrer : le dernier chiffre
+ * connu est peint tout de suite, puis on redemande. Une page perso qui attend
+ * un aller-retour réseau pour s'afficher serait pire que ce léger décalage.
+ */
+const ACTIONS_OUTILS = { controle: 'controle', fiche: 'fiche_generale' };
+let quotasMois = null;
+
+async function rafraichirQuotas() {
+  try {
+    const reponse = await api('/api/compte/quotas');
+    quotasMois = reponse.quotas || null;
+  } catch (e) {
+    // Hors ligne, ou pas connecté : on n'affiche rien plutôt qu'un chiffre faux.
+    quotasMois = null;
+  }
+  peindreQuotas();
+}
+
+function peindreQuotas() {
+  Object.entries(ACTIONS_OUTILS).forEach(([outil, action]) => {
+    const cible = $('reste-' + outil);
+    if (!cible) return;
+    const etat = quotasMois && quotasMois[action];
+    if (!etat) { cible.hidden = true; return; }
+    cible.hidden = false;
+    if (etat.restant > 0) {
+      cible.textContent = 'Il t\u2019en reste ' + etat.restant + ' sur ' + etat.plafond + ' ce mois-ci';
+      delete cible.dataset.epuise;
+    } else {
+      // Court exprès : sur un écran de téléphone la version longue passait à
+      // la ligne, et un compteur qui prend deux lignes se met à crier.
+      cible.textContent = 'Plus rien avant le 1er';
+      cible.dataset.epuise = 'oui';
+    }
+  });
 }
 
 function ouvrirAtelier(outil) {

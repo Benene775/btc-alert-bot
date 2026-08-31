@@ -89,7 +89,7 @@ Deux types de fiches, à ne pas confondre :
 | Reprise de session | Lien `?s=…` mis en avant sur l'écran de session, avec bouton « copier » |
 | Pas de note prédictive | Statuts qualitatifs (`acquis` / `partiel` / `à revoir`) + 3 notions fragiles. Aucun score, aucun `/20`, aucun pourcentage — vérifié par un test |
 | « Cette question me semble fausse » | Sur chaque question, pendant le contrôle **et** dans la correction. Remonte au tableau de bord ; la question ne pénalise pas l'élève |
-| Coût par usage | Quotas côté serveur, par jour et par session (`app/config.py`) |
+| Coût par usage | Quotas côté serveur : par jour, par séance, et par mois et par compte (`app/config.py`) |
 
 ### Le compte : adresse mail et mot de passe
 
@@ -359,22 +359,38 @@ Trois choses réduisent la facture :
 * les photos sont **redimensionnées dans le navigateur** à 1568 px avant l'envoi ;
 * le cours de l'élève est mis en **cache de prompt** (1 h) : il est renvoyé à chaque
   appel de la séance, c'est le plus gros bloc et il ne bouge pas ;
-* les **quotas** plafonnent par jour et par session.
+* les **quotas** plafonnent par jour, par séance, et surtout par mois et par compte.
 
 Quotas par défaut, tous réglables par variable d'environnement :
 
-| Action | Par jour | Par session |
-|---|---|---|
-| Analyse de photos | 4 | 20 |
-| Fiche générale | 3 | 12 |
-| Contrôle blanc | 3 | 12 |
-| Fiche ciblée | 5 | 20 |
+| Action | Par jour | Par séance | Par mois et par compte |
+|---|---|---|---|
+| Analyse de photos | 4 | 20 | 8 |
+| Fiche générale | 3 | 12 | 8 |
+| Contrôle blanc | 3 | 12 | 4 |
+| Fiche ciblée | 5 | 20 | 8 |
+
+Le plafond du mois est le seul qui tienne l'abonnement. Les deux autres se comptent
+par séance : en ouvrir une nouvelle les remet à zéro, ce qui est gratuit et se fait
+en un clic. Le mensuel, lui, passe par `sessions.compte_id`, donc il suit l'élève.
+
+Il est calibré sur un abonnement à 7,99 € TTC (~6,20 € net de TVA et de frais de
+paiement) : au plafond, le mois le plus cher possible revient à ~4 € d'appels
+modèle. **Cette estimation vient de la taille des prompts, pas d'une mesure contre
+l'API.** Elle est à refaire avec les vrais chiffres.
 
 La correction n'est pas décomptée : elle fait partie du contrôle déjà compté. Faire
 payer un contrôle sans résultat n'aurait pas de sens.
 
 Quand un élève atteint la limite du jour, le message le renvoie à demain — ce qui sert
-aussi la métrique qui compte.
+aussi la métrique qui compte. Le mois se dit autrement : demain n'y changera rien, donc
+le message annonce le 1er, et rappelle que les fiches et les corrections déjà produites
+restent consultables. Le mois est vérifié **avant** le jour, pour ne pas promettre un
+lendemain qui refusera pareil.
+
+Ce qu'il reste du mois s'affiche sous chaque outil de la page perso
+(`GET /api/compte/quotas`). La tuile reste cliquable même à zéro : ce compteur peut
+être en retard, et c'est le serveur qui refuse, avec la vraie raison.
 
 ---
 

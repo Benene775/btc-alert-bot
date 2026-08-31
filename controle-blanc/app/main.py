@@ -232,6 +232,13 @@ def qui_suis_je(cb_jeton: str | None = Cookie(default=None)) -> dict[str, Any]:
             "prenom": compte.get("prenom", ""), "niveau": compte.get("niveau", "")}
 
 
+@app.get("/api/compte/quotas")
+def quotas_du_compte(compte: dict = Depends(compte_connecte)) -> dict[str, Any]:
+    """Ce qu'il reste au compte ce mois-ci. Affiché sur la page perso : voir la
+    limite venir vaut mieux que la découvrir en lançant un contrôle."""
+    return {"mois": store.mois_courant(), "quotas": store.quotas_du_compte(compte["id"])}
+
+
 @app.post("/api/auth/sortir")
 def sortir(cb_jeton: str | None = Cookie(default=None)) -> JSONResponse:
     store.fermer_jeton(cb_jeton)
