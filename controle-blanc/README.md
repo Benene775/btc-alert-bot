@@ -429,6 +429,33 @@ d'accueil », ce que la même invitation explique. Elle se referme
 définitivement — un bandeau qu'on ne peut pas faire taire se lit comme de la
 publicité.
 
+### L'essayer sur son propre téléphone
+
+**Il faut du HTTPS.** Un agent de service ne s'enregistre que sur une origine
+sûre : `https://…` ou `localhost`. Ouvrir `http://192.168.1.x:8000` depuis son
+téléphone, sur le réseau de la maison, donne la page mais **jamais** le mode
+application — pas d'icône, pas de plein écran, pas de démarrage hors ligne. Le
+fichier autonome de `outils/artefact.py` ne le donne pas non plus : il n'a ni
+manifeste ni agent, seulement la page.
+
+Deux chemins, du plus rapide au plus durable :
+
+1. **Un tunnel**, en cinq minutes et sans rien héberger. On lance le serveur en
+   local (`./lancer.sh`), puis `cloudflared tunnel --url http://localhost:8000`
+   ou `ngrok http 8000` : les deux rendent une adresse en `https://…` qu'on
+   ouvre sur son téléphone. Le tunnel meurt avec la fenêtre — c'est fait pour
+   regarder, pas pour faire tester.
+
+2. **Un vrai hébergement**, qu'il faudra de toute façon pour la phase de test.
+   Le `Procfile` à la racine suffit à Railway, Render et Scalingo ; l'HTTPS est
+   fourni. Racine du projet : `controle-blanc/`.
+
+**Sans clé API**, le site tourne en mode démonstration — ce qui suffit largement
+pour juger l'installation et le plein écran. Attention : si on définit
+`CB_PUBLIC_BASE_URL`, le garde-fou de démarrage refuse justement cette
+combinaison (voir plus haut). Pour un essai assumé, laisser cette variable vide,
+ou poser `CB_DEMO_ASSUMEE=1`.
+
 **Ce que l'agent met en cache, et ce qu'il ne met surtout pas :**
 
 | | |
