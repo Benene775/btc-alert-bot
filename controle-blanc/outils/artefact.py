@@ -126,6 +126,15 @@ def main() -> int:
         # un cours que la page ne contient pas.
         f"<title>{titre}</title>\n"
         '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n'
+        # De quoi juger le mode application sans rien héberger : ajoutée à
+        # l'écran d'accueil d'un iPhone, la page s'ouvre en plein écran, sans
+        # barre d'adresse. iOS n'a besoin d'aucun manifeste pour ça — il lit ces
+        # balises. Android, lui, en exige un, donc il n'en tirera qu'un
+        # raccourci de navigateur : le vrai mode application demande un
+        # hébergement en HTTPS.
+        '<meta name="apple-mobile-web-app-capable" content="yes">\n'
+        '<meta name="apple-mobile-web-app-title" content="Repère">\n'
+        '<meta name="apple-mobile-web-app-status-bar-style" content="default">\n'
         f"{icone.group(0)}\n"
         f"<style>\n{polices}\n{styles}\n</style>\n\n{corps}\n\n"
         f"<script>\n{vierge}{donnees}\n\n{commun}\n\n{faux}\n\n{app}\n</script>\n"
