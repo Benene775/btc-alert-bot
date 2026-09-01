@@ -374,7 +374,19 @@
     <div class="annee-agenda" id="bloc-frise">
       <button type="button" class="frise-porte" id="bouton-agenda"
               aria-expanded="false" aria-controls="agenda-deplie">
-        <span class="frise" id="frise-regularite" aria-hidden="true"></span>
+        <!-- Un vrai calendrier, tourné vers l'avant : les mois en tête, les
+             jours de la semaine sur le côté, un carré par jour. Sans ces deux
+             repères, la grille reste un dessin abstrait ; avec, elle se lit
+             comme un agenda qu'on survole. -->
+        <span class="frise-cadre" aria-hidden="true">
+          <span class="frise-mois" id="frise-mois"></span>
+          <span class="frise-corps">
+            <span class="frise-semaine">
+              <i>L</i><i>M</i><i>M</i><i>J</i><i>V</i><i>S</i><i>D</i>
+            </span>
+            <span class="frise" id="frise-regularite"></span>
+          </span>
+        </span>
         <span class="frise-pied">
           <span class="frise-legende" id="frise-legende"></span>
           <!-- Une fois ouvert, la frise s'efface et sa légende n'a plus rien à

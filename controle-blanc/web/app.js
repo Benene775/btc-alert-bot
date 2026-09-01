@@ -1569,68 +1569,151 @@ function visiblesArchive(genre, elements) {
   return reglages.tout ? retenus : retenus.slice(0, parPage());
 }
 
-/* La frise : huit semaines, un carré par jour. Pas de compte de jours
- * consécutifs — on regarde un mois se remplir, et rater trois jours ne casse
- * rien. Elle vit au dos de la carte, là où on va la chercher. */
-/* Huit semaines sur un téléphone, davantage quand la carte est large : la
- * frise remplit la place qu'on lui donne au lieu de laisser un vide à sa
- * droite. Bornée à un semestre — au-delà, les carrés deviennent illisibles. */
+/* La frise : un aperçu du calendrier, un carré par jour.
+ *
+ * Elle regardait le passé — les jours travaillés des huit semaines écoulées.
+ * Elle regarde maintenant DEVANT : la semaine en cours puis les suivantes, et
+ * ce qui est foncé, ce sont les jours qui portent un contrôle. L'élève voit
+ * ainsi ce qui l'attend sans ouvrir l'agenda, ce qui est précisément la raison
+ * d'être d'un aperçu.
+ *
+ * Les jours travaillés restent marqués, mais d'une teinte pâle : c'est un
+ * arrière-plan, pas l'information. Deux marques de même force donneraient une
+ * grille illisible où l'échéance se perdrait dans l'activité.
+ *
+ * Huit semaines sur un téléphone, davantage quand la carte est large : la frise
+ * remplit la place qu'on lui donne. Bornée à un semestre — au-delà, les carrés
+ * deviennent illisibles. */
 const SEMAINES_MIN = 8;
 const SEMAINES_MAX = 26;
 
+/* Ajouter des jours à une date, sans passer par les millisecondes.
+ *
+ * « date.getTime() + n * 86400000 » paraît juste et l'est presque toute
+ * l'année. Au passage à l'heure d'hiver, un jour fait 25 heures : la somme
+ * retombe une heure trop tôt, donc la veille, et TOUT ce qui suit glisse d'une
+ * ligne dans la frise. Vérifié en fuseau Europe/Paris : la dernière case
+ * tombait un samedi et s'affichait sur la ligne dimanche.
+ *
+ * setDate, lui, compte en jours de calendrier. */
+function jourPlus(date, jours) {
+  const suivant = new Date(date);
+  suivant.setDate(suivant.getDate() + jours);
+  suivant.setHours(0, 0, 0, 0);
+  return suivant;
+}
+
+/* On mesure le CADRE, pas la grille.
+ *
+ * La grille est dimensionnée par son contenu : elle rend la largeur des
+ * colonnes qu'elle porte déjà, jamais la place dont elle dispose. La mesurer
+ * revenait à demander « combien de semaines tiennent ? » à quelqu'un qui
+ * répond « autant qu'il y en a » — d'où huit semaines même sur une carte de
+ * 449 px, où vingt-six tiennent. */
+const LARGE_JOURS = 15;   // la colonne des initiales, plus sa gouttière
+
 function semainesFrise() {
-  const large = $('frise-regularite').clientWidth;
-  if (!large) return SEMAINES_MIN;
+  const cadre = document.querySelector('.frise-cadre');
+  const large = (cadre ? cadre.clientWidth : 0) - LARGE_JOURS;
+  if (large <= 0) return SEMAINES_MIN;
   const colonne = 13;  // 10 px de carré + 3 px de gouttière
   return Math.max(SEMAINES_MIN, Math.min(SEMAINES_MAX, Math.floor(large / colonne)));
+}
+
+/* Les mois en tête de grille. Sans eux, la frise est une abstraction : on voit
+ * des carrés foncés sans savoir quand. Un libellé par groupe de colonnes du
+ * même mois, et rien du tout sous trois colonnes — écrit là, il déborderait
+ * sur le voisin. */
+function dessinerMoisFrise(colonnes) {
+  const barre = $('frise-mois');
+  if (!barre) return;
+  barre.innerHTML = '';
+  let debut = 0;
+  for (let i = 1; i <= colonnes.length; i++) {
+    const finDuGroupe = i === colonnes.length || colonnes[i].getMonth() !== colonnes[debut].getMonth();
+    if (!finDuGroupe) continue;
+    const large = i - debut;
+    const etiquette = document.createElement('i');
+    etiquette.style.gridColumn = 'span ' + large;
+    if (large >= 3) {
+      etiquette.textContent = colonnes[debut]
+        .toLocaleDateString('fr-FR', { month: 'short' }).replace('.', '');
+    }
+    barre.appendChild(etiquette);
+    debut = i;
+  }
 }
 
 function dessinerRegularite(sessions) {
   const jours = joursTravailles(sessions);
   const frise = $('frise-regularite');
+  const cadre = document.querySelector('.frise-cadre');
   frise.innerHTML = '';
-  // Rien à montrer : on retire la grille, pas le bloc. Sur la page d'un compte
-  // tout neuf c'était 95 px de papier réglé vide sous trois zéros — mais le
-  // bloc porte désormais la porte de l'agenda, et c'est justement à ce
-  // moment-là qu'un élève vient y poser la date de son premier contrôle.
-  frise.hidden = !jours.size;
-  $('frise-legende').hidden = !jours.size;
-  if (!jours.size) {
-    $('texte-regularite').textContent = 'Ta frise se remplira à chaque séance.';
-    $('frise-legende').textContent = '';
-    return;
-  }
 
   const aujourdhui = new Date();
   aujourdhui.setHours(0, 0, 0, 0);
-
-  // Chaque colonne est une semaine : on remonte jusqu'au lundi qui précède,
-  // sinon les colonnes coupent les semaines n'importe où et ne veulent rien dire.
   const semaines = semainesFrise();
+  // On part du lundi de la semaine en cours : aujourd'hui est donc dans la
+  // première colonne, et tout ce qui est à droite est à venir.
   const depuisLundi = (aujourdhui.getDay() + 6) % 7;
-  const premier = new Date(aujourdhui.getTime() - (depuisLundi + (semaines - 1) * 7) * 86400000);
-  const cases = Math.round((aujourdhui - premier) / 86400000) + 1;
+  const premier = jourPlus(aujourdhui, -depuisLundi);
 
-  let comptes = 0;
-  for (let i = cases - 1; i >= 0; i--) {
-    const jour = new Date(aujourdhui.getTime() - i * 86400000);
-    const cle = jour.toISOString().slice(0, 10);
-    const case_ = document.createElement('i');
-    case_.className = 'case-frise';
-    // Le rang sert au survol : les carrés s'allument de gauche à droite.
-    case_.style.setProperty('--i', String(cases - 1 - i));
-    if (jours.has(cle)) { case_.dataset.travaille = 'oui'; comptes += 1; }
-    if (i === 0) case_.dataset.aujourdhui = 'oui';
-    frise.appendChild(case_);
+  const colonnes = [];
+  let controles = 0;
+  let prochain = null;
+
+  for (let semaine = 0; semaine < semaines; semaine++) {
+    colonnes.push(jourPlus(premier, semaine * 7));
+    for (let jour = 0; jour < 7; jour++) {
+      const date = jourPlus(premier, semaine * 7 + jour);
+      const cle = cleJour(date);
+      const case_ = document.createElement('i');
+      case_.className = 'case-frise';
+      // Le rang sert au survol : les carrés s'allument de gauche à droite.
+      case_.style.setProperty('--i', String(semaine));
+
+      // La date sur la case : elle rend la frise vérifiable — c'est ce qui a
+      // permis de voir qu'au changement d'heure les lignes glissaient d'un cran.
+      case_.dataset.jour = cle;
+
+      const evenements = evenementsDuJour(cle, sessions);
+      if (evenements.length) {
+        case_.dataset.controle = 'oui';
+        case_.dataset.combien = String(Math.min(3, evenements.length));
+        controles += 1;
+        if (!prochain && date >= aujourdhui) prochain = date;
+        // Survoler un carré foncé dit lequel, sans ouvrir l'agenda : c'est
+        // toute l'idée d'un aperçu.
+        case_.title = date.toLocaleDateString('fr-FR',
+          { weekday: 'long', day: 'numeric', month: 'long' })
+          + ' — ' + evenements.map((e) => nomMatiere(e.matiere)).join(', ');
+      } else if (jours.has(cle)) {
+        case_.dataset.travaille = 'oui';
+      }
+      if (date < aujourdhui) case_.dataset.passe = 'oui';
+      if (cle === cleJour(aujourdhui)) case_.dataset.aujourdhui = 'oui';
+      frise.appendChild(case_);
+    }
   }
-  $('texte-regularite').textContent = comptes > 1
-    ? comptes + ' jours travaillés en ' + Math.round(semaines / 4.3) + ' mois.'
-    : 'Premier jour travaillé. Le reste se construit comme ça.';
+
+  dessinerMoisFrise(colonnes);
+  if (cadre) cadre.hidden = false;
+
   const mois = (d) => d.toLocaleDateString('fr-FR', { month: 'long' });
-  const debut = mois(premier);
-  const fin = mois(aujourdhui);
-  $('frise-legende').textContent = 'Une colonne = une semaine · '
-    + (debut === fin ? debut : debut + ' → ' + fin);
+  const fin = jourPlus(premier, semaines * 7 - 1);
+  const periode = mois(premier) === mois(fin) ? mois(premier) : mois(premier) + ' → ' + mois(fin);
+
+  if (controles) {
+    const jours_ = joursAvant(cleJour(prochain));
+    $('texte-regularite').textContent = controles > 1
+      ? controles + ' contrôles en vue' + (jours_ === 0 ? ", dont un aujourd'hui." : '.')
+      : (jours_ === 0 ? "Un contrôle aujourd'hui." : 'Un contrôle en vue.');
+    $('frise-legende').textContent = 'Ce qui vient · ' + periode;
+  } else {
+    $('texte-regularite').textContent = 'Aucun contrôle noté. Ouvre l’agenda pour en poser un.';
+    $('frise-legende').textContent = 'Les semaines à venir · ' + periode;
+  }
+  $('frise-legende').hidden = false;
 }
 
 /* --- Rouvrir ce qu'on retrouve ------------------------------------------ */
@@ -4345,8 +4428,9 @@ function echapper(texte) {
 }
 
 function dateParDefaut() {
-  const dans7jours = new Date(Date.now() + 7 * 86400000);
-  return dans7jours.toISOString().slice(0, 10);
+  // Même précaution : au changement d'heure, la somme en millisecondes
+  // proposerait le 6e ou le 8e jour au lieu du 7e.
+  return cleJour(jourPlus(new Date(), 7));
 }
 
 /* ------------------------------------------------------------ câblage --- */

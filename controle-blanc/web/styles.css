@@ -3330,6 +3330,55 @@ h1 {
   .frise-porte:hover .case-frise[data-travaille="oui"] { transition-delay: 0s; }
 }
 
+/* Le cadre : les mois en tête, les jours de la semaine sur le côté, la grille
+   au milieu. C'est ce défilement commun qui garde les mois alignés sur leurs
+   colonnes — deux zones qui défilent séparément se décalent au premier geste. */
+.frise-cadre {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.frise-cadre::-webkit-scrollbar { display: none; }
+
+.frise-mois {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 10px;
+  gap: 3px;
+  justify-content: start;
+  /* Décalée de la colonne des jours, pour tomber sur la grille. */
+  margin-left: 15px;
+  font-family: var(--mono);
+  font-size: .52rem;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--encre) 42%, transparent);
+}
+
+.frise-mois i { font-style: normal; overflow: hidden; white-space: nowrap; }
+
+.frise-corps { display: flex; gap: 5px; }
+
+/* Les initiales des jours, les sept. En n'en montrant qu'une sur deux, le
+   « M » visible se lisait mardi aussi bien que mercredi — la série entière est
+   la seule qui ne se prête pas à deux lectures. */
+.frise-semaine {
+  display: grid;
+  grid-template-rows: repeat(7, 10px);
+  gap: 3px;
+  width: 10px;
+  font-family: var(--mono);
+  font-size: .48rem;
+  line-height: 10px;
+  text-align: center;
+  color: color-mix(in srgb, var(--encre) 34%, transparent);
+}
+
+.frise-semaine i { font-style: normal; }
+
 .frise {
   display: grid;
   /* « span » dans un bouton : sans cette déclaration explicite, la grille
@@ -3340,11 +3389,7 @@ h1 {
   grid-auto-columns: 10px;
   justify-content: start;
   gap: 3px;
-  overflow-x: auto;
-  scrollbar-width: none;
 }
-
-.frise::-webkit-scrollbar { display: none; }
 
 .case-frise {
   width: 10px;
@@ -3354,7 +3399,20 @@ h1 {
   transition: background .3s ease;
 }
 
-.case-frise[data-travaille="oui"] { background: color-mix(in srgb, var(--accent) 78%, transparent); }
+/* Un jour travaillé reste marqué, mais en arrière-plan : c'est l'activité, pas
+   l'information qu'on vient chercher. Deux marques de même force donneraient
+   une grille où l'échéance se perd dans le reste. */
+.case-frise[data-travaille="oui"] { background: color-mix(in srgb, var(--accent) 26%, transparent); }
+
+/* Un jour qui porte un contrôle : c'est CE qu'on doit voir d'un coup d'œil. La
+   teinte suit le nombre d'épreuves, comme dans l'agenda ouvert. */
+.case-frise[data-controle="oui"] { background: color-mix(in srgb, var(--accent) 72%, transparent); }
+.case-frise[data-controle="oui"][data-combien="2"] { background: color-mix(in srgb, var(--accent) 86%, transparent); }
+.case-frise[data-controle="oui"][data-combien="3"] { background: var(--accent); }
+
+/* Ce qui est déjà passé s'efface : la frise regarde devant. */
+.case-frise[data-passe="oui"] { opacity: .45; }
+
 .case-frise[data-aujourdhui="oui"] { box-shadow: 0 0 0 2px var(--carte), 0 0 0 3px var(--trait-fort); }
 
 /* Sans légende, personne ne devine que chaque colonne est une semaine. */

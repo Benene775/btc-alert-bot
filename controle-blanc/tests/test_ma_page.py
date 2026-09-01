@@ -196,16 +196,19 @@ def test_l_invite_de_l_agenda_se_lit_sans_survol():
         assert regle in STYLE, f"« {regle} » manque : le survol ne dit rien"
 
 
-def test_la_porte_de_l_agenda_survit_a_une_frise_vide():
-    """Un compte neuf n'a rien à mettre dans la frise — et c'est précisément
-    quand on vient poser la date de son premier contrôle. Cacher tout le bloc,
-    comme on le faisait pour éviter le papier réglé vide, emporterait la porte
-    avec lui."""
+def test_le_calendrier_s_affiche_meme_vide():
+    """Un compte neuf n'a aucun contrôle noté — et c'est précisément le moment
+    où il vient en poser un. La frise se cachait alors entièrement, faute de
+    jours travaillés à montrer. Un calendrier vide, lui, dit quelque chose :
+    voilà tes semaines, il n'y a rien dedans. C'est l'invitation.
+
+    Et cacher le bloc emporterait la porte de l'agenda avec lui."""
     bloc = SCRIPT[SCRIPT.index("function dessinerRegularite"):]
     bloc = bloc[: bloc.index("\n}\n")]
-    assert "frise.hidden = !jours.size;" in bloc, "la grille vide s'affiche encore"
+    assert "frise.hidden" not in bloc, "la grille se cache encore quand elle est vide"
     assert "$('bloc-frise').hidden" not in bloc, \
         "cacher le bloc entier emporte la porte de l'agenda"
+    assert "Ouvre l’agenda pour en poser un" in bloc, "rien n'invite à s'en servir"
 
 
 def test_une_fiche_remplace_celle_qu_elle_refait():
