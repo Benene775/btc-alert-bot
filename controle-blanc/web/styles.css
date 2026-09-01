@@ -3425,6 +3425,42 @@ h1 {
   margin: 0;
 }
 
+/* L'invitation à installer l'application. Discrète : elle vit en bas de la page
+   perso, là où on gère son compte, pas en travers du travail. */
+.invite-app {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px var(--e2);
+  margin-top: var(--e3);
+  padding: var(--e2) var(--e3);
+  border: 1px solid var(--trait);
+  border-radius: var(--rayon);
+  background: var(--carte);
+}
+
+.invite-app-mot {
+  flex: 1 1 220px;
+  margin: 0;
+  font-size: .85rem;
+  line-height: 1.45;
+  color: var(--encre-douce);
+}
+
+.invite-app-liens { display: flex; align-items: center; gap: var(--e2); margin-left: auto; }
+
+.invite-app-oui {
+  padding: 7px 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--sur-accent);
+  font: inherit;
+  font-size: .85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 /* --- La prochaine échéance ----------------------------------------------
  *
  * Un objet à part, et pas une boîte dans la carte : c'est la question qu'on

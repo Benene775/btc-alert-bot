@@ -7,6 +7,14 @@
 <meta name="theme-color" content="#17130e" media="(prefers-color-scheme: dark)">
 <meta name="description" content="Repère : passe le contrôle avant le contrôle. Photographie ton cours, teste-toi dessus, vois ce qui te manque.">
 <title>Repère — le contrôle avant le contrôle</title>
+<!-- Installable sur l'écran d'accueil : le manifeste donne le nom, l'icône et
+     l'ouverture en plein écran. Les deux balises « apple- » font la même chose
+     pour iOS, qui ne lit pas le manifeste pour ça. -->
+<link rel="manifest" href="/manifeste.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Repère">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="apple-touch-icon" href="/icones/icone-apple-180.png">
 <link rel="stylesheet" href="/polices.css">
 <link rel="stylesheet" href="/styles.css">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8.5' fill='%23a86e14'/><rect x='13.6' y='12.9' width='12.6' height='6.2' rx='3.1' fill='white' fill-opacity='.26'/><g stroke='white' stroke-linecap='round' fill='none'><path d='M11 7v18' stroke-width='1.5' stroke-opacity='.45'/><path d='M15 9.4h11M15 22.6h7.5' stroke-width='2' stroke-opacity='.45'/><path d='M15 16h11' stroke-width='2.4'/></g></svg>">
@@ -483,6 +491,17 @@
 
   <button type="button" class="principal" id="bouton-espace-nouveau">Photographier un nouveau cours</button>
   <button type="button" class="discret" id="bouton-quitter-espace">Revenir</button>
+
+  <!-- L'invitation à installer. Elle ne paraît que si l'application ne tourne
+       pas déjà depuis l'écran d'accueil, et se referme pour de bon. Un bandeau
+       qu'on ne peut pas faire taire finit par se lire comme de la publicité. -->
+  <div class="invite-app" id="invite-app" hidden>
+    <p class="invite-app-mot" id="invite-app-mot"></p>
+    <div class="invite-app-liens">
+      <button type="button" class="invite-app-oui" id="bouton-installer" hidden>Installer</button>
+      <button type="button" class="lien-nu" id="bouton-installer-non">Non merci</button>
+    </div>
+  </div>
 
   <!-- Le compte, en bas et en petit : on n'ouvre pas le site pour le gérer.
        Effacer est à côté de sortir, parce que c'est là qu'on le cherche. -->

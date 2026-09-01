@@ -2547,6 +2547,79 @@ async function demarrerSession(depuisAgenda = null) {
   } catch (e) { gererErreur(e); }
 }
 
+/* --- L'application ---------------------------------------------------------
+ *
+ * Repère s'installe sur l'écran d'accueil : icône, plein écran, démarrage sans
+ * réseau. Ce n'est pas une application de magasin — c'est la page elle-même,
+ * que le téléphone accepte de garder. Pour six testeurs, ça évite un compte
+ * développeur, une revue de plusieurs semaines et deux bases de code, pour le
+ * même résultat à l'usage : une icône qu'on touche.
+ *
+ * iOS ne propose rien tout seul : il faut passer par Partager → « Sur l'écran
+ * d'accueil ». Android le propose, et on lui donne un bouton.
+ */
+const CLE_INVITE_APP = 'cb.invite-app';
+let inviteInstallation = null;
+
+function dejaInstallee() {
+  return window.matchMedia('(display-mode: standalone)').matches
+    || window.navigator.standalone === true;
+}
+
+function surIOS() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent)
+    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
+function armerApplication() {
+  if ('serviceWorker' in navigator) {
+    // Après le chargement : l'enregistrement n'a rien d'urgent, et le faire
+    // pendant que la page se monte retarderait ce que l'élève attend.
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/agent.js').catch(() => {
+        // Pas d'agent : l'application marche, elle ne démarre juste pas
+        // hors ligne. Rien à dire à l'élève.
+      });
+    });
+  }
+
+  window.addEventListener('beforeinstallprompt', (evenement) => {
+    evenement.preventDefault();
+    inviteInstallation = evenement;
+    $('bouton-installer').hidden = false;
+    montrerInviteApp();
+  });
+
+  $('bouton-installer').onclick = async () => {
+    if (!inviteInstallation) return;
+    inviteInstallation.prompt();
+    await inviteInstallation.userChoice;
+    inviteInstallation = null;
+    fermerInviteApp();
+  };
+  $('bouton-installer-non').onclick = fermerInviteApp;
+
+  // iOS n'émet jamais beforeinstallprompt : sans ça, l'invitation ne
+  // paraîtrait que sur Android, là où elle est le moins nécessaire.
+  if (surIOS()) montrerInviteApp();
+}
+
+function montrerInviteApp() {
+  if (dejaInstallee()) return;
+  try { if (localStorage.getItem(CLE_INVITE_APP) === 'non') return; } catch (e) { return; }
+  const invite = $('invite-app');
+  if (!invite) return;
+  $('invite-app-mot').textContent = surIOS()
+    ? 'Garde Repère sur ton écran d’accueil : touche « Partager », puis « Sur l’écran d’accueil ».'
+    : 'Garde Repère sur ton écran d’accueil : il s’ouvrira en plein écran, et même sans réseau.';
+  invite.hidden = false;
+}
+
+function fermerInviteApp() {
+  $('invite-app').hidden = true;
+  try { localStorage.setItem(CLE_INVITE_APP, 'non'); } catch (e) { /* stockage refusé */ }
+}
+
 /* --- Le menu de la marque ------------------------------------------------
  *
  * Depuis n'importe quel écran, l'élève doit pouvoir rejoindre sa page, lancer
@@ -4607,6 +4680,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   $('bouton-correction-accueil').onclick = reprendre;
   armerMenuMarque();
+  armerApplication();
 
   $('bouton-question-suivante').onclick = questionSuivante;
   $('bouton-signaler').onclick = () => {

@@ -58,9 +58,17 @@ def test_une_version_plus_ancienne_ne_recouvre_rien(client, session):
 
 def test_on_ne_redemande_que_ce_qui_a_bougé(client, session):
     """Sans « depuis », un élève retéléchargerait tout son trimestre à chaque
-    ouverture — sur un téléphone en 4G, ça se voit."""
+    ouverture — sur un téléphone en 4G, ça se voit.
+
+    Le repère se prend SUR LE SERVEUR, après la poussée. Une date écrite en dur
+    ici ne voulait rien dire : depuis que le filtre suit range_le, elle finit
+    par tomber du mauvais côté de l'horloge, et le test casse un matin sans que
+    rien n'ait changé dans le produit. C'est arrivé.
+    """
     _pousser(client, session, SEANCE, "2026-09-01T08:00:00+00:00")
-    reponse = client.get("/api/classeur", params={"depuis": "2026-09-01T09:00:00+00:00"})
+    repere = client.get("/api/classeur").json()["maintenant"]
+
+    reponse = client.get("/api/classeur", params={"depuis": repere})
     assert reponse.json()["seances"] == []
 
 

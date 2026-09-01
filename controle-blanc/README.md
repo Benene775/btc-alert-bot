@@ -409,6 +409,40 @@ Ce qu'il reste du mois s'affiche sous chaque outil de la page perso
 
 ---
 
+## L'application
+
+Repère s'installe sur l'écran d'accueil d'un téléphone : icône, ouverture en
+plein écran sans barre d'adresse, démarrage même sans réseau. Ce n'est pas une
+application de magasin — c'est la page elle-même, que le téléphone accepte de
+garder (`web/manifeste.json` et `web/agent.js`).
+
+Ce choix vaut d'être explicite. Passer par l'App Store et le Play Store
+demanderait un compte développeur (99 $/an chez Apple), une revue de plusieurs
+semaines, et une seconde base de code ou un emballage natif — pour le même
+résultat à l'usage : une icône qu'on touche. Pour six testeurs sur deux mois,
+c'est disproportionné. Le jour où la distribution en magasin devient un vrai
+besoin, le même code peut être emballé sans être réécrit.
+
+**Comment l'élève l'installe** : sur Android le navigateur le propose, et la
+page perso porte un bouton ; sur iOS il faut Partager → « Sur l'écran
+d'accueil », ce que la même invitation explique. Elle se referme
+définitivement — un bandeau qu'on ne peut pas faire taire se lit comme de la
+publicité.
+
+**Ce que l'agent met en cache, et ce qu'il ne met surtout pas :**
+
+| | |
+|---|---|
+| `/api/*` | **jamais.** Servir un vieux classeur ou un vieux quota ferait réapparaître du travail effacé et mentir les compteurs. Hors ligne l'appel échoue, et l'application sait le dire |
+| la coque (page, script, styles, polices) | réseau d'abord, cache en secours. Pendant le test le code change souvent : un cache d'abord bloquerait les élèves sur une version périmée |
+| les icônes | cache d'abord — elles ne changent pas |
+
+Seules les réponses valables sont gardées : mettre une page d'erreur en cache
+la rejouerait à chaque démarrage hors ligne. `VERSION` dans `agent.js` se
+change à la main pour purger les caches d'une version précédente.
+
+---
+
 ## Quel modèle sert quel appel
 
 Deux réglages, parce que les cinq appels n'ont pas le même risque.
