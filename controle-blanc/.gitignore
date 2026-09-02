@@ -4,3 +4,4 @@ __pycache__/
 *.pyc
 .pytest_cache/
 _site/
+controle-blanc-demo.html
