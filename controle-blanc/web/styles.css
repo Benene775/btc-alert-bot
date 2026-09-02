@@ -4053,6 +4053,64 @@ h1 {
 
 .revient-pourquoi { font-size: .88rem; color: var(--encre-douce); margin: 7px 0 0; }
 
+/* Ce qu'il y a déjà à relire sur cette notion.
+ *
+ * Des cartes plutôt que des liens en ligne : chacune porte deux informations
+ * de rang différent — ce qu'on va lire, et dans quelle fiche — et une ligne de
+ * texte souligné ne sait pas les tenir sans les mettre au même niveau.
+ */
+.revient-fiches {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--trait);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.revient-intro {
+  font-family: var(--mono);
+  font-size: .6rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--encre-douce);
+  margin: 0 0 2px;
+}
+
+.revient-fiche {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  text-align: left;
+  padding: 9px 11px;
+  min-height: 44px;
+  border: 1px solid var(--trait);
+  border-radius: 10px;
+  background: var(--carte);
+  cursor: pointer;
+}
+
+/* La fiche qui traite vraiment la notion se distingue de celle du chapitre :
+   un filet de surligneur, pas une couleur de plus. */
+.revient-fiche[data-precise="oui"] { border-left: 3px solid var(--accent); }
+
+.revient-fiche:hover { background: var(--accent-doux); }
+
+.revient-fiche-titre {
+  font-weight: 700;
+  font-size: .88rem;
+  color: var(--encre);
+}
+
+.revient-fiche-ou {
+  font-family: var(--mono);
+  font-size: .62rem;
+  letter-spacing: .04em;
+  color: var(--encre-douce);
+}
+
 .revient-action {
   margin-top: 10px;
   background: none;

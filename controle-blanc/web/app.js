@@ -337,16 +337,161 @@ function notionsQuiReviennent(sessions) {
         const deja = par.get(cle);
         if (deja) {
           deja.fois += 1;
-          if (String(controle.le) > String(deja.le)) { deja.le = controle.le; deja.pourquoi = n.pourquoi; }
+          // Une notion ratée deux fois vient souvent de deux cours : on garde
+          // les deux séances, ce sont elles qui portent les fiches à proposer.
+          if (deja.seances.indexOf(session.sessionId) < 0) deja.seances.push(session.sessionId);
+          if (String(controle.le) > String(deja.le)) {
+            deja.le = controle.le;
+            deja.pourquoi = n.pourquoi;
+            // Se retester sur le cours le plus récent, pas sur le premier vu.
+            deja.sessionId = session.sessionId;
+          }
         } else {
           par.set(cle, { notion: n.notion, pourquoi: n.pourquoi || '', matiere: session.matiere,
-                         sessionId: session.sessionId, fois: 1, le: controle.le });
+                         sessionId: session.sessionId, seances: [session.sessionId],
+                         fois: 1, le: controle.le });
         }
       });
     });
   });
   return Array.from(par.values())
     .sort((a, b) => (b.fois - a.fois) || String(b.le).localeCompare(String(a.le)));
+}
+
+/* Relier une notion fragile aux fiches qui en parlent.
+ *
+ * Rien ne relie les deux dans les données : une notion fragile est un titre
+ * écrit au moment de la correction, une section de fiche un titre écrit
+ * ailleurs, un autre jour. On compare donc les mots — sans accents, et sans
+ * ceux qui apparaissent partout : « les », « leurs », « dans » feraient
+ * correspondre n'importe quelle notion avec n'importe quelle fiche.
+ */
+const MOTS_VIDES = new Set([
+  'les', 'des', 'une', 'aux', 'leur', 'leurs', 'cette', 'cet', 'ces', 'son', 'ses',
+  'dans', 'pour', 'avec', 'sans', 'sur', 'par', 'que', 'qui', 'quoi', 'dont',
+  'est', 'sont', 'etre', 'avoir', 'plus', 'moins', 'tout', 'tous', 'toute', 'toutes',
+  'entre', 'chez', 'comme', 'donc', 'mais', 'quand', 'alors', 'ainsi', 'aussi',
+  'faire', 'fait', 'peut', 'doit', 'notion', 'notions', 'chapitre', 'cours',
+]);
+
+/* Coupés à cinq lettres, faute de quoi « la mobilisation de l'arrière » ne
+ * retrouve pas la section où le pays « est mobilisé », ni « les Arméniens » la
+ * ligne sur « le génocide arménien ». Le titre d'une notion et le texte d'une
+ * fiche sont écrits deux jours différents : les mêmes mots y arrivent rarement
+ * sous la même forme. */
+function motsUtiles(texte) {
+  return sansAccent(texte).replace(/[^a-z0-9]+/g, ' ').split(' ')
+    .filter((mot) => mot.length >= 3 && !MOTS_VIDES.has(mot))
+    .map((mot) => mot.slice(0, 5));
+}
+
+/* La moitié des mots de la notion présents dans la section, et personne d'aussi
+ * proche derrière. Le seuil seul ne suffisait pas : « la mobilisation de
+ * l'arrière et le rôle des femmes » ne partage que deux mots sur quatre avec la
+ * section qui la traite, et se retrouvait sans lien. C'est l'écart avec la
+ * suivante qui décide vraiment — deux sections à égalité, c'est qu'on ne sait
+ * pas laquelle ouvrir, et on rend alors la fiche entière plutôt qu'une page
+ * tirée au sort.
+ */
+const PART_COMMUNE = 0.5;
+
+function texteSection(s) {
+  return [s.titre, (s.points || []).join(' '), s.a_retenir].join(' ');
+}
+
+/* Ne garder de la notion que les mots qui séparent une section des autres.
+ *
+ * La liste des mots vides est française ; les cours de langue, eux, sont en
+ * espagnol ou en anglais, où « los », « del » et « the » passent au travers et
+ * font correspondre n'importe quoi. Mesuré sur la démonstration d'espagnol,
+ * « Los acuerdos de género y de número » atterrissait sur la section du
+ * tourisme, par « los » et « número de viajeros ».
+ *
+ * Plutôt que d'entretenir une liste par langue, on lit la fiche : un mot
+ * présent dans un tiers des sections ne dit pas laquelle ouvrir, quelle que
+ * soit la langue. C'est vrai de « los » comme de « turismo » dans une fiche qui
+ * ne parle que de tourisme.
+ */
+function motsDistinctifs(sections, mots) {
+  const total = (sections || []).length;
+  if (total < 3) return mots;
+  const vus = sections.map((s) => new Set(motsUtiles(texteSection(s))));
+  // Un mot présent dans plus d'un tiers des sections ne les distingue plus ; un
+  // mot présent dans une seule les distingue toujours, même en fiche courte.
+  const gardes = mots.filter((mot) => {
+    const combien = vus.filter((v) => v.has(mot)).length;
+    return combien < 2 || combien * 3 <= total;
+  });
+  // Tout est commun : aucun mot ne départage, on laisse le seuil trancher.
+  return gardes.length ? gardes : mots;
+}
+
+function partCommune(texte, mots) {
+  if (!mots.length) return 0;
+  const dedans = new Set(motsUtiles(texte));
+  return mots.filter((mot) => dedans.has(mot)).length / mots.length;
+}
+
+/* La section qui parle le mieux de la notion, ou rien.
+ *
+ * La meilleure, pas la première : « Verdun et la guerre de tranchées » partage
+ * le mot « guerre » avec la section d'ouverture, et tout le reste avec celle
+ * sur les tranchées. Prendre la première rencontrée renverrait sur la mauvaise.
+ */
+function sectionQuiTraite(sections, mots) {
+  const utiles = motsDistinctifs(sections, mots);
+  let meilleure = null;
+  let score = 0;
+  let suivante = 0;
+  (sections || []).forEach((s) => {
+    const part = partCommune(texteSection(s), utiles);
+    if (part > score) { suivante = score; score = part; meilleure = s; }
+    else if (part > suivante) { suivante = part; }
+  });
+  return (score >= PART_COMMUNE && score > suivante) ? meilleure : null;
+}
+
+/* Les fiches à relire pour une notion, la plus précise d'abord.
+ *
+ * Deux qualités de lien, qu'on ne présente pas pareil. Une fiche dont une
+ * section porte sur la notion s'ouvre directement à cette section : c'est la
+ * bonne page, pas seulement la bonne fiche. Une fiche du même cours qui n'en
+ * parle nulle part est proposée pour ce qu'elle est — la fiche du chapitre.
+ *
+ * Les candidates viennent des seules séances où la notion a été ratée. Une
+ * fiche d'un autre chapitre qui emploie les mêmes mots n'a rien à dire ici,
+ * et l'élève qui l'ouvrirait n'y trouverait pas son erreur.
+ */
+function fichesPourNotion(notion, sessions) {
+  const mots = motsUtiles(notion.notion);
+  const ou = notion.seances || [notion.sessionId];
+  const trouvees = [];
+
+  sessions.forEach((session) => {
+    if (ou.indexOf(session.sessionId) < 0) return;
+    (session.fiches || []).forEach((fiche, rang) => {
+      const contenu = fiche.contenu || {};
+      const section = sectionQuiTraite(contenu.sections, mots);
+      // Une fiche ciblée ne traite QUE les notions dont elle est née. Si aucune
+      // de ses sections ne correspond, elle n'a rien à dire sur celle-ci — la
+      // proposer quand même, c'est envoyer relire les erreurs de quelqu'un
+      // d'autre. La fiche générale, elle, couvre tout le chapitre : elle reste
+      // proposée pour ce qu'elle est.
+      if (!section && fiche.type === 'ciblee') return;
+      trouvees.push({
+        sessionId: session.sessionId, rang, type: fiche.type, le: fiche.le,
+        section: section ? section.titre : '',
+        titre: section ? section.titre : (contenu.titre || 'La fiche du chapitre'),
+      });
+    });
+  });
+
+  // Les sections précises d'abord, puis les plus récentes. Trois au plus : au
+  // delà, la notion disparaît sous sa propre liste de liens.
+  return trouvees
+    .sort((a, b) => (Number(Boolean(b.section)) - Number(Boolean(a.section)))
+                    || String(b.le).localeCompare(String(a.le)))
+    .slice(0, 3);
 }
 
 function toutesLesFiches(sessions) {
@@ -459,7 +604,7 @@ function dessinerRevientCourt(sessions) {
   $('pan-revient').hidden = notions.length === 0;
   const liste = $('liste-reviennent');
   liste.innerHTML = '';
-  notions.forEach((n) => liste.appendChild(ligneNotion(n)));
+  notions.forEach((n) => liste.appendChild(ligneNotion(n, true, sessions)));
 }
 
 function dessinerEtagere(sessions) {
@@ -599,7 +744,7 @@ function dessinerMatiereRevoir(sessions, cle) {
   // Bornées comme le reste : neuf notions d'affilée sur une matière chargée
   // ajoutaient un écran entier. Les cinq premières sont celles qui insistent.
   const visibles = revoirDeplie ? notions : notions.slice(0, PAR_PAGE_TOUT);
-  visibles.forEach((n) => liste.appendChild(ligneNotion(n, false)));
+  visibles.forEach((n) => liste.appendChild(ligneNotion(n, false, sessions)));
 
   const plus = $('plus-revoir');
   const reste = notions.length - visibles.length;
@@ -1285,8 +1430,16 @@ function basculerAtelier() {
  * « details » plutôt qu'un accordéon maison : le navigateur sait déjà le faire,
  * au clavier comme au lecteur d'écran. */
 /* Une notion, repliée. Le titre et le nombre de fois suffisent à décider ; le
- * détail ne s'ouvre que si on le demande. */
-function ligneNotion(n, montrerMatiere = true) {
+ * détail ne s'ouvre que si on le demande.
+ *
+ * Dépliée, elle donne les deux sorties possibles, dans cet ordre : relire ce
+ * qu'on a déjà, puis se retester. L'ordre n'est pas cosmétique — une relecture
+ * coûte cinq minutes et rien d'autre, un contrôle blanc coûte un quota, un
+ * quart d'heure et de l'argent. Proposer le test en premier, c'était envoyer
+ * l'élève repasser un contrôle sur une notion qu'il n'a pas relue depuis
+ * qu'il l'a ratée.
+ */
+function ligneNotion(n, montrerMatiere = true, sessions = []) {
   const li = document.createElement('li');
   const pliage = document.createElement('details');
   pliage.className = 'revient';
@@ -1317,6 +1470,47 @@ function ligneNotion(n, montrerMatiere = true) {
     pourquoi.textContent = n.pourquoi;
     corps.appendChild(pourquoi);
   }
+  const aRelire = fichesPourNotion(n, sessions);
+  if (aRelire.length) {
+    const bloc = document.createElement('div');
+    bloc.className = 'revient-fiches';
+    const intro = document.createElement('p');
+    intro.className = 'revient-intro';
+    intro.textContent = 'À relire là-dessus';
+    bloc.appendChild(intro);
+
+    aRelire.forEach((f) => {
+      const lien = document.createElement('button');
+      lien.type = 'button';
+      lien.className = 'revient-fiche';
+      // Une section retrouvée s'annonce comme telle ; la fiche du chapitre dit
+      // qu'elle est la fiche du chapitre. Promettre la bonne page et en ouvrir
+      // une autre est pire que ne rien promettre.
+      lien.dataset.precise = f.section ? 'oui' : 'non';
+
+      // Une fiche ciblée nomme sa section d'après la notion : la ligne répétait
+      // alors mot pour mot le titre déjà lu deux centimètres plus haut. Quand
+      // c'est le cas, on nomme la fiche plutôt que de redire la notion.
+      const quelle = f.type === 'ciblee' ? 'fiche ciblée' : 'fiche générale';
+      const repete = f.section && sansAccent(f.section) === sansAccent(n.notion);
+
+      const titre = document.createElement('span');
+      titre.className = 'revient-fiche-titre';
+      titre.textContent = repete ? 'Ta ' + quelle : f.titre;
+
+      const ou = document.createElement('span');
+      ou.className = 'revient-fiche-ou';
+      ou.textContent = (repete ? 'la section sur cette notion'
+        : (f.section ? 'dans ta ' + quelle : 'toute la ' + quelle))
+        + (f.le ? ' · ' + dateCourte(f.le) : '');
+
+      lien.append(titre, ou);
+      lien.onclick = () => ouvrirFicheGardee(f.sessionId, f.rang, f.section);
+      bloc.appendChild(lien);
+    });
+    corps.appendChild(bloc);
+  }
+
   const retester = document.createElement('button');
   retester.type = 'button';
   retester.className = 'revient-action';
@@ -1731,11 +1925,33 @@ async function ouvrirSession(sessionId, ensuite) {
   reprendre();
 }
 
-async function ouvrirFicheGardee(sessionId, rang) {
+async function ouvrirFicheGardee(sessionId, rang, section = '') {
   await ouvrirSession(sessionId, () => {});
   const gardee = (etat.fiches || [])[rang];
   if (!gardee) return message("Cette fiche n’est plus disponible.", 'alerte');
   afficherFiche(gardee.contenu, gardee.type);
+  if (section) allerASection(section);
+}
+
+/* Sauter à une section de la fiche affichée.
+ *
+ * Venir d'une notion et retomber sur la carte 1 d'une fiche de vingt cartes,
+ * c'est promettre une réponse et rendre une recherche. Les cartes portent le
+ * rang de leur section dans « data-ruban » : on vise la première de ce rang,
+ * exactement comme le fait un ruban qu'on presse.
+ */
+function allerASection(titre) {
+  const rang = groupesCourants.indexOf(titre);
+  if (rang < 0) return;
+  const premiere = Array.from($('paquet').children)
+    .findIndex((c) => Number(c.dataset.ruban) === rang);
+  if (premiere < 0) return;
+  // Le paquet vient d'être rempli : viser avant que la mise en page soit faite
+  // envoie sur la mauvaise carte.
+  requestAnimationFrame(() => allerACarte(premiere));
+  // On vient de poser l'élève où il fallait : lui proposer en plus de reprendre
+  // ailleurs, c'est deux positions concurrentes sur le même écran.
+  $('reprise-lecture').hidden = true;
 }
 
 async function ouvrirControleGarde(sessionId, rang) {
