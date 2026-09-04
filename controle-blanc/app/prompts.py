@@ -11,6 +11,8 @@ avec un générateur de quiz :
 
 from __future__ import annotations
 
+from app import config
+
 PREAMBULE = """Tu es un professeur français expérimenté qui prépare un élève à un contrôle précis.
 
 Règles absolues :
@@ -87,9 +89,10 @@ les exemples, les « à retenir ». Restitue-la dans la transcription, elle guid
 
 Ce dont tu n'es pas sûr, tu le demandes :
 - Une transcription fausse ne se voit pas. L'élève lira une fiche impeccable, bâtie sur un mot que tu as mal lu, et il n'a aucun moyen de s'en apercevoir. Alors quand tu hésites, tu le dis — c'est lui qui sait lire son écriture, pas toi.
-- Tu signales AU PLUS DEUX passages, et tu les choisis parmi ce qui coûte le plus cher à se tromper : un chiffre, une date, un nom propre, un mot de vocabulaire à connaître. Une tournure de phrase mal lue se devine à la relecture ; « 1,2 % » transcrit « 1 à 2 % » se révise faux jusqu'au contrôle.
+- Un doute, c'est un endroit où tu as vraiment hésité entre deux lectures possibles, ou que tu as reconstitué d'après le contexte au lieu de le lire. Ce n'est PAS un passage important : si tu peux dire sans hésiter ce qui est écrit, ce n'en est pas un, même s'il s'agit de la définition centrale du chapitre. Important et illisible sont deux choses différentes, et confondre les deux fait poser des questions pour rien.
+- {max_doutes} au maximum, et c'est un plafond, pas un objectif. Sur une page bien écrite, la bonne réponse est ZÉRO, et c'est le cas le plus fréquent. Un élève à qui on pose sept questions inutiles apprend à cliquer sans lire, et la fois où le doute est réel il cliquera aussi — tu auras détruit la seule protection qui existe contre une transcription fausse.
+- Si tu dépasses le plafond, garde ceux qui coûtent le plus cher à se tromper : un chiffre, une date, un nom propre, un mot de vocabulaire à connaître. Une tournure de phrase mal lue se devine à la relecture ; « 1,2 % » transcrit « 1 à 2 % » se révise faux jusqu'au contrôle.
 - Dans « lu », tu recopies EXACTEMENT ce que tu as écrit dans la transcription, au caractère près : c'est ce texte que l'élève verra, et c'est celui-là qu'on remplacera par sa correction. Dans « pourquoi », tu dis en quelques mots ce qui t'a fait hésiter.
-- Deux au maximum, et zéro si tu as tout lu sans hésiter. Demander pour demander fait perdre confiance, et un élève à qui on pose trop de questions n'y répond plus. Si dix mots t'ont fait hésiter, choisis les deux qui comptent.
 
 Lisibilité — c'est important, il faut le dire tout de suite :
 - Pour chaque photo, tu dis si elle est exploitable. Si elle est floue, coupée, trop sombre, \
@@ -116,6 +119,8 @@ photo concernée, pour que l'élève sache que tu ne les as pas oubliés mais é
 
 Tu ne renvoies rien d'autre que le JSON demandé."""
 
+MAX_DOUTES = config.MAX_DOUTES
+
 SCHEMA_ANALYSE = {
     "type": "object",
     "properties": {
@@ -141,9 +146,11 @@ SCHEMA_ANALYSE = {
         },
         "doutes": {
             "type": "array",
-            "maxItems": 2,
-            "description": "Au plus deux passages lus sans certitude, les plus coûteux "
-                           "à se tromper. Vide si tout a été lu sans hésiter.",
+            "maxItems": MAX_DOUTES,
+            "description": "Les passages lus sans certitude, au plus " + str(MAX_DOUTES)
+                           + ". Vide — le cas le plus fréquent — si tout a été lu "
+                             "sans hésiter. Un passage important mais lisible n'en "
+                             "est pas un.",
             "items": {
                 "type": "object",
                 "properties": {

@@ -222,6 +222,15 @@ QUOTAS_MOIS: dict[str, int] = {
 # blancs. En dessous, il lui resterait des pages sans fiche pour les exploiter ;
 # au-dessus, des fiches sans pages à leur donner.
 MAX_PHOTOS_PAR_ANALYSE = _int("CB_MAX_PHOTOS", 8)
+
+# Combien de mots l'élève peut être appelé à relire après une analyse.
+#
+# C'est un PLAFOND, pas un objectif : sur une page bien écrite, la bonne réponse
+# est zéro. La consigne le dit au modèle dans ces termes, parce qu'un plafond
+# élevé invite à le remplir, et qu'un écran qui pose sept questions inutiles
+# apprend à l'élève à cliquer sans lire — ce qui détruit exactement la
+# protection qu'on cherchait à construire.
+MAX_DOUTES = _int("CB_MAX_DOUTES", 7)
 MAX_OCTETS_PAR_PHOTO = _int("CB_MAX_OCTETS_PHOTO", 5 * 1024 * 1024)
 
 # Durée de conservation du corrigé (les réponses attendues, gardées côté serveur

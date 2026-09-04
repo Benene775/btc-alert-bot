@@ -46,7 +46,7 @@ const QUALITE_PHOTO = 0.82;
 let etat = null;
 let photosEnAttente = [];      // le lot en cours de sélection
 let photosDuCours = [];        // les pages déjà analysées, gardées pour la fiche
-let config = { matieres: [], niveaux: [], mode_demonstration: false, max_photos: 8 };
+let config = { matieres: [], niveaux: [], mode_demonstration: false, max_photos: 8, max_doutes: 7 };
 let controleEnCours = null;
 let minuteur = null;
 
@@ -3251,7 +3251,7 @@ async function analyser() {
     // que de les remplacer : ajouter des pages plus tard ne doit pas effacer une
     // question à laquelle l'élève n'a pas encore répondu.
     etat.doutes = (etat.doutes || []).concat(
-      (resultat.doutes || []).slice(0, 2).map((d) => ({
+      (resultat.doutes || []).slice(0, config.max_doutes || 7).map((d) => ({
         page: d.page, lu: d.lu || '', pourquoi: d.pourquoi || '', repondu: false,
       })).filter((d) => d.lu));
 
@@ -3434,8 +3434,11 @@ function corrigerTranscription(lu, corrige) {
 }
 
 function titrerDoutes(combien) {
+  // Le nombre exact, pas « quelques » : l'élève doit voir la fin depuis le
+  // début, sinon il abandonne à la troisième question sans savoir s'il en
+  // reste une ou six.
   $('doutes-titre').textContent = combien > 1
-    ? 'Deux mots dont je ne suis pas sûr'
+    ? combien + ' mots dont je ne suis pas sûr'
     : 'Un mot dont je ne suis pas sûr';
 }
 
@@ -3476,12 +3479,17 @@ function dessinerDoutes() {
       merci.className = 'doute-merci';
       merci.textContent = texte;
       li.replaceChildren(merci);
-      // Le titre compte les questions : une fois la première réglée, « deux
-      // mots » deviendrait un mensonge affiché au-dessus d'une seule.
-      titrerDoutes((etat.doutes || []).filter((d) => !d.repondu).length);
-      if (!(etat.doutes || []).some((d) => !d.repondu)) {
-        setTimeout(() => { panneau.hidden = true; }, 1400);
-      }
+      // Le titre recompte : une fois la première réglée, « sept mots » serait un
+      // mensonge affiché au-dessus de six.
+      const reste = (etat.doutes || []).filter((d) => !d.repondu).length;
+      titrerDoutes(reste);
+      // Et la ligne répondue s'efface : à sept questions, empiler sept accusés
+      // de réception fait un mur, là où une liste qui raccourcit fait un compte
+      // à rebours.
+      setTimeout(() => {
+        li.remove();
+        if (!reste) panneau.hidden = true;
+      }, 1200);
     };
 
     const juste = document.createElement('button');

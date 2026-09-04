@@ -298,6 +298,7 @@ def configuration() -> dict[str, Any]:
         "niveaux": formats.NIVEAUX,
         "mode_demonstration": config.DEMO_MODE,
         "max_photos": config.MAX_PHOTOS_PAR_ANALYSE,
+        "max_doutes": config.MAX_DOUTES,
     }
 
 

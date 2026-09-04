@@ -39,15 +39,39 @@ def test_le_modele_doit_dire_ce_qu_il_n_a_pas_lu_avec_certitude():
     assert "caractère" in champs["lu"]["description"]
 
 
-def test_deux_questions_au_maximum():
-    """Un élève à qui on en pose cinq n'y répond plus, et un écran qu'on subit ne
-    protège rien. La borne tient à trois endroits : la consigne, le schéma, et le
-    code qui reçoit — parce qu'un modèle peut toujours en renvoyer trois."""
+def test_le_plafond_est_defini_a_un_seul_endroit():
+    """Le nombre de questions est un réglage produit, pas une constante recopiée
+    dans quatre fichiers. Le jour où il bouge, il doit bouger partout — sinon le
+    schéma en autorise sept, la consigne en annonce deux, et le client tronque à
+    cinq sans que personne ne s'en aperçoive."""
+    from app import config, prompts
+
+    assert prompts.SCHEMA_ANALYSE["properties"]["doutes"]["maxItems"] == config.MAX_DOUTES
+    assert "{max_doutes}" in prompts.ANALYSE_SYSTEME, "la consigne code le nombre en dur"
+    assert "config.MAX_DOUTES" in (RACINE / "app" / "llm.py").read_text(encoding="utf-8"), (
+        "la consigne part sans son plafond, et « {max_doutes} » arrivera tel quel au modèle"
+    )
+    # Le client tronque aussi : un modèle peut toujours en renvoyer un de plus.
+    assert "config.max_doutes" in CODE_NU, "le client fait confiance au modèle sur le nombre"
+    assert '"max_doutes": config.MAX_DOUTES' in (RACINE / "app" / "main.py").read_text(encoding="utf-8")
+
+
+def test_le_plafond_n_est_pas_un_objectif():
+    """C'est la consigne qui décide si l'écran protège ou s'il fatigue.
+
+    Un plafond élevé invite à le remplir. Un élève à qui on pose sept questions
+    inutiles apprend à cliquer sans lire — et la fois où le doute est réel, il
+    cliquera aussi. On aurait alors détruit la seule protection qui existe contre
+    une transcription fausse, en croyant la renforcer.
+    """
     from app import prompts
 
-    assert prompts.SCHEMA_ANALYSE["properties"]["doutes"]["maxItems"] == 2
-    assert "AU PLUS DEUX" in prompts.ANALYSE_SYSTEME
-    assert ".slice(0, 2)" in CODE_NU, "le client fait confiance au modèle sur le nombre"
+    consigne = prompts.ANALYSE_SYSTEME
+    assert "ZÉRO" in consigne, "rien ne dit que zéro est une réponse, et la plus fréquente"
+    assert "plafond, pas un objectif" in consigne
+    # Et la distinction qui évite les questions pour rien : un passage important
+    # n'est pas un passage illisible.
+    assert "Important et illisible sont deux choses" in consigne
 
 
 def test_la_consigne_vise_ce_qui_coute_cher_a_se_tromper():

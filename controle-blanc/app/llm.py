@@ -161,7 +161,7 @@ def analyser_photos(
 
     return _appel(
         action="analyse",
-        blocs_systeme=[{"type": "text", "text": prompts.ANALYSE_SYSTEME.format(niveau=niveau)}],
+        blocs_systeme=[{"type": "text", "text": prompts.ANALYSE_SYSTEME.format(niveau=niveau, max_doutes=config.MAX_DOUTES)}],
         contenu_utilisateur=contenu,
         schema=prompts.SCHEMA_ANALYSE,
         max_tokens=32000,
