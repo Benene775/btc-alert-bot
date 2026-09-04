@@ -1,13 +1,17 @@
 # Repère
 
-> Passe le contrôle avant le contrôle.
+> Révise ce qui te manque, pas le reste.
 
 Un site web mobile où un élève photographie son cours, passe un **contrôle blanc au
 format réel de la matière**, obtient une correction commentée qui renvoie à son propre
 cours, puis des fiches ciblées sur ce qu'il a raté.
 
-On ne vend pas des fiches de révision. On vend le fait de s'être déjà trompé une fois,
-sur ses notions à lui, avant le jour J.
+On ne vend pas des fiches de révision, et surtout pas une révision de plus : on vend
+le temps qu'un élève cesse de perdre sur ce qu'il sait déjà. Le contrôle blanc ne
+s'ajoute pas à la séance de révision, il la remplace — se tester au lieu de relire —
+et ce qu'il révèle réduit le chapitre à trois notions. L'élève en difficulté y gagne
+un point de départ au lieu d'un mur ; celui qui s'en sort déjà y gagne les heures
+qu'il passait à tout revoir par sécurité.
 
 **Le nom.** Un repère, c'est ce que la correction rend : pas une note — le cahier des
 charges les interdit — mais l'endroit de son propre cours où aller relire. Le logo le

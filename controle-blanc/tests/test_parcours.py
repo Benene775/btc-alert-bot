@@ -304,7 +304,7 @@ def test_tableau_de_bord_protege(client: TestClient):
 def test_la_page_est_servie(client: TestClient):
     page = client.get("/")
     assert page.status_code == 200
-    assert "Passe le contrôle" in page.text
+    assert "Révise ce qui te manque" in page.text
     assert client.get("/app.js").status_code == 200
     assert client.get("/styles.css").status_code == 200
 

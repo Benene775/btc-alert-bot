@@ -1,7 +1,7 @@
 {
-  "name": "Repère — le contrôle avant le contrôle",
+  "name": "Repère — révise ce qui te manque, pas le reste",
   "short_name": "Repère",
-  "description": "Photographie ton cours, teste-toi dessus, vois ce qui te manque.",
+  "description": "Photographie ton cours, teste-toi dessus, et ne révise que ce qui n'est pas acquis.",
   "lang": "fr",
   "dir": "ltr",
   "start_url": "/",
