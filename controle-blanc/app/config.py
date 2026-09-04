@@ -89,6 +89,34 @@ def modele_pour(action: str) -> str:
     return MODEL if action == "analyse" else MODELE_TEXTE
 
 
+# L'effort de réflexion, appel par appel.
+#
+# Mesuré : la lecture des photos dépense 68 % de sa sortie en réflexion — pour
+# une tâche de recopie. Le modèle raisonne longuement sur ce qu'il voit alors
+# qu'on lui demande de transcrire ce qui est écrit. C'est le plus gros poste
+# identifié du produit, et personne n'y avait touché : les cinq appels tournaient
+# tous à « high », en dur dans le code.
+#
+# Les niveaux vont de « low » à « max ». Baisser l'effort est préférable à
+# couper la réflexion : un modèle sans réflexion écrit parfois son raisonnement
+# dans la réponse visible, ce qui est pire que cher.
+#
+#   CB_EFFORT_ANALYSE=low
+#
+# Vide = « high », le réglage d'origine.
+EFFORT_PAR_DEFAUT = "high"
+
+EFFORTS_PAR_ACTION: dict[str, str] = {
+    action: os.environ.get("CB_EFFORT_" + action.upper(), "").strip()
+    for action in ("analyse",) + ACTIONS_AVEC_COURS
+}
+
+
+def effort_pour(action: str) -> str:
+    """L'effort de réflexion d'un appel."""
+    return EFFORTS_PAR_ACTION.get(action, "") or EFFORT_PAR_DEFAUT
+
+
 def doit_cacher_le_cours(action: str) -> bool:
     """Faut-il mettre le cours en cache pour cet appel ?
 

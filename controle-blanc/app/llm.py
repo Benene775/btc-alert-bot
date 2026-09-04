@@ -64,7 +64,6 @@ def _appel(
     contenu_utilisateur: list[dict[str, Any]],
     schema: dict[str, Any],
     max_tokens: int = 16000,
-    effort: str = "high",
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     import anthropic
 
@@ -75,7 +74,8 @@ def _appel(
             system=blocs_systeme,
             messages=[{"role": "user", "content": contenu_utilisateur}],
             thinking={"type": "adaptive"},
-            output_config={"effort": effort, "format": {"type": "json_schema", "schema": schema}},
+            output_config={"effort": config.effort_pour(action),
+                           "format": {"type": "json_schema", "schema": schema}},
         ) as flux:
             reponse = flux.get_final_message()
     except anthropic.RateLimitError as exc:
@@ -165,7 +165,6 @@ def analyser_photos(
         contenu_utilisateur=contenu,
         schema=prompts.SCHEMA_ANALYSE,
         max_tokens=32000,
-        effort="high",
     )
 
 
@@ -252,7 +251,6 @@ def generer_controle(
         contenu_utilisateur=[{"type": "text", "text": consigne}],
         schema=prompts.SCHEMA_CONTROLE,
         max_tokens=20000,
-        effort="high",
     )
 
 
@@ -297,5 +295,4 @@ def corriger(
         ],
         schema=prompts.SCHEMA_CORRECTION,
         max_tokens=20000,
-        effort="high",
     )

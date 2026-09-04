@@ -115,3 +115,21 @@ def test_le_point_de_cache_n_est_pas_pose_d_office():
     # Et chaque appelant dit de quelle action il s'agit.
     for action in ("fiche_generale", "fiche_ciblee", "controle", "correction"):
         assert f'_systeme_avec_cours(niveau, chapitres, "{action}")' in SOURCE, action
+
+
+def test_l_effort_de_reflexion_se_regle_par_appel(monkeypatch):
+    """La lecture des photos dépense 68 % de sa sortie en réflexion — mesuré —
+    pour une tâche de recopie. Tant que l'effort était en dur dans le code, ce
+    poste-là n'était pas discutable."""
+    assert config.effort_pour("analyse") == config.EFFORT_PAR_DEFAUT
+    monkeypatch.setitem(config.EFFORTS_PAR_ACTION, "analyse", "low")
+    assert config.effort_pour("analyse") == "low"
+    for action in ACTIONS - {"analyse"}:
+        assert config.effort_pour(action) == config.EFFORT_PAR_DEFAUT, action
+
+
+def test_aucun_appel_ne_fige_son_effort():
+    """Un « effort=high » oublié dans un appel le sortirait du réglage sans que
+    rien ne le dise — et c'est justement celui qu'on cherche à mesurer."""
+    assert 'effort="high"' not in SOURCE, "un appel fixe encore son effort"
+    assert "config.effort_pour(action)" in SOURCE
