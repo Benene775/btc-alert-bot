@@ -111,13 +111,25 @@ QUOTAS: dict[str, dict[str, int]] = {
 # une vraie clé posée.
 #
 # Ordre de grandeur, à partir de la taille des prompts et JAMAIS mesuré contre
-# l'API : au plafond des quatre compteurs, ~5,30 € contre ~6,20 € encaissés ;
-# un élève ordinaire tourne bien plus bas. À refaire avec les vrais chiffres.
+# l'API. Au plafond des quatre compteurs, contre ~6,20 € encaissés :
+#
+#   Sonnet 5 (le réglage par défaut)  1,28 € à 2,09 €   soit 21 à 34 % du net
+#   Opus (CB_MODEL=claude-opus-5)     3,21 € à 5,24 €   soit 52 à 85 % du net
+#
+# La fourchette va de l'écriture aérée (500 caractères la page) à l'écriture
+# dense (2 000). Un élève ordinaire — quatre parcours de six pages dans le mois
+# — coûte ~0,27 €, soit 4 % du net.
+#
+# Ce que ce tableau dit : à 12 par mois, le pire cas tient largement sur Sonnet
+# et ne tient plus vraiment sur Opus. Remonter le modèle et remonter les quotas
+# sont deux décisions qui ne se prennent pas séparément.
+#
+# À refaire avec les vrais chiffres dès qu'une clé API existe.
 QUOTAS_MOIS: dict[str, int] = {
-    "analyse": _int("CB_QUOTA_ANALYSE_MOIS", 96),   # en pages : 8 analyses pleines
-    "fiche_generale": _int("CB_QUOTA_FICHE_MOIS", 8),
-    "controle": _int("CB_QUOTA_CONTROLE_MOIS", 8),
-    "fiche_ciblee": _int("CB_QUOTA_CIBLEE_MOIS", 8),
+    "analyse": _int("CB_QUOTA_ANALYSE_MOIS", 144),  # en pages : 12 analyses pleines
+    "fiche_generale": _int("CB_QUOTA_FICHE_MOIS", 12),
+    "controle": _int("CB_QUOTA_CONTROLE_MOIS", 12),
+    "fiche_ciblee": _int("CB_QUOTA_CIBLEE_MOIS", 12),
 }
 
 MAX_PHOTOS_PAR_ANALYSE = _int("CB_MAX_PHOTOS", 12)
