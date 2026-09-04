@@ -66,3 +66,40 @@ def test_les_fleches_font_avancer_d_une_carte():
     assert "INPUT" in corps and "metaKey" in corps
     # Et une carte à la fois : c'est tout le problème qu'on corrige.
     assert "ici + pas" in corps
+
+
+def test_la_fiche_se_lit_avant_de_se_tester():
+    """Les cartes masquées étaient intercalées entre les parties : une partie,
+    une question, une partie, une question. Ça fait une fiche qui interroge, pas
+    une fiche qui se lit — et l'élève venu relire son chapitre devait traverser
+    un questionnaire. Elles sont groupées à la fin, après les mots et les
+    pièges ; celui qui n'en veut pas s'arrête avant."""
+    corps = CODE_NU[CODE_NU.index("function afficherFiche("):]
+    corps = corps[: corps.index("\n}\n")]
+    # Les rappels sont mis de côté pendant la boucle des parties…
+    assert "rappels.push({ section, rang })" in corps
+    # …et posés après les mots ET les pièges, juste avant la carte de fin.
+    assert corps.index("rappels.forEach") > corps.index("'Les pièges'")
+    assert corps.index("rappels.forEach") < corps.index("groupes.push('C’est tout')")
+    assert "groupes.push('Tu te souviens ?')" in corps
+
+
+def test_la_phrase_a_retenir_se_lit_en_clair():
+    """C'est le coeur de la fiche — la seule phrase à emporter si on ne relit que
+    ça. Masquée, elle devenait une question ; absente, la fiche n'était plus une
+    fiche."""
+    assert "function blocRetenir" in CODE_NU
+    corps = CODE_NU[CODE_NU.index("function afficherFiche("):]
+    corps = corps[: corps.index("\n}\n")]
+    assert "carte.appendChild(blocRetenir(section))" in corps, (
+        "la phrase est dans le corps qui défile, donc sous la ligne de flottaison"
+    )
+    assert ".retenir-clair" in STYLE_NU
+
+
+def test_la_place_de_la_phrase_est_comptee_dans_le_decoupage():
+    """Sans ça, la liste de points remplit la carte et pousse la phrase la plus
+    importante du chapitre hors de vue."""
+    corps = CODE_NU[CODE_NU.index("function pointsParCarte("):]
+    corps = corps[: corps.index("\n}\n")]
+    assert "- 94 - 80" in corps, "la tête et le pied ne sont pas déduits"

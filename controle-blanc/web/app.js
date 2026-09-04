@@ -3795,8 +3795,15 @@ const POINTS_PAR_CARTE_MAX = 6;
 
 function pointsParCarte() {
   const hauteurCarte = window.innerHeight - 350;
-  const parPoint = window.innerWidth < 420 ? 80 : 56;
-  const tiennent = Math.floor((hauteurCarte - 94) / parPoint);
+  // Sur un écran étroit les lignes se replient : un point y occupe 80 pixels
+  // contre 56 au-delà. Le seuil est à 500, pas à 420 — entre les deux, la carte
+  // fait encore 350 pixels de large et les points y tiennent sur trois lignes.
+  const parPoint = window.innerWidth < 500 ? 80 : 56;
+  // 94 pour la tête, 80 pour la phrase à retenir posée au pied — deux lignes,
+  // sa taille courante. Compter sans elle ferait déborder la liste juste
+  // au-dessus ; compter trois lignes rendrait au découpage les parties qu'on
+  // vient de lui retirer.
+  const tiennent = Math.floor((hauteurCarte - 94 - 80) / parPoint);
   return Math.max(POINTS_PAR_CARTE_MIN, Math.min(POINTS_PAR_CARTE_MAX, tiennent));
 }
 
@@ -3868,6 +3875,24 @@ function fermerCahier() {
  * Ce n’est pas une note. L’élève juge lui-même, en deux boutons, et ce qu’il
  * met de côté alimente le contrôle blanc — la fiche cesse d’être un cul-de-sac.
  */
+/* La phrase à retenir, en clair, au pied de sa partie. C'est ce qui fait d'une
+ * fiche une fiche : la seule phrase à emporter si on ne relit que ça. */
+function blocRetenir(section) {
+  const bloc = document.createElement('div');
+  bloc.className = 'retenir-clair';
+
+  const etiquette = document.createElement('p');
+  etiquette.className = 'retenir-clair-titre';
+  etiquette.textContent = 'À retenir';
+
+  const phrase = document.createElement('p');
+  phrase.className = 'retenir-clair-texte';
+  phrase.textContent = section.a_retenir;
+
+  bloc.append(etiquette, phrase);
+  return bloc;
+}
+
 function carteRetenir(section, rang, masqueForce = false) {
   const carte = carteFiche(rang);
   carte.classList.add('carte-retenir');
@@ -4026,6 +4051,7 @@ function afficherFiche(fiche, type, options = {}) {
   const paquet = $('paquet');
   paquet.innerHTML = '';
   const groupes = [];
+  const rappels = [];
   let index = 0;
 
   const ajouter = (carte) => {
@@ -4060,14 +4086,20 @@ function afficherFiche(fiche, type, options = {}) {
         tete(carte).appendChild(suite);
       }
       corps(carte).appendChild(liste);
+      // La phrase à retenir se lit avec sa partie, en clair : c'est le coeur de
+      // la fiche, pas une question. Sur la dernière carte de la section, pour
+      // qu'elle vienne après les points qu'elle résume — et au pied de la
+      // CARTE, hors du corps qui défile, sinon la phrase la plus importante du
+      // chapitre passe sous la ligne de flottaison.
+      if (section.a_retenir && morceau === morceaux.length - 1) {
+        carte.appendChild(blocRetenir(section));
+      }
       const trace = provenance(section.pages);
       if (trace) carte.appendChild(trace);
       ajouter(carte);
     });
 
-    if (section.a_retenir) {
-      ajouter(carteRetenir(section, rang, masqueForce));
-    }
+    if (section.a_retenir) rappels.push({ section, rang });
   });
 
   if (definitions.length) {
@@ -4121,6 +4153,21 @@ function afficherFiche(fiche, type, options = {}) {
       corps(carte).appendChild(liste);
       ajouter(carte);
     });
+  }
+
+  /* Se tester vient APRÈS avoir lu, pas entre deux parties.
+   *
+   * Les cartes masquées étaient intercalées : une partie, une question, une
+   * partie, une question. Ça faisait une fiche qui interroge au lieu d'une
+   * fiche qui se lit — et l'élève qui voulait juste relire son chapitre devait
+   * traverser un questionnaire. Elles sont maintenant groupées à la fin, après
+   * les mots et les pièges : la fiche d'abord, le test ensuite, et celui qui
+   * n'en veut pas s'arrête avant. C'est là aussi qu'il met de côté ce qui n'a
+   * pas tenu, ce qui alimente le second tour.
+   */
+  if (rappels.length) {
+    groupes.push('Tu te souviens ?');
+    rappels.forEach(({ section, rang }) => ajouter(carteRetenir(section, rang, masqueForce)));
   }
 
   groupes.push('C’est tout');
