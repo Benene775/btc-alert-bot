@@ -251,7 +251,8 @@ async function api(chemin, options = {}) {
         remarque: 'Le bas de cette page est coupé, reprends-la en cadrant plus large.',
       };
     }
-    return { photos, matiere_detectee: MATIERE_DETECTEE, chapitres: CHAPITRES };
+    return { photos, matiere_detectee: MATIERE_DETECTEE,
+      doutes: DOUTES, chapitres: CHAPITRES };
   }
 
   if (chemin === '/api/fiche/generale') return { ...FICHE_GENERALE, type: 'generale' };

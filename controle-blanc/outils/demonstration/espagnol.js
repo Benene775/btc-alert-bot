@@ -118,6 +118,13 @@ Pintó El dos de mayo y El tres de mayo, y Las majas.`,
 const CHAPITRE = SEQUENCE_MADRID;
 const CHAPITRES = [SEQUENCE_TURISMO, SEQUENCE_MADRID];
 const MATIERE_DETECTEE = 'Espagnol';
+
+const DOUTES = [
+  { page: 0, lu: 'el 13 por ciento del PIB',
+    pourquoi: 'le chiffre pourrait être un 18' },
+  { page: 2, lu: 'Velázquez',
+    pourquoi: 'l’accent est difficile à distinguer' },
+];
 const MATIERE_PAR_DEFAUT = 'espagnol';
 const CIBLEE_PAR_DEFAUT = 'Los acentos de la frase exclamativa';
 const CIBLEE_DEFINITIONS = [

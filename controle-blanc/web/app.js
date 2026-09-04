@@ -66,6 +66,7 @@ function etatNeuf(sessionId, lien) {
     dateControle: '',
     chapitres: [],
     remarquesPhotos: [],
+    doutes: [],
     chemin: '',
     ordreCarrefour: [],
     fiches: [],
@@ -3246,6 +3247,13 @@ async function analyser() {
 
     const illisibles = (resultat.photos || []).filter((p) => !p.lisible);
     etat.remarquesPhotos = illisibles;
+    // Ce que le modèle dit ne pas avoir lu avec certitude. On les empile plutôt
+    // que de les remplacer : ajouter des pages plus tard ne doit pas effacer une
+    // question à laquelle l'élève n'a pas encore répondu.
+    etat.doutes = (etat.doutes || []).concat(
+      (resultat.doutes || []).slice(0, 2).map((d) => ({
+        page: d.page, lu: d.lu || '', pourquoi: d.pourquoi || '', repondu: false,
+      })).filter((d) => d.lu));
 
     const nouveaux = resultat.chapitres || [];
     if (!nouveaux.length) {
@@ -3289,6 +3297,8 @@ function dessinerPerimetre() {
   $('titre-perimetre').textContent = nombre > 1
     ? "J’ai repéré " + nombre + ' chapitres.'
     : "J’ai repéré 1 chapitre.";
+
+  dessinerDoutes();
 
   const alerte = $('alerte-photos');
   if (etat.remarquesPhotos && etat.remarquesPhotos.length) {
@@ -3371,6 +3381,158 @@ function remplirTranscription(cible, texte) {
     position = trouve.index + trouve[0].length;
   }
   morceauTranscription(cible, texte.slice(position));
+}
+
+/* Ce que le modèle n'a pas lu avec certitude.
+ *
+ * C'est la seule protection réelle contre l'erreur de transcription. Une fiche
+ * bâtie sur un mot mal lu a l'air d'une fiche : l'élève ne peut pas s'en
+ * apercevoir en la lisant, et tout ce qui suit — le contrôle, la correction, les
+ * notions fragiles — hérite de l'erreur. Le seul qui sache lire cette écriture,
+ * c'est celui qui l'a écrite.
+ *
+ * Deux questions au maximum, et « je ne sais pas » toujours accepté : un élève à
+ * qui on en pose cinq n'y répond plus, et un écran qu'on subit ne protège rien.
+ */
+function corrigerTranscription(lu, corrige) {
+  let trouve = false;
+  const espaces = (t) => t.replace(/\s+/g, ' ').trim();
+  (etat.chapitres || []).forEach((c) => {
+    if (!c.transcription) return;
+    if (c.transcription.indexOf(lu) >= 0) {
+      c.transcription = c.transcription.split(lu).join(corrige);
+      trouve = true;
+      return;
+    }
+    // Le modèle n'a pas toujours recopié au caractère près : on retente en
+    // ignorant les espaces et les retours à la ligne, qui ne portent aucun sens.
+    // Un seul passage, en gardant pour chaque caractère aplati sa position
+    // d'origine — comparer des tranches une à une ferait un balayage carré, et
+    // une transcription de huit pages figerait le téléphone.
+    const plat = espaces(lu);
+    if (!plat) return;
+    let aplati = '';
+    const ou = [];
+    let blanc = true;
+    for (let i = 0; i < c.transcription.length; i += 1) {
+      const car = c.transcription[i];
+      if (car === ' ' || car === '\n' || car === '\t' || car === '\r') {
+        if (!blanc) { aplati += ' '; ou.push(i); }
+        blanc = true;
+      } else {
+        aplati += car; ou.push(i); blanc = false;
+      }
+    }
+    const trouvee = aplati.indexOf(plat);
+    if (trouvee < 0) return;
+    const debut = ou[trouvee];
+    const fin = ou[trouvee + plat.length - 1] + 1;
+    c.transcription = c.transcription.slice(0, debut) + corrige + c.transcription.slice(fin);
+    trouve = true;
+  });
+  return trouve;
+}
+
+function titrerDoutes(combien) {
+  $('doutes-titre').textContent = combien > 1
+    ? 'Deux mots dont je ne suis pas sûr'
+    : 'Un mot dont je ne suis pas sûr';
+}
+
+function dessinerDoutes() {
+  const panneau = $('doutes');
+  const liste = $('liste-doutes');
+  const restants = (etat.doutes || []).filter((d) => !d.repondu);
+  panneau.hidden = restants.length === 0;
+  if (!restants.length) return;
+
+  titrerDoutes(restants.length);
+
+  // replaceChildren plutôt qu'innerHTML : ce bloc affiche du texte sorti du
+  // modèle, qui a lu les photos de l'élève. Rien n'y entre autrement que par
+  // textContent, et un test tient cette frontière.
+  liste.replaceChildren();
+  restants.forEach((doute) => {
+    const li = document.createElement('li');
+    li.className = 'doute';
+
+    const lu = document.createElement('p');
+    lu.className = 'doute-lu';
+    lu.textContent = '« ' + doute.lu + ' »';
+
+    const ou = document.createElement('p');
+    ou.className = 'doute-ou';
+    ou.textContent = 'page ' + (Number(doute.page) + 1)
+      + (doute.pourquoi ? ' · ' + doute.pourquoi : '');
+
+    const choix = document.createElement('div');
+    choix.className = 'doute-choix';
+
+    const finir = (evenement, texte) => {
+      doute.repondu = true;
+      sauver();
+      tracer(evenement, { page: doute.page });
+      const merci = document.createElement('p');
+      merci.className = 'doute-merci';
+      merci.textContent = texte;
+      li.replaceChildren(merci);
+      // Le titre compte les questions : une fois la première réglée, « deux
+      // mots » deviendrait un mensonge affiché au-dessus d'une seule.
+      titrerDoutes((etat.doutes || []).filter((d) => !d.repondu).length);
+      if (!(etat.doutes || []).some((d) => !d.repondu)) {
+        setTimeout(() => { panneau.hidden = true; }, 1400);
+      }
+    };
+
+    const juste = document.createElement('button');
+    juste.type = 'button';
+    juste.className = 'doute-oui';
+    juste.textContent = 'C’est ça';
+    juste.onclick = () => finir('doute_confirme', 'Parfait, je garde.');
+
+    const faux = document.createElement('button');
+    faux.type = 'button';
+    faux.className = 'doute-non';
+    faux.textContent = 'Non, c’est…';
+    faux.onclick = () => {
+      const champ = document.createElement('input');
+      champ.type = 'text';
+      champ.className = 'doute-champ';
+      champ.value = doute.lu;
+      champ.setAttribute('aria-label', 'Ce qui est écrit dans ton cours');
+
+      const valider = document.createElement('button');
+      valider.type = 'button';
+      valider.className = 'doute-oui';
+      valider.textContent = 'Corriger';
+      valider.onclick = () => {
+        const corrige = champ.value.trim();
+        if (!corrige || corrige === doute.lu) return finir('doute_confirme', 'Parfait, je garde.');
+        doute.corrige = corrige;
+        // Sans le passage retrouvé mot pour mot, on ne peut pas remplacer sans
+        // risquer d'abîmer le texte. On le dit plutôt que de faire semblant.
+        finir('doute_corrige', corrigerTranscription(doute.lu, corrige)
+          ? 'Corrigé dans ton cours.'
+          : 'C’est noté. Je n’ai pas retrouvé le passage exact, vérifie-le dans '
+            + '« Voir ce que j’ai lu ».');
+      };
+      champ.onkeydown = (e) => { if (e.key === 'Enter') valider.onclick(); };
+
+      choix.replaceChildren(champ, valider);
+      champ.focus();
+      champ.select();
+    };
+
+    const sais = document.createElement('button');
+    sais.type = 'button';
+    sais.className = 'discret doute-passe';
+    sais.textContent = 'Je ne sais pas';
+    sais.onclick = () => finir('doute_ignore', 'Pas grave, on continue.');
+
+    choix.append(juste, faux, sais);
+    li.append(lu, ou, choix);
+    liste.appendChild(li);
+  });
 }
 
 /* « Voici ce que j'ai lu de ton cours. »

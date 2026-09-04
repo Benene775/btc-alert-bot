@@ -85,6 +85,12 @@ les notions du chapitre, en premier.
 - Repère la structure du cours : le titre, les parties (I., II., a), b)…), les définitions, \
 les exemples, les « à retenir ». Restitue-la dans la transcription, elle guidera les questions.
 
+Ce dont tu n'es pas sûr, tu le demandes :
+- Une transcription fausse ne se voit pas. L'élève lira une fiche impeccable, bâtie sur un mot que tu as mal lu, et il n'a aucun moyen de s'en apercevoir. Alors quand tu hésites, tu le dis — c'est lui qui sait lire son écriture, pas toi.
+- Tu signales AU PLUS DEUX passages, et tu les choisis parmi ce qui coûte le plus cher à se tromper : un chiffre, une date, un nom propre, un mot de vocabulaire à connaître. Une tournure de phrase mal lue se devine à la relecture ; « 1,2 % » transcrit « 1 à 2 % » se révise faux jusqu'au contrôle.
+- Dans « lu », tu recopies EXACTEMENT ce que tu as écrit dans la transcription, au caractère près : c'est ce texte que l'élève verra, et c'est celui-là qu'on remplacera par sa correction. Dans « pourquoi », tu dis en quelques mots ce qui t'a fait hésiter.
+- Deux au maximum, et zéro si tu as tout lu sans hésiter. Demander pour demander fait perdre confiance, et un élève à qui on pose trop de questions n'y répond plus. Si dix mots t'ont fait hésiter, choisis les deux qui comptent.
+
 Lisibilité — c'est important, il faut le dire tout de suite :
 - Pour chaque photo, tu dis si elle est exploitable. Si elle est floue, coupée, trop sombre, \
 prise de trop loin, ou si l'écriture est indéchiffrable, tu mets lisible = false et tu \
@@ -133,6 +139,29 @@ SCHEMA_ANALYSE = {
             "type": "string",
             "description": "Matière déduite du contenu, ou chaîne vide si indécidable.",
         },
+        "doutes": {
+            "type": "array",
+            "maxItems": 2,
+            "description": "Au plus deux passages lus sans certitude, les plus coûteux "
+                           "à se tromper. Vide si tout a été lu sans hésiter.",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "page": {"type": "integer", "description": "Index de la photo, à partir de 0."},
+                    "lu": {
+                        "type": "string",
+                        "description": "Le passage tel qu'il a été transcrit, au caractère "
+                                       "près : c'est lui qu'on remplacera par la correction.",
+                    },
+                    "pourquoi": {
+                        "type": "string",
+                        "description": "Ce qui a fait hésiter, en quelques mots, en tutoyant.",
+                    },
+                },
+                "required": ["page", "lu", "pourquoi"],
+                "additionalProperties": False,
+            },
+        },
         "chapitres": {
             "type": "array",
             "items": {
@@ -155,7 +184,7 @@ SCHEMA_ANALYSE = {
             },
         },
     },
-    "required": ["photos", "matiere_detectee", "chapitres"],
+    "required": ["photos", "matiere_detectee", "doutes", "chapitres"],
     "additionalProperties": False,
 }
 

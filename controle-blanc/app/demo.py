@@ -74,6 +74,14 @@ def analyse(nombre_photos: int) -> dict[str, Any]:
     return {
         "photos": photos,
         "matiere_detectee": "Histoire-Géographie",
+        # Deux doutes, dont un chiffre : c'est le cas que l'écran doit savoir
+        # montrer, et celui qui coûte le plus cher à laisser passer.
+        "doutes": [
+            {"page": 0, "lu": "environ 700 000 victimes",
+             "pourquoi": "le nombre est écrit serré, entre deux lignes"},
+            {"page": min(1, max(0, len(photos) - 1)), "lu": "Verdun",
+             "pourquoi": "la majuscule ressemble à un W"},
+        ],
         "chapitres": [CHAPITRE],
     }
 

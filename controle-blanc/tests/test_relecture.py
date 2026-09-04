@@ -18,6 +18,17 @@ RACINE = Path(__file__).resolve().parent.parent
 SCRIPT = (RACINE / "web" / "app.js").read_text(encoding="utf-8")
 STYLE = (RACINE / "web" / "styles.css").read_text(encoding="utf-8")
 
+
+def sans_commentaires(source: str) -> str:
+    """Le code seul.
+
+    Les commentaires de ce projet disent souvent ce qu'on a refusé de faire —
+    « replaceChildren plutôt que la propriété interdite ». Chercher le mot
+    proscrit sans les retirer d'abord, c'est faire échouer un test sur la phrase
+    qui explique précisément qu'on s'en abstient.
+    """
+    return re.sub(r"//[^\n]*", "", re.sub(r"/\*.*?\*/", "", source, flags=re.S))
+
 BLOC = SCRIPT[SCRIPT.index("function blocRelecture("):]
 BLOC = BLOC[: BLOC.index("\n}\n")]
 
@@ -46,7 +57,8 @@ def test_la_transcription_n_est_jamais_injectee_en_html():
     n'entre dans la page que par textContent."""
     rendu = SCRIPT[SCRIPT.index("function morceauTranscription("):]
     rendu = rendu[: rendu.index("\n/* « Voici")]
-    assert "innerHTML" not in BLOC and "innerHTML" not in rendu
+    assert "innerHTML" not in sans_commentaires(BLOC)
+    assert "innerHTML" not in sans_commentaires(rendu)
     assert "bloc.textContent = propre;" in rendu
 
 

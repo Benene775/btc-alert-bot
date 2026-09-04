@@ -249,6 +249,13 @@ const QUESTIONS_BIS = [
 // Ce que le faux serveur attend de tout jeu de contenus.
 const CHAPITRES = [CHAPITRE];
 const MATIERE_DETECTEE = 'Histoire-Géographie / EMC';
+
+const DOUTES = [
+  { page: 1, lu: 'environ 700 000 victimes',
+    pourquoi: 'le nombre est écrit serré, entre deux lignes' },
+  { page: 0, lu: 'Triple-Entente',
+    pourquoi: 'le trait d’union est peut-être une rature' },
+];
 const MATIERE_PAR_DEFAUT = 'histoire-geographie';
 const CIBLEE_PAR_DEFAUT = 'La notion de guerre totale';
 const CIBLEE_DEFINITIONS = [
