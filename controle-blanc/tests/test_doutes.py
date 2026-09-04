@@ -46,7 +46,13 @@ def test_le_plafond_est_defini_a_un_seul_endroit():
     cinq sans que personne ne s'en aperçoive."""
     from app import config, prompts
 
-    assert prompts.SCHEMA_ANALYSE["properties"]["doutes"]["maxItems"] == config.MAX_DOUTES
+    # Le schéma ne peut PAS porter le plafond : l'API refuse « maxItems ». Il ne
+    # tient donc qu'à la consigne et au client — raison de plus pour vérifier les
+    # deux, puisqu'il n'y a pas de troisième filet.
+    assert "maxItems" not in prompts.SCHEMA_ANALYSE["properties"]["doutes"], (
+        "l'API renvoie un 400 sur maxItems, et toute l'analyse échoue"
+    )
+    assert str(config.MAX_DOUTES) in prompts.SCHEMA_ANALYSE["properties"]["doutes"]["description"]
     assert "{max_doutes}" in prompts.ANALYSE_SYSTEME, "la consigne code le nombre en dur"
     assert "config.MAX_DOUTES" in (RACINE / "app" / "llm.py").read_text(encoding="utf-8"), (
         "la consigne part sans son plafond, et « {max_doutes} » arrivera tel quel au modèle"
@@ -135,3 +141,37 @@ def test_la_demonstration_pose_la_question():
     for contenu in ("histoire.js", "espagnol.js"):
         source = (RACINE / "outils" / "demonstration" / contenu).read_text(encoding="utf-8")
         assert "const DOUTES" in source, contenu
+
+
+def test_les_schemas_n_emploient_que_ce_que_l_api_accepte():
+    """La sortie structurée ne prend qu'un sous-ensemble de JSON Schema.
+
+    « maxItems » a coûté une analyse entière : l'API renvoie un 400 et tout
+    l'appel échoue. Aucun test hors ligne ne pouvait l'attraper — la suite tourne
+    en démonstration, sans appel réel — et le schéma avait l'air parfaitement
+    valide. Cette liste blanche transforme la découverte en garde-fou : ajouter
+    un mot-clé inhabituel devient une décision, pas une supposition.
+    """
+    from app import prompts
+
+    CONNUS = {"type", "properties", "items", "required", "additionalProperties",
+              "description", "enum"}
+
+    def parcourir(noeud, chemin="racine"):
+        if isinstance(noeud, dict):
+            inconnus = set(noeud) - CONNUS
+            # Les clés d'un bloc « properties » sont des noms de champs, pas des
+            # mots-clés de schéma : on descend sans les juger.
+            if not chemin.endswith("properties"):
+                assert not inconnus, (
+                    f"{chemin} : {sorted(inconnus)} — vérifie contre un vrai appel avant"
+                )
+            for cle, valeur in noeud.items():
+                parcourir(valeur, chemin + "." + cle)
+        elif isinstance(noeud, list):
+            for element in noeud:
+                parcourir(element, chemin + "[]")
+
+    for nom in dir(prompts):
+        if nom.startswith("SCHEMA_"):
+            parcourir(getattr(prompts, nom), nom)

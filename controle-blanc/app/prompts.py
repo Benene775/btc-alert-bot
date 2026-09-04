@@ -146,7 +146,11 @@ SCHEMA_ANALYSE = {
         },
         "doutes": {
             "type": "array",
-            "maxItems": MAX_DOUTES,
+            # Pas de « maxItems » : l'API le REFUSE dans un schéma de sortie
+            # structurée (400, « For 'array' type, property 'maxItems' is not
+            # supported »). Le plafond tient donc à la consigne, qui le dit au
+            # modèle, et au client, qui tronque au cas où. Aucun test hors ligne
+            # ne pouvait attraper ça — il a fallu un vrai appel.
             "description": "Les passages lus sans certitude, au plus " + str(MAX_DOUTES)
                            + ". Vide — le cas le plus fréquent — si tout a été lu "
                              "sans hésiter. Un passage important mais lisible n'en "
