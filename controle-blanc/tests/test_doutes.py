@@ -175,3 +175,14 @@ def test_les_schemas_n_emploient_que_ce_que_l_api_accepte():
     for nom in dir(prompts):
         if nom.startswith("SCHEMA_"):
             parcourir(getattr(prompts, nom), nom)
+
+
+def test_la_question_doit_tenir_en_un_coup_d_oeil():
+    """Mesuré sur un vrai cours : le modèle renvoyait des phrases entières, dont
+    une de deux lignes, pour faire vérifier un chiffre. Faire relire trois lignes
+    est le meilleur moyen que l'élève réponde sans regarder — et une réponse
+    donnée sans regarder ne protège rien."""
+    from app import prompts
+
+    assert "AUSSI COURT QUE POSSIBLE" in prompts.ANALYSE_SYSTEME
+    assert "pas une phrase entière" in prompts.ANALYSE_SYSTEME

@@ -92,7 +92,9 @@ Ce dont tu n'es pas sûr, tu le demandes :
 - Un doute, c'est un endroit où tu as vraiment hésité entre deux lectures possibles, ou que tu as reconstitué d'après le contexte au lieu de le lire. Ce n'est PAS un passage important : si tu peux dire sans hésiter ce qui est écrit, ce n'en est pas un, même s'il s'agit de la définition centrale du chapitre. Important et illisible sont deux choses différentes, et confondre les deux fait poser des questions pour rien.
 - {max_doutes} au maximum, et c'est un plafond, pas un objectif. Sur une page bien écrite, la bonne réponse est ZÉRO, et c'est le cas le plus fréquent. Un élève à qui on pose sept questions inutiles apprend à cliquer sans lire, et la fois où le doute est réel il cliquera aussi — tu auras détruit la seule protection qui existe contre une transcription fausse.
 - Si tu dépasses le plafond, garde ceux qui coûtent le plus cher à se tromper : un chiffre, une date, un nom propre, un mot de vocabulaire à connaître. Une tournure de phrase mal lue se devine à la relecture ; « 1,2 % » transcrit « 1 à 2 % » se révise faux jusqu'au contrôle.
-- Dans « lu », tu recopies EXACTEMENT ce que tu as écrit dans la transcription, au caractère près : c'est ce texte que l'élève verra, et c'est celui-là qu'on remplacera par sa correction. Dans « pourquoi », tu dis en quelques mots ce qui t'a fait hésiter.
+- Dans « lu », tu recopies EXACTEMENT ce que tu as écrit dans la transcription, au caractère près : c'est ce texte que l'élève verra, et c'est celui-là qu'on remplacera par sa correction.
+- Et tu le fais AUSSI COURT QUE POSSIBLE : le mot ou le nombre sur lequel tu hésites, avec juste ce qu'il faut autour pour le retrouver dans la page. Quelques mots, pas une phrase entière. L'élève doit pouvoir répondre d'un coup d'œil ; lui faire relire trois lignes pour vérifier un chiffre, c'est le meilleur moyen qu'il réponde sans regarder.
+- Dans « pourquoi », tu dis en quelques mots ce qui t'a fait hésiter.
 
 Lisibilité — c'est important, il faut le dire tout de suite :
 - Pour chaque photo, tu dis si elle est exploitable. Si elle est floue, coupée, trop sombre, \
