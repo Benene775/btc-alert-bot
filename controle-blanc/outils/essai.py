@@ -26,6 +26,20 @@ Ce qui sort :
 
 Les réponses de l’élève : saisies au clavier par défaut, ou lues dans un fichier
 (--reponses), ou laissées vides (--vide) pour voir la correction la plus sévère.
+
+Comparer deux modèles, ce pour quoi ce banc existe surtout — mêmes photos, deux
+rapports à ouvrir côte à côte :
+
+    python3 outils/essai.py photos/*.jpg --vide --sortie essais/sonnet
+    python3 outils/essai.py photos/*.jpg --vide --sortie essais/opus \
+        --modele claude-opus-5
+
+    # ou l’arbitrage fin : la gamme haute là où l’erreur est invisible
+    python3 outils/essai.py photos/*.jpg --vide --sortie essais/mixte \
+        --modele-photos claude-opus-5 --modele-appel correction=claude-opus-5
+
+Chaque étape est chiffrée au tarif du modèle qui l’a réellement servie, et le
+rapport le nomme : sans ça, comparer deux modèles sur le coût ne veut rien dire.
 """
 
 from __future__ import annotations
@@ -224,7 +238,8 @@ def rapport_html(essai: dict, chemin: Path) -> None:
                 f"<div class='c'><h3>Notions fragiles</h3><ol>{fragiles}</ol></div>{lignes}")
 
     couts = "".join(
-        f"<tr><td>{e(c['etape'])}</td><td>{c['secondes']:.1f} s</td>"
+        f"<tr><td>{e(c['etape'])}</td><td>{e(c.get('modele') or '—')}</td>"
+        f"<td>{c['secondes']:.1f} s</td>"
         f"<td>{c['tokens_entree']:,}</td><td>{c['tokens_sortie']:,}</td>"
         f"<td>{c['cout_usd']:.4f} $</td></tr>".replace(",", " ")
         for c in essai["couts"]
@@ -288,10 +303,11 @@ def rapport_html(essai: dict, chemin: Path) -> None:
 {bloc_controle(essai['second_controle']) if essai.get('second_controle') else ''}
 
 <h2>Coût</h2>
-<table><tr><th>Étape</th><th>Durée</th><th>Entrée</th><th>Sortie</th><th>Coût</th></tr>
+<table><tr><th>Étape</th><th>Modèle</th><th>Durée</th><th>Entrée</th><th>Sortie</th>
+<th>Coût</th></tr>
 {couts}
-<tr><td><b>Total</b></td><td><b>{essai['secondes_total']:.1f} s</b></td><td></td><td></td>
-<td><b>{essai['cout_total']:.4f} $</b></td></tr></table>
+<tr><td><b>Total</b></td><td></td><td><b>{essai['secondes_total']:.1f} s</b></td>
+<td></td><td></td><td><b>{essai['cout_total']:.4f} $</b></td></tr></table>
 <p class="n">C’est le coût d’un élève qui va au bout du parcours une fois.</p>
 </main></body></html>"""
     chemin.write_text(page, encoding="utf-8")
@@ -357,6 +373,20 @@ def main() -> int:
                            help="dossier des résultats (défaut : essais/AAAA-MM-JJ-hhmm)")
     analyseur.add_argument("--sans-second-tour", action="store_true",
                            help="s’arrêter après la correction")
+    # Comparer deux modèles est la raison d'être de ce banc : le choix doit être
+    # une option de la commande, pas trois variables d'environnement à poser
+    # avant. Deux lancements sur les mêmes photos, deux rapports à mettre côte
+    # à côte, et la question « lequel lit le mieux une écriture de collégien »
+    # se répond en regardant plutôt qu'en spéculant.
+    analyseur.add_argument("--modele", metavar="NOM",
+                           help="le modèle de tous les appels (ex. claude-opus-5)")
+    analyseur.add_argument("--modele-photos", metavar="NOM",
+                           help="le modèle du seul appel qui lit les photos")
+    analyseur.add_argument("--modele-texte", metavar="NOM",
+                           help="le modèle des quatre appels sur du texte")
+    analyseur.add_argument("--modele-appel", metavar="APPEL=NOM", action="append", default=[],
+                           help="un appel précis (analyse, fiche_generale, fiche_ciblee, "
+                                "controle, correction) ; répétable")
     arguments = analyseur.parse_args()
 
     if arguments.corpus == "liste":
@@ -378,10 +408,27 @@ def main() -> int:
         return 2
     os.environ["CB_DEMO_MODE"] = "0"
 
+    # Les modèles demandés, posés dans l’environnement — c’est là que config les
+    # lit, et il n’est pas encore importé.
+    APPELS = ("analyse", "fiche_generale", "fiche_ciblee", "controle", "correction")
+    if arguments.modele:
+        os.environ["CB_MODEL"] = os.environ["CB_MODEL_TEXTE"] = arguments.modele
+    if arguments.modele_photos:
+        os.environ["CB_MODEL"] = arguments.modele_photos
+    if arguments.modele_texte:
+        os.environ["CB_MODEL_TEXTE"] = arguments.modele_texte
+    for reglage in arguments.modele_appel:
+        appel, _, nom = reglage.partition("=")
+        if appel not in APPELS or not nom:
+            analyseur.error(f"--modele-appel attend APPEL=NOM, parmi {', '.join(APPELS)}")
+        os.environ["CB_MODEL_" + appel.upper()] = nom
+
     # Importé seulement maintenant : app.config lit l’environnement à l’import,
-    # et CB_DEMO_MODE vient d’être fixé.
+    # et CB_DEMO_MODE comme les modèles viennent d’être fixés.
     sys.path.insert(0, str(RACINE))
     from app import config, formats, llm
+
+    T.info("Modèles : " + " · ".join(f"{a} → {config.modele_pour(a)}" for a in APPELS))
 
     dossier = Path(arguments.sortie) if arguments.sortie else (
         RACINE / "essais" / datetime.now().strftime("%Y-%m-%d-%H%M")
@@ -398,7 +445,11 @@ def main() -> int:
         debut = time.monotonic()
         resultat, usage = fonction()
         secondes = time.monotonic() - debut
-        p = config.PRIX_USD_PAR_MTOK
+        # Le tarif du modèle qui a VRAIMENT servi l'appel, lu sur la réponse.
+        # Chiffrer toutes les étapes au même tarif rendait la comparaison de
+        # deux modèles absurde — c'est exactement ce que ce banc sert à faire.
+        modele = usage.get("modele", "")
+        p, connu = config.prix_du_modele(modele)
         cout = (
             usage.get("tokens_entree", 0) * p["entree"]
             + usage.get("tokens_sortie", 0) * p["sortie"]
@@ -406,14 +457,18 @@ def main() -> int:
             + usage.get("cache_lecture", 0) * p["cache_lecture"]
         ) / 1_000_000
         couts.append({
-            "etape": nom, "secondes": secondes, "cout_usd": cout,
+            "etape": nom, "secondes": secondes, "cout_usd": cout, "modele": modele,
+            "tarif_connu": connu,
             "tokens_entree": usage.get("tokens_entree", 0),
             "tokens_sortie": usage.get("tokens_sortie", 0),
             "cache_lecture": usage.get("cache_lecture", 0),
         })
-        T.info(f"  {secondes:.1f} s · {usage.get('tokens_entree', 0)} tokens entrée "
+        T.info(f"  {secondes:.1f} s · {modele or '?'} · "
+               f"{usage.get('tokens_entree', 0)} tokens entrée "
                f"(dont {usage.get('cache_lecture', 0)} en cache) · "
                f"{usage.get('tokens_sortie', 0)} sortie · {cout:.4f} $")
+        if modele and not connu:
+            T.alerte(f"  tarif inconnu pour « {modele} » — chiffré au tarif le plus cher")
         return resultat
 
     # 1. Le cours : des photos à lire, ou un chapitre du corpus déjà transcrit.
@@ -486,7 +541,10 @@ def main() -> int:
 
     essai = {
         "horodatage": datetime.now().strftime("%d/%m/%Y %H:%M"),
-        "modele": config.MODEL,
+        # Les modèles qui ont réellement tourné, pas ceux que la config annonce :
+        # depuis qu'un appel peut avoir le sien, une seule valeur mentirait.
+        "modele": " · ".join(dict.fromkeys(c["modele"] for c in couts if c.get("modele")))
+                  or config.MODEL,
         "niveau": formats.nom_niveau(arguments.niveau),
         "matiere": fmt["nom"],
         "analyse": analyse,

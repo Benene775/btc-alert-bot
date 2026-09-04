@@ -203,3 +203,54 @@ def test_photos_et_corpus_sont_exclusifs():
         )
         assert resultat.returncode == 2
         assert "soit des photos, soit --corpus" in resultat.stderr
+
+
+def test_chaque_etape_est_chiffree_au_tarif_de_son_modele():
+    """Le banc sert d'abord à comparer deux modèles. S'il chiffre toutes les
+    étapes au même tarif — c'était le cas, celui d'Opus, quel que soit le modèle
+    qui avait tourné — la moitié de la comparaison ne veut rien dire : un essai
+    sur Sonnet ressortait 2,5 fois trop cher, et un essai mixte n'avait aucun
+    sens du tout.
+    """
+    source = (RACINE / "outils" / "essai.py").read_text(encoding="utf-8")
+    corps = source[source.index("    def etape("):]
+    corps = corps[: corps.index("\n    #")]
+    assert "config.prix_du_modele(modele)" in corps, "un tarif unique pour tous les modèles"
+    assert "config.PRIX_USD_PAR_MTOK" not in corps, "le tarif de repli sert encore de tarif"
+    # Le modèle vient de la réponse de l'API, pas de la configuration.
+    assert 'usage.get("modele"' in corps
+    # Et un tarif inconnu se dit, au lieu de sortir un chiffre faux en silence.
+    assert "tarif inconnu" in corps
+
+
+def test_le_rapport_nomme_le_modele_de_chaque_etape():
+    """Depuis qu'un appel peut avoir son propre modèle, un seul nom en tête du
+    rapport mentirait sur un essai mixte."""
+    source = (RACINE / "outils" / "essai.py").read_text(encoding="utf-8")
+    assert '"modele": config.MODEL,' not in source, "l'en-tête répète la config"
+    assert 'c.get(\'modele\')' in source or 'c["modele"]' in source
+    assert "<th>Modèle</th>" in source, "le tableau des coûts ne dit pas quel modèle"
+
+
+def test_le_modele_se_choisit_en_ligne_de_commande():
+    """Deux lancements sur les mêmes photos, c'est tout ce que la comparaison
+    demande — pas trois variables d'environnement à poser avant."""
+    source = (RACINE / "outils" / "essai.py").read_text(encoding="utf-8")
+    for option in ("--modele", "--modele-photos", "--modele-texte", "--modele-appel"):
+        assert f'"{option}"' in source, option
+    # Les modèles sont posés AVANT l'import de config, qui lit l'environnement
+    # à l'import : après, ils ne serviraient à rien.
+    assert source.index('os.environ["CB_MODEL"]') < source.index("from app import config")
+
+
+def test_un_appel_inconnu_est_refuse():
+    """« --modele-appel corection=… » doit s'arrêter là, pas tourner une heure
+    sur la configuration par défaut en croyant tester autre chose."""
+    resultat = subprocess.run(
+        [sys.executable, str(RACINE / "outils" / "essai.py"), "--corpus", "x",
+         "--modele-appel", "corection=un-modele"],
+        capture_output=True, text=True,
+        env={"PATH": "/usr/bin:/bin", "HOME": "/tmp", "ANTHROPIC_API_KEY": "factice"},
+    )
+    assert resultat.returncode == 2
+    assert "--modele-appel attend" in resultat.stderr
