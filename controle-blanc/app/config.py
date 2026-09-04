@@ -141,8 +141,13 @@ RETENTION_CORRIGES_JOURS = _int("CB_RETENTION_JOURS", 30)
 # L'écriture de cache vaut 1,25 fois l'entrée, la lecture 0,1 fois.
 PRIX_USD_PAR_MTOK_PAR_MODELE: dict[str, dict[str, float]] = {
     # Opus 5, 4.8, 4.7 et 4.6 partagent le même tarif.
-    "opus": {"entree": 5.0, "sortie": 25.0, "cache_ecriture": 6.25, "cache_lecture": 0.50},
-    "sonnet-5": {"entree": 2.0, "sortie": 10.0, "cache_ecriture": 2.50, "cache_lecture": 0.20},
+    # L'écriture de cache vaut 2x l'entrée, pas 1,25x : c'est le tarif du TTL
+    # d'une heure, que llm.py demande explicitement. Le 1,25x est celui du TTL
+    # de cinq minutes. Se tromper de ligne sous-estime chaque mise en cache de
+    # 60 %, sans que rien ne le signale — le tableau de bord affichait alors un
+    # coût plus bas que la facture.
+    "opus": {"entree": 5.0, "sortie": 25.0, "cache_ecriture": 10.0, "cache_lecture": 0.50},
+    "sonnet-5": {"entree": 2.0, "sortie": 10.0, "cache_ecriture": 4.0, "cache_lecture": 0.20},
 }
 
 # Utilisé quand le nom du modèle n'est pas reconnu. Le tableau de bord le

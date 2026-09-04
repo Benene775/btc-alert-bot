@@ -9,6 +9,8 @@ manquant qui se taisait.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -152,4 +154,18 @@ def test_le_cache_est_dix_fois_moins_cher_que_l_entree():
     dans la table, l'économie qu'on croit faire n'existe plus."""
     for modele, prix in config.PRIX_USD_PAR_MTOK_PAR_MODELE.items():
         assert prix["cache_lecture"] == pytest.approx(prix["entree"] * 0.1), modele
-        assert prix["cache_ecriture"] == pytest.approx(prix["entree"] * 1.25), modele
+
+
+def test_le_prix_d_ecriture_suit_la_duree_de_cache_demandee():
+    """Deux tarifs d'écriture existent, et c'est le code qui choisit lequel
+    s'applique : 1,25x l'entrée pour cinq minutes, 2x pour une heure. La table
+    portait le premier pendant que llm.py demandait la seconde — chaque mise en
+    cache était donc sous-estimée de 60 %, sans le dire.
+
+    Le test lit la durée dans le code plutôt que de la répéter : c'est le seul
+    moyen que changer l'une oblige à changer l'autre.
+    """
+    source = (Path(__file__).resolve().parent.parent / "app" / "llm.py").read_text(encoding="utf-8")
+    attendu = 2.0 if '"ttl": "1h"' in source else 1.25
+    for modele, prix in config.PRIX_USD_PAR_MTOK_PAR_MODELE.items():
+        assert prix["cache_ecriture"] == pytest.approx(prix["entree"] * attendu), modele
