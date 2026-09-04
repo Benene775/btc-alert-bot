@@ -151,25 +151,37 @@ QUOTAS: dict[str, dict[str, int]] = {
 # par compte qui décide, et c'est celui que /admin/metriques mesure une fois
 # une vraie clé posée.
 #
-# Ordre de grandeur, à partir de la taille des prompts et JAMAIS mesuré contre
-# l'API. Au plafond des quatre compteurs, contre ~6,20 € encaissés :
+# MESURÉ le 4 septembre 2026, sur un vrai cours de 5e passé dans toute la chaîne
+# (outils/essai.py, compteurs lus sur les réponses de l'API). Les estimations
+# précédentes étaient QUATRE FOIS trop basses : elles ignoraient les jetons de
+# réflexion, facturés comme de la sortie, et prenaient les tailles de sortie sur
+# les contenus de démonstration, quatre fois plus courts que le vrai modèle.
 #
-#   Sonnet 5 (le réglage par défaut)  1,28 € à 2,09 €   soit 21 à 34 % du net
-#   + CB_MODEL_CORRECTION en Opus     1,57 € à 2,65 €   soit 25 à 43 % du net
-#   + CB_MODEL en Opus (les photos)   2,56 € à 4,20 €   soit 41 à 68 % du net
-#   Opus partout                      3,21 € à 5,24 €   soit 52 à 84 % du net
+# Un parcours complet — analyse de 3 pages, fiche, contrôle, correction, fiche
+# ciblée, second contrôle :
 #
-# La fourchette va de l'écriture aérée (500 caractères la page) à l'écriture
-# dense (2 000). Un élève ordinaire — quatre parcours de six pages dans le mois
-# — coûte ~0,27 €, soit 4 % du net.
+#   tout Sonnet 5 (le réglage par défaut)  0,2470 $
+#   + CB_MODEL en Opus (les photos)        0,3396 $   soit +38 %
+#   Opus partout                           0,6439 $   soit x2,6
 #
-# Ce que ce tableau dit : à 12 par mois, le pire cas tient largement sur Sonnet
-# et ne tient plus vraiment sur Opus. Remonter le modèle et remonter les quotas
-# sont deux décisions qui ne se prennent pas séparément.
+# Une page photographiée revient à 0,0185 $ en Sonnet, 0,0493 $ en Opus. C'est
+# l'unité du quota, et le seul poste où le modèle change vraiment le prix.
 #
-# À refaire avec les vrais chiffres dès qu'une clé API existe.
+# Au plafond des compteurs (96 pages, 12 de chaque), contre ~6,20 € encaissés :
+#
+#   tout Sonnet 5      3,11 €   soit 50 % du net
+#   photos en Opus     5,78 €   soit 93 % du net   <- ne tient pas
+#
+# Ce que ce tableau dit : à 96 pages, le pire cas est confortable tant que les
+# photos restent en Sonnet, et ne l'est plus du tout dès qu'on les passe en
+# Opus. Descendre à 8 de chaque ramènerait ce second cas à 5,27 €, et 72 pages
+# à 4,21 € — c'est le arbitrage à trancher AVANT de poser CB_MODEL=claude-opus-5.
+#
+# Le pire cas n'est pas la moyenne : un élève ordinaire, quatre parcours dans le
+# mois, coûte ~0,89 € en Sonnet. C'est /admin/metriques qui donnera la vraie
+# moyenne une fois des élèves dessus.
 QUOTAS_MOIS: dict[str, int] = {
-    "analyse": _int("CB_QUOTA_ANALYSE_MOIS", 144),  # en pages : 12 analyses pleines
+    "analyse": _int("CB_QUOTA_ANALYSE_MOIS", 96),   # en pages : 8 analyses pleines
     "fiche_generale": _int("CB_QUOTA_FICHE_MOIS", 12),
     "controle": _int("CB_QUOTA_CONTROLE_MOIS", 12),
     "fiche_ciblee": _int("CB_QUOTA_CIBLEE_MOIS", 12),

@@ -365,7 +365,7 @@ function tracer() { /* les mesures partent au serveur dans le produit ; ici, nul
  * ment sur ce que l'abonnement donne. Ils repartent à chaque rechargement :
  * une démonstration n'a pas de mois. */
 // L'analyse se compte en PAGES : mêmes chiffres que app/config.py.
-const PLAFONDS_MOIS = { analyse: 144, fiche_generale: 12, controle: 12, fiche_ciblee: 12 };
+const PLAFONDS_MOIS = { analyse: 96, fiche_generale: 12, controle: 12, fiche_ciblee: 12 };
 const consommes = { analyse: 0, fiche_generale: 0, controle: 0, fiche_ciblee: 0 };
 
 const ACTION_FACTUREE = {
