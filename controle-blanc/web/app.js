@@ -3775,10 +3775,33 @@ function chiffreGeant(texte) {
  * Les rubans, eux, comptent les notions et non les cartes : l’élève veut savoir
  * qu’il en est à la troisième idée sur six, pas à la quatorzième carte sur vingt.
  */
-const POINTS_PAR_CARTE = 3;
+/* Combien de points tiennent sur une carte.
+ *
+ * C'était 3, quel que soit l'écran. Sur un téléphone c'est juste ; sur un
+ * ordinateur la carte fait 470 pixels de haut et six points y tiennent, si bien
+ * qu'une partie de cinq points se retrouvait coupée en « 1 sur 2 » au milieu
+ * d'une carte à moitié vide. L'élève perdait le fil d'une section pour rien.
+ *
+ * Mesuré : la carte fait la hauteur de la fenêtre moins ~350 pixels de décor,
+ * sa tête en prend 94, et un point occupe 56 pixels — 80 sur un écran étroit,
+ * où les lignes se replient davantage.
+ *
+ * Plafonné à six : au-delà, une carte redevient une page qu'on fait défiler,
+ * et les consignes n'écrivent de toute façon jamais plus de six points par
+ * partie. Sur un grand écran, une partie n'est donc plus jamais coupée.
+ */
+const POINTS_PAR_CARTE_MIN = 3;
+const POINTS_PAR_CARTE_MAX = 6;
+
+function pointsParCarte() {
+  const hauteurCarte = window.innerHeight - 350;
+  const parPoint = window.innerWidth < 420 ? 80 : 56;
+  const tiennent = Math.floor((hauteurCarte - 94) / parPoint);
+  return Math.max(POINTS_PAR_CARTE_MIN, Math.min(POINTS_PAR_CARTE_MAX, tiennent));
+}
 
 function decouper(points) {
-  const groupes = Math.max(1, Math.ceil(points.length / POINTS_PAR_CARTE));
+  const groupes = Math.max(1, Math.ceil(points.length / pointsParCarte()));
   const taille = Math.ceil(points.length / groupes);
   const morceaux = [];
   for (let i = 0; i < points.length; i += taille) morceaux.push(points.slice(i, i + taille));
@@ -4237,6 +4260,39 @@ function dessinerRubans(titres) {
 function allerACarte(index) {
   const carte = $('paquet').children[index];
   if (carte) carte.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+}
+
+/* Au clavier, sur un ordinateur.
+ *
+ * Le paquet se fait glisser au doigt ; à la souris il se pousse, mal. Les
+ * flèches sont le geste que tout le monde essaie en premier devant un écran
+ * d'ordinateur, et elles ne faisaient rien. */
+function carteAuCentre() {
+  const paquet = $('paquet');
+  const cadre = paquet.getBoundingClientRect();
+  const milieu = cadre.left + cadre.width / 2;
+  return Array.from(paquet.children).findIndex((c) => {
+    const b = c.getBoundingClientRect();
+    return b.left <= milieu && b.right >= milieu;
+  });
+}
+
+function armerClavierPaquet() {
+  document.addEventListener('keydown', (evenement) => {
+    if ($('ecran-fiche').hidden || !$('vue-ensemble').hidden) return;
+    // Ne pas voler les flèches à un champ de saisie ni aux raccourcis système.
+    const cible = evenement.target;
+    if (cible && (cible.tagName === 'INPUT' || cible.tagName === 'TEXTAREA')) return;
+    if (evenement.metaKey || evenement.ctrlKey || evenement.altKey) return;
+    const pas = evenement.key === 'ArrowRight' ? 1 : (evenement.key === 'ArrowLeft' ? -1 : 0);
+    if (!pas) return;
+    const ici = carteAuCentre();
+    if (ici < 0) return;
+    const vise = Math.max(0, Math.min($('paquet').children.length - 1, ici + pas));
+    if (vise === ici) return;
+    evenement.preventDefault();
+    allerACarte(vise);
+  });
 }
 
 /* L’élève revient sur plusieurs jours : on retient où il s’est arrêté et on
@@ -5067,6 +5123,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('bouton-correction-accueil').onclick = reprendre;
   armerMenuMarque();
   armerApplication();
+  armerClavierPaquet();
 
   $('bouton-question-suivante').onclick = questionSuivante;
   $('bouton-signaler').onclick = () => {

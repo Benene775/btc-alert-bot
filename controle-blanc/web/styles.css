@@ -1204,6 +1204,8 @@ select {
 
 .paquet::-webkit-scrollbar { display: none; }
 
+}
+
 @media (prefers-reduced-motion: reduce) {
   .paquet { scroll-behavior: auto; }
 }
@@ -1212,6 +1214,11 @@ select {
   position: relative;
   flex: 0 0 min(82vw, 420px);
   scroll-snap-align: center;
+  /* À la souris ou au pavé tactile, une seule impulsion parcourt facilement
+     trois cartes : le défilement s'arrête alors sur la plus proche, et l'élève
+     a sauté deux parties de sa fiche sans les voir. « always » impose l'arrêt à
+     chaque carte — c'est la propriété faite pour ça. */
+  scroll-snap-stop: always;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -1237,6 +1244,17 @@ select {
 }
 
 .carte-corps::-webkit-scrollbar { display: none; }
+
+/* Sur un ordinateur, la fiche prend la largeur, comme l'accueil et l'espace
+   personnel le font déjà. Dans la colonne de lecture de 660 pixels, elle tenait
+   deux cartes dont une coupée en deux, au milieu d'un écran vide aux trois
+   quarts. Ici, deux cartes entières et la troisième qui dépasse pour dire qu'il
+   y a une suite — et le titre reste aligné sur elles, ce qu'un débordement du
+   seul paquet n'aurait pas donné. */
+@media (min-width: 900px) {
+  .ecran-fiche { max-width: min(var(--large), 92vw); }
+  .carte-fiche { flex: 0 0 460px; }
+}
 
 .carte-fiche[data-teinte="1"] { background: var(--t1); }
 .carte-fiche[data-teinte="2"] { background: var(--t2); }
