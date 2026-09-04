@@ -226,3 +226,27 @@ def test_la_demonstration_annonce_les_memes_plafonds_que_le_produit():
     brut = brut[brut.index("{"): brut.index("}") + 1]
     plafonds = json.loads(re.sub(r"(\w+):", r'"\1":', brut).replace("'", '"'))
     assert plafonds == config.QUOTAS_MOIS
+
+
+def test_les_pages_du_mois_et_les_fiches_du_mois_tombent_juste():
+    """Un élève doit sortir du mois sans reste d'un côté ni de l'autre.
+
+    Le quota d'analyse se compte en pages, celui des fiches en fiches : si les
+    deux ne tombent pas sur le même nombre de cours, l'élève se retrouve soit
+    avec des pages qu'aucune fiche ne peut exploiter, soit avec des fiches sans
+    cours à leur donner. Les trois nombres sont liés — changer l'un oblige à
+    regarder les deux autres, et c'est ce que ce test rend impossible d'oublier.
+    """
+    cours_possibles = config.QUOTAS_MOIS["analyse"] // config.MAX_PHOTOS_PAR_ANALYSE
+    assert cours_possibles == config.QUOTAS_MOIS["fiche_generale"], (
+        f"{config.QUOTAS_MOIS['analyse']} pages à {config.MAX_PHOTOS_PAR_ANALYSE} par cours "
+        f"font {cours_possibles} cours, pour {config.QUOTAS_MOIS['fiche_generale']} fiches"
+    )
+    assert cours_possibles == config.QUOTAS_MOIS["controle"], "et autant de contrôles blancs"
+
+
+def test_une_seance_ne_depasse_pas_un_cours():
+    """La fiche se fait sur ce que la séance contient. Si une séance pouvait
+    accumuler douze envois de huit pages, la fiche porterait sur un trimestre —
+    et le plafond par cours ne voudrait plus rien dire."""
+    assert config.QUOTAS["analyse"]["session"] == config.MAX_PHOTOS_PAR_ANALYSE

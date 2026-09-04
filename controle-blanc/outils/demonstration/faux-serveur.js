@@ -98,7 +98,7 @@ async function api(chemin, options = {}) {
 
   if (chemin === '/api/config') {
     return { matieres: MATIERES, niveaux: NIVEAUX, mode_demonstration: true,
-             max_photos: 12, matiere_par_defaut: MATIERE_PAR_DEFAUT };
+             max_photos: 8, matiere_par_defaut: MATIERE_PAR_DEFAUT };
   }
 
   /* --- Le compte ----------------------------------------------------------

@@ -129,7 +129,7 @@ PUBLIC_BASE_URL = os.environ.get("CB_PUBLIC_BASE_URL", "").strip().rstrip("/")
 # font 55 à 79 % du coût d'un parcours. Compter les appels revenait à facturer
 # pareil quatre pages et cinquante. C'est aussi l'unité que l'élève comprend.
 QUOTAS: dict[str, dict[str, int]] = {
-    "analyse": {"jour": _int("CB_QUOTA_ANALYSE_JOUR", 48), "session": _int("CB_QUOTA_ANALYSE_SESSION", 96)},
+    "analyse": {"jour": _int("CB_QUOTA_ANALYSE_JOUR", 48), "session": _int("CB_QUOTA_ANALYSE_SESSION", 8)},
     "fiche_generale": {"jour": _int("CB_QUOTA_FICHE_JOUR", 3), "session": _int("CB_QUOTA_FICHE_SESSION", 12)},
     "controle": {"jour": _int("CB_QUOTA_CONTROLE_JOUR", 3), "session": _int("CB_QUOTA_CONTROLE_SESSION", 12)},
     "fiche_ciblee": {"jour": _int("CB_QUOTA_CIBLEE_JOUR", 5), "session": _int("CB_QUOTA_CIBLEE_SESSION", 20)},
@@ -187,7 +187,13 @@ QUOTAS_MOIS: dict[str, int] = {
     "fiche_ciblee": _int("CB_QUOTA_CIBLEE_MOIS", 12),
 }
 
-MAX_PHOTOS_PAR_ANALYSE = _int("CB_MAX_PHOTOS", 12)
+# Huit pages par cours, et huit par envoi : une fiche de révision se fait à
+# partir d'un chapitre, pas d'un trimestre. Le chiffre n'est pas arbitraire — il
+# met les deux compteurs du mois en phase. À 96 pages et 8 par cours, un élève a
+# droit à douze analyses, soit exactement ses douze fiches et ses douze contrôles
+# blancs. En dessous, il lui resterait des pages sans fiche pour les exploiter ;
+# au-dessus, des fiches sans pages à leur donner.
+MAX_PHOTOS_PAR_ANALYSE = _int("CB_MAX_PHOTOS", 8)
 MAX_OCTETS_PAR_PHOTO = _int("CB_MAX_OCTETS_PHOTO", 5 * 1024 * 1024)
 
 # Durée de conservation du corrigé (les réponses attendues, gardées côté serveur

@@ -46,7 +46,7 @@ const QUALITE_PHOTO = 0.82;
 let etat = null;
 let photosEnAttente = [];      // le lot en cours de sélection
 let photosDuCours = [];        // les pages déjà analysées, gardées pour la fiche
-let config = { matieres: [], niveaux: [], mode_demonstration: false, max_photos: 12 };
+let config = { matieres: [], niveaux: [], mode_demonstration: false, max_photos: 8 };
 let controleEnCours = null;
 let minuteur = null;
 
