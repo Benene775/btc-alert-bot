@@ -450,25 +450,42 @@
   </div>
   </div>
 
-  <!-- Les deux façons de repasser un cours déjà photographié. Elles ne font
-       pas la même chose : le contrôle fait rédiger, la fiche fait relire. Les
-       deux méritent donc d'être visibles ensemble — et chacune ouvre sa page,
-       où l'on choisit le cours. -->
+  <!-- Ses fiches, posées là. Elles étaient à trois gestes d'ici — ouvrir une
+       matière, descendre jusqu'à la liste, la parcourir — alors que c'est
+       l'objet qu'on revient chercher le plus souvent : une fiche se relit, un
+       contrôle se passe une fois. Les trois dernières sont sur la page, le
+       reste est derrière un bouton qui dit combien il y en a. -->
+  <section class="pan" id="pan-fiches" hidden>
+    <div class="pan-tete">
+      <h2 class="pan-titre">Tes fiches de révision</h2>
+      <button type="button" class="pan-lien" id="bouton-toutes-fiches" hidden></button>
+    </div>
+    <div class="filtres" id="fiches-par-matiere" role="group"
+         aria-label="Filtrer tes fiches par matière" hidden></div>
+    <ul class="archive-liste" id="liste-fiches-recentes"></ul>
+  </section>
+
+  <!-- Les deux façons de fabriquer quelque chose à partir d'un cours déjà
+       photographié. Elles ne font pas la même chose : le contrôle fait rédiger,
+       la fiche fait relire. Les deux méritent donc d'être visibles ensemble —
+       et chacune ouvre sa page, où l'on choisit le cours. Leurs noms commencent
+       par un verbe : au-dessus il y a une liste de fiches, et « Fiche de
+       révision » tout court se lisait comme la porte de cette liste. -->
   <section class="pan" id="pan-outils">
     <div class="pan-tete">
-      <h2 class="pan-titre">Repasser un cours</h2>
+      <h2 class="pan-titre">Fabriquer autre chose</h2>
     </div>
     <div class="trio">
       <button type="button" class="outil" id="outil-controle">
         <span class="outil-signe" aria-hidden="true">✎</span>
-        <span class="outil-nom">Contrôle blanc</span>
+        <span class="outil-nom">Passer un contrôle blanc</span>
         <span class="outil-mot">Au format réel de la matière, chronométré, à rédiger.</span>
         <span class="outil-duree">40 min</span>
         <span class="outil-reste" id="reste-controle" hidden></span>
       </button>
       <button type="button" class="outil" id="outil-fiche">
         <span class="outil-signe" aria-hidden="true">▤</span>
-        <span class="outil-nom">Fiche de révision</span>
+        <span class="outil-nom">Créer une fiche</span>
         <span class="outil-mot">Ton cours resserré, dans ton ordre à toi.</span>
         <span class="outil-duree">9 min</span>
         <span class="outil-reste" id="reste-fiche" hidden></span>
@@ -483,7 +500,7 @@
   <section class="pan" id="pan-matieres">
     <div class="pan-tete">
       <h2 class="pan-titre">Tes matières</h2>
-      <button type="button" class="pan-lien" id="bouton-tout-voir">Tout chercher</button>
+      <button type="button" class="pan-lien" id="bouton-tout-voir">Tout voir</button>
     </div>
     <div class="etagere" id="etagere"></div>
     <p class="pan-vide" id="vide-matieres" hidden>Photographie ton premier cours : il s’installera ici.</p>

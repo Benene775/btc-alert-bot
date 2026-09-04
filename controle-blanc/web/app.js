@@ -589,6 +589,7 @@ function dessinerEspace() {
   const sessions = sessionsFaites();
   dessinerCarteEleve(sessions);
   dessinerRevientCourt(sessions);
+  dessinerFichesRecentes(sessions);
   dessinerEtagere(sessions);
   dessinerAccesOutils();
   const echeances = dessinerAgenda(sessions);
@@ -606,6 +607,89 @@ function dessinerRevientCourt(sessions) {
   const liste = $('liste-reviennent');
   liste.innerHTML = '';
   notions.forEach((n) => liste.appendChild(ligneNotion(n, true, sessions)));
+}
+
+/* --- Les fiches, sur sa page ---------------------------------------------
+ *
+ * Une fiche se relit ; un contrôle se passe une fois. C'est donc la fiche qu'on
+ * revient chercher, et elle était à trois gestes d'ici : ouvrir une matière,
+ * descendre jusqu'à la liste, la parcourir. Trois sont posées sur la page, avec
+ * le filtre par matière sur place — chercher « celle de SVT » ne doit pas
+ * obliger à changer d'écran — et un bouton qui dit combien il y en a derrière.
+ */
+const FICHES_SUR_LA_PAGE = 3;
+let fichesMatiere = '';
+
+function dessinerFichesRecentes(sessions) {
+  const toutes = toutesLesFiches(sessions).map((f) => ({ ...f, titre: titreCourt(f.titre) }));
+  $('pan-fiches').hidden = toutes.length === 0;
+  if (!toutes.length) return;
+
+  const comptes = new Map();
+  toutes.forEach((f) => {
+    const cle = f.session.matiere || '';
+    comptes.set(cle, (comptes.get(cle) || 0) + 1);
+  });
+  // Une matière dont la dernière fiche a été effacée ne doit pas rester
+  // sélectionnée : la liste paraîtrait vide sans qu'on voie pourquoi.
+  if (fichesMatiere && !comptes.has(fichesMatiere)) fichesMatiere = '';
+
+  dessinerFiltreFiches(comptes, toutes.length);
+
+  const retenues = fichesMatiere
+    ? toutes.filter((f) => (f.session.matiere || '') === fichesMatiere)
+    : toutes;
+
+  const liste = $('liste-fiches-recentes');
+  liste.innerHTML = '';
+  retenues.slice(0, FICHES_SUR_LA_PAGE).forEach((fiche) => {
+    const li = ligneArchive(fiche, (f) => (f.type === 'ciblee' ? 'ciblée' : ''), true);
+    li.querySelector('.ligne-archive').onclick =
+      () => ouvrirFicheGardee(fiche.session.sessionId, fiche.rang);
+    liste.appendChild(li);
+  });
+
+  // Le bouton dit le nombre plutôt que « voir tout » : savoir qu'il y en a
+  // quinze est la moitié de l'information.
+  const bouton = $('bouton-toutes-fiches');
+  bouton.hidden = retenues.length <= FICHES_SUR_LA_PAGE;
+  bouton.textContent = 'Voir les ' + retenues.length;
+  bouton.onclick = () => ouvrirMatiere(fichesMatiere || null);
+}
+
+/* Les mêmes puces que dans l'archive, et pour la même raison : la couleur d'une
+ * matière est la même partout. Une seule matière n'a rien à filtrer. */
+function dessinerFiltreFiches(comptes, total) {
+  const boite = $('fiches-par-matiere');
+  boite.innerHTML = '';
+  boite.hidden = comptes.size < 2;
+  if (boite.hidden) { fichesMatiere = ''; return; }
+
+  const puce = (cle, libelle, nombre) => {
+    const bouton = document.createElement('button');
+    bouton.type = 'button';
+    bouton.className = 'puce';
+    bouton.dataset.teinte = cle ? teinteMatiere(cle) : '';
+    bouton.setAttribute('aria-pressed', fichesMatiere === cle ? 'true' : 'false');
+    bouton.textContent = libelle;
+    if (cle) bouton.setAttribute('aria-label', nomMatiere(cle) + ' — ' + nombre + ' fiches');
+    const compte = document.createElement('span');
+    compte.className = 'puce-compte';
+    compte.textContent = String(nombre);
+    bouton.appendChild(compte);
+    // Retaper sur la matière déjà choisie revient à toutes : sans ça, il n'y a
+    // pas de retour en arrière une fois qu'on a filtré.
+    bouton.onclick = () => {
+      fichesMatiere = fichesMatiere === cle ? '' : cle;
+      dessinerFichesRecentes(sessionsFaites());
+    };
+    return bouton;
+  };
+
+  boite.appendChild(puce('', 'Toutes', total));
+  [...comptes.entries()]
+    .sort((a, b) => b[1] - a[1] || nomMatiere(a[0]).localeCompare(nomMatiere(b[0])))
+    .forEach(([cle, nombre]) => boite.appendChild(puce(cle, codeMatiere(cle), nombre)));
 }
 
 function dessinerEtagere(sessions) {
@@ -722,8 +806,8 @@ function dessinerMatiere() {
     $('recherche-' + genre).dataset.tout = dansTout ? 'oui' : 'non';
     $('filtres-' + genre).dataset.tout = dansTout ? 'oui' : 'non';
   });
-  $('titre-fiches').textContent = dansTout ? 'Toutes tes fiches' : 'Ses fiches';
-  $('titre-controles').textContent = dansTout ? 'Tous tes contrôles blancs' : 'Ses contrôles blancs';
+  $('titre-fiches').textContent = dansTout ? 'Toutes tes fiches' : 'Tes fiches';
+  $('titre-controles').textContent = dansTout ? 'Tous tes contrôles blancs' : 'Tes contrôles blancs';
 
   dessinerMatiereRevoir(sessions, cle);
   dessinerMesFiches(sessions);
@@ -1681,7 +1765,7 @@ function dessinerFiltres(genre, elements) {
     .forEach(([cle, nombre]) => boite.appendChild(puce(cle, nomMatiere(cle), nombre)));
 }
 
-function ligneArchive(e, sousTitre) {
+function ligneArchive(e, sousTitre, avecCode = !matiereOuverte) {
   const li = document.createElement('li');
   const bouton = document.createElement('button');
   bouton.type = 'button';
@@ -1693,7 +1777,7 @@ function ligneArchive(e, sousTitre) {
   // elle dit le jour, car répéter « SVT » sous le titre « SVT » n'apprend rien.
   const pastille = document.createElement('span');
   pastille.className = 'ligne-archive-pastille';
-  if (matiereOuverte) {
+  if (!avecCode) {
     pastille.textContent = new Date(e.le).getDate();
     pastille.dataset.jour = 'oui';
     pastille.setAttribute('aria-hidden', 'true');
