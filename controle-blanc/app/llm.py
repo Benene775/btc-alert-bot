@@ -115,16 +115,17 @@ def _appel(
     return donnees, _usage(reponse)
 
 
-def _systeme_avec_cours(niveau: str, chapitres: list[dict]) -> list[dict[str, Any]]:
-    """Préambule stable, puis le cours — c'est là qu'on pose le point de cache."""
-    return [
-        {"type": "text", "text": prompts.preambule(niveau)},
-        {
-            "type": "text",
-            "text": prompts.bloc_cours(chapitres),
-            "cache_control": {"type": "ephemeral", "ttl": "1h"},
-        },
-    ]
+def _systeme_avec_cours(niveau: str, chapitres: list[dict], action: str) -> list[dict[str, Any]]:
+    """Préambule stable, puis le cours — c'est là qu'on pose le point de cache.
+
+    Le point n'est posé que si cet appel partage son modèle avec assez d'autres
+    pour que le cache soit rentable : un cache appartient à un modèle, et celui
+    que personne ne relit coûte le double d'un appel sans cache.
+    """
+    cours: dict[str, Any] = {"type": "text", "text": prompts.bloc_cours(chapitres)}
+    if config.doit_cacher_le_cours(action):
+        cours["cache_control"] = {"type": "ephemeral", "ttl": "1h"}
+    return [{"type": "text", "text": prompts.preambule(niveau)}, cours]
 
 
 # --- 1. Analyse des photos --------------------------------------------------
@@ -177,7 +178,7 @@ def fiche_generale(
         return demo.fiche_generale(chapitres), {}
     return _appel(
         action="fiche_generale",
-        blocs_systeme=_systeme_avec_cours(niveau, chapitres),
+        blocs_systeme=_systeme_avec_cours(niveau, chapitres, "fiche_generale"),
         contenu_utilisateur=[{"type": "text", "text": prompts.FICHE_GENERALE_CONSIGNE}],
         schema=prompts.SCHEMA_FICHE,
         max_tokens=16000,
@@ -196,7 +197,7 @@ def fiche_ciblee(
     )
     return _appel(
         action="fiche_ciblee",
-        blocs_systeme=_systeme_avec_cours(niveau, chapitres),
+        blocs_systeme=_systeme_avec_cours(niveau, chapitres, "fiche_ciblee"),
         contenu_utilisateur=[
             {"type": "text", "text": prompts.FICHE_CIBLEE_CONSIGNE.format(notions=liste)}
         ],
@@ -247,7 +248,7 @@ def generer_controle(
     )
     return _appel(
         action="controle",
-        blocs_systeme=_systeme_avec_cours(niveau, chapitres),
+        blocs_systeme=_systeme_avec_cours(niveau, chapitres, "controle"),
         contenu_utilisateur=[{"type": "text", "text": consigne}],
         schema=prompts.SCHEMA_CONTROLE,
         max_tokens=20000,
@@ -289,7 +290,7 @@ def corriger(
 
     return _appel(
         action="correction",
-        blocs_systeme=_systeme_avec_cours(niveau, chapitres),
+        blocs_systeme=_systeme_avec_cours(niveau, chapitres, "correction"),
         contenu_utilisateur=[
             {"type": "text", "text": "\n".join(copie)},
             {"type": "text", "text": prompts.CORRECTION_CONSIGNE},

@@ -59,11 +59,52 @@ MODEL = os.environ.get("CB_MODEL", "claude-sonnet-5").strip() or "claude-sonnet-
 MODELE_TEXTE = os.environ.get("CB_MODEL_TEXTE", "claude-sonnet-5").strip() or "claude-sonnet-5"
 
 
+# Les quatre appels qui relisent le cours. L'analyse n'en fait pas partie :
+# elle tourne avant que le cours existe.
+ACTIONS_AVEC_COURS = ("fiche_generale", "fiche_ciblee", "controle", "correction")
+
+# Et le réglage fin : un modèle par appel, si on veut.
+#
+# Les deux réglages ci-dessus séparent les photos du texte, ce qui suffit la
+# plupart du temps. Mais les quatre appels de texte ne demandent pas la même
+# chose : rédiger une fiche, c'est résumer un texte qu'on a sous les yeux ;
+# corriger la copie d'un élève de 13 ans, c'est juger une phrase à moitié
+# formée et décider ce qui est acquis. Mettre la seule correction en gamme
+# haute est un arbitrage défendable, et il se fait ici :
+#
+#   CB_MODEL_CORRECTION=claude-opus-5
+#
+# Vide = l'appel suit MODEL (pour l'analyse) ou MODELE_TEXTE (pour les autres).
+MODELES_PAR_ACTION: dict[str, str] = {
+    action: os.environ.get("CB_MODEL_" + action.upper(), "").strip()
+    for action in ("analyse",) + ACTIONS_AVEC_COURS
+}
+
+
 def modele_pour(action: str) -> str:
-    """Le modèle d'un appel. Découper là ne coûte aucune lecture de cache : le
-    bloc de cours mis en cache ne sert qu'aux appels « texte », puisque l'analyse
-    tourne avant que le cours existe."""
+    """Le modèle d'un appel."""
+    choisi = MODELES_PAR_ACTION.get(action, "")
+    if choisi:
+        return choisi
     return MODEL if action == "analyse" else MODELE_TEXTE
+
+
+def doit_cacher_le_cours(action: str) -> bool:
+    """Faut-il mettre le cours en cache pour cet appel ?
+
+    Un cache est propre à un modèle : deux appels sur deux modèles différents ne
+    se relisent pas. Et l'écriture d'un cache d'une heure coûte 2x l'entrée,
+    contre 0,2x la lecture — il faut donc au moins trois appels sur le même
+    modèle pour que l'opération soit rentable (2 + 0,2 x 2 = 2,4 contre 3).
+
+    Sans cette règle, mettre la seule correction sur un autre modèle lui ferait
+    écrire un cache que personne ne relit : le double du prix, pour rien.
+
+    On compte les appels que la configuration REND possibles, pas ceux qu'un
+    élève fera vraiment — c'est tout ce qu'on peut savoir avant de tourner.
+    """
+    modele = modele_pour(action)
+    return sum(1 for a in ACTIONS_AVEC_COURS if modele_pour(a) == modele) >= 3
 
 # Mode démonstration : aucun appel API, contenus factices en français.
 # Sert à faire cliquer le prof / les élèves dans tout le parcours sans dépenser.
@@ -114,7 +155,9 @@ QUOTAS: dict[str, dict[str, int]] = {
 # l'API. Au plafond des quatre compteurs, contre ~6,20 € encaissés :
 #
 #   Sonnet 5 (le réglage par défaut)  1,28 € à 2,09 €   soit 21 à 34 % du net
-#   Opus (CB_MODEL=claude-opus-5)     3,21 € à 5,24 €   soit 52 à 85 % du net
+#   + CB_MODEL_CORRECTION en Opus     1,57 € à 2,65 €   soit 25 à 43 % du net
+#   + CB_MODEL en Opus (les photos)   2,56 € à 4,20 €   soit 41 à 68 % du net
+#   Opus partout                      3,21 € à 5,24 €   soit 52 à 84 % du net
 #
 # La fourchette va de l'écriture aérée (500 caractères la page) à l'écriture
 # dense (2 000). Un élève ordinaire — quatre parcours de six pages dans le mois

@@ -63,5 +63,55 @@ def test_le_partage_ne_coute_aucune_lecture_de_cache():
     debut = SOURCE.index("def analyser_photos(")
     corps = SOURCE[debut:SOURCE.index("\ndef ", debut + 1)]
     assert "_systeme_avec_cours" not in corps
-    # Et l'inverse : les quatre autres s'en servent bien.
-    assert SOURCE.count("_systeme_avec_cours(niveau, chapitres)") == 4
+    # Et l'inverse : les quatre autres s'en servent bien, chacun sous son nom.
+    assert SOURCE.count("_systeme_avec_cours(niveau, chapitres, \"") == 4
+
+
+def test_chaque_appel_peut_avoir_son_propre_modele(monkeypatch):
+    """Les quatre appels de texte ne demandent pas la même chose. Rédiger une
+    fiche, c'est résumer un texte qu'on a sous les yeux ; corriger la copie d'un
+    élève de 13 ans, c'est juger une phrase à moitié formée. Mettre la seule
+    correction en gamme haute doit être une variable d'environnement."""
+    monkeypatch.setattr(config, "MODELE_TEXTE", "bon-marche")
+    monkeypatch.setitem(config.MODELES_PAR_ACTION, "correction", "gamme-haute")
+
+    assert config.modele_pour("correction") == "gamme-haute"
+    for action in ACTIONS - {"analyse", "correction"}:
+        assert config.modele_pour(action) == "bon-marche", action
+
+
+def test_un_cache_que_personne_ne_relit_n_est_pas_ecrit(monkeypatch):
+    """Un cache appartient à un modèle : deux appels sur deux modèles différents
+    ne se relisent pas. Et l'écriture d'un cache d'une heure coûte 2x l'entrée
+    contre 0,2x la lecture — il en faut trois sur le même modèle pour rentrer
+    dans ses frais. Sans cette règle, sortir la correction du lot lui ferait
+    écrire un cache que personne n'ouvre : le double du prix, pour rien.
+    """
+    # Tout sur le même modèle : le cache sert aux quatre.
+    for action in config.ACTIONS_AVEC_COURS:
+        assert config.doit_cacher_le_cours(action), action
+
+    # La correction seule à part : elle n'écrit plus, les trois autres si.
+    monkeypatch.setitem(config.MODELES_PAR_ACTION, "correction", "gamme-haute")
+    assert not config.doit_cacher_le_cours("correction")
+    for action in set(config.ACTIONS_AVEC_COURS) - {"correction"}:
+        assert config.doit_cacher_le_cours(action), action
+
+    # Deux contre deux : plus personne n'atteint le seuil de rentabilité.
+    monkeypatch.setitem(config.MODELES_PAR_ACTION, "fiche_ciblee", "gamme-haute")
+    for action in config.ACTIONS_AVEC_COURS:
+        assert not config.doit_cacher_le_cours(action), action
+
+
+def test_le_point_de_cache_n_est_pas_pose_d_office():
+    """Si llm.py posait le cache sans demander, la règle ci-dessus ne servirait
+    à rien — c'est le genre de découplage qui se perd en silence."""
+    assert "config.doit_cacher_le_cours(action)" in SOURCE
+    bloc = SOURCE[SOURCE.index("def _systeme_avec_cours("):]
+    bloc = bloc[: bloc.index("\n\n\n")]
+    assert bloc.index("doit_cacher_le_cours") < bloc.index('"cache_control"'), (
+        "le point de cache est posé avant qu'on ait demandé s'il fallait"
+    )
+    # Et chaque appelant dit de quelle action il s'agit.
+    for action in ("fiche_generale", "fiche_ciblee", "controle", "correction"):
+        assert f'_systeme_avec_cours(niveau, chapitres, "{action}")' in SOURCE, action

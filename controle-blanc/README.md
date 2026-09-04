@@ -472,12 +472,28 @@ change à la main pour purger les caches d'une version précédente.
 
 ## Quel modèle sert quel appel
 
-Deux réglages, parce que les cinq appels n'ont pas le même risque.
+Deux réglages larges, plus un par appel, parce que les cinq appels n'ont pas le
+même risque.
 
 | Variable | Appels concernés | Défaut |
 |---|---|---|
 | `CB_MODEL` | l'analyse : le seul appel qui regarde les **photos** | `claude-sonnet-5` |
 | `CB_MODEL_TEXTE` | fiche, fiche ciblée, contrôle, correction | `claude-sonnet-5` |
+| `CB_MODEL_<APPEL>` | cet appel-là seulement, quel qu'il soit | vide = suit les deux ci-dessus |
+
+Les noms d'appel sont `ANALYSE`, `FICHE_GENERALE`, `FICHE_CIBLEE`, `CONTROLE`,
+`CORRECTION`. Le réglage fin sert à un cas précis : les quatre appels de texte ne
+demandent pas la même chose. Rédiger une fiche, c'est résumer un texte qu'on a
+sous les yeux ; corriger la copie d'un élève de 13 ans, c'est juger une phrase à
+moitié formée et décider ce qui est acquis. `CB_MODEL_CORRECTION=claude-opus-5`
+met la gamme haute là et nulle part ailleurs, pour +31 % sur le parcours.
+
+**Un modèle à part n'écrit plus de cache.** Un cache appartient à un modèle : les
+appels qui n'en partagent pas ne se relisent pas. Comme l'écriture d'un cache
+d'une heure coûte 2× l'entrée contre 0,2× la lecture, il faut au moins trois
+appels sur le même modèle pour rentrer dans ses frais — `doit_cacher_le_cours()`
+compte, et se tait quand ça n'en vaut plus la peine. Sans ça, sortir la seule
+correction du lot lui ferait écrire un cache que personne ne relit.
 
 Un seul appel lit de l'écriture manuscrite, et tout le reste est bâti sur ce
 qu'il en tire : la fiche, le contrôle et la correction lisent la transcription,
