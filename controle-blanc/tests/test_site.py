@@ -49,7 +49,7 @@ def test_le_site_est_une_page_et_c_est_repere():
     index = pages["index.html"]
     # La vraie page d'accueil de Repère, pas une page fabriquée pour l'occasion.
     assert 'id="ecran-accueil"' in index
-    assert "Révise ce qui te manque" in index
+    assert "Gagne le temps" in index
     assert 'id="ecran-connexion"' in index, "on doit pouvoir s'inscrire"
 
 

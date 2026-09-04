@@ -1,7 +1,7 @@
 {
-  "name": "Repère — révise ce qui te manque, pas le reste",
+  "name": "Repère — gagne le temps perdu à tout relire",
   "short_name": "Repère",
-  "description": "Photographie ton cours, teste-toi dessus, et ne révise que ce qui n'est pas acquis.",
+  "description": "Photographie ton cours, teste-toi dessus, et ne retravaille que ce qui n'est pas acquis.",
   "lang": "fr",
   "dir": "ltr",
   "start_url": "/",

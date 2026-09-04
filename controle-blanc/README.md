@@ -1,6 +1,6 @@
 # Repère
 
-> Révise ce qui te manque, pas le reste.
+> Gagne le temps perdu à tout relire.
 
 Un site web mobile où un élève photographie son cours, passe un **contrôle blanc au
 format réel de la matière**, obtient une correction commentée qui renvoie à son propre

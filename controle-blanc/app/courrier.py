@@ -42,7 +42,7 @@ Si tu n'as rien demandé, ignore ce message : ton mot de passe actuel reste
 valable, et sans ce code personne ne peut le changer.
 
 —
-Repère · révise ce qui te manque, pas le reste
+Repère · gagne le temps perdu à tout relire
 """
 
 # Le HTML reste volontairement primitif : pas d'image, pas de feuille de style
