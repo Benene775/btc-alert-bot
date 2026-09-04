@@ -461,6 +461,10 @@ def main() -> int:
             "tarif_connu": connu,
             "tokens_entree": usage.get("tokens_entree", 0),
             "tokens_sortie": usage.get("tokens_sortie", 0),
+            # L'écriture autant que la lecture : sans elle on ne peut pas dire si
+            # le cache a servi ou s'il a été payé pour rien — le premier essai
+            # réel a montré trois écritures pour deux lectures.
+            "cache_ecriture": usage.get("cache_ecriture", 0),
             "cache_lecture": usage.get("cache_lecture", 0),
         })
         T.info(f"  {secondes:.1f} s · {modele or '?'} · "
