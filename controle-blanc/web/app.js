@@ -106,7 +106,8 @@ function charger(sessionId) {
 
 /*
  * « Ma page » rassemble tout ce que l'élève a fait : son agenda, ses fiches,
- * ses contrôles blancs, et surtout ce qui ne tient pas encore.
+ * ses contrôles blancs, ses matières. Ce qui ne tient pas encore vit dans la
+ * matière concernée : hors de son chapitre, une notion isolée ne se relit pas.
  *
  * Ce n'est pas un profil de réseau social : pas de compte, pas de public, rien
  * à montrer à personne. Tout est relu depuis ce téléphone, et rien n'en sort.
@@ -588,7 +589,6 @@ let revoirDeplie = false;
 function dessinerEspace() {
   const sessions = sessionsFaites();
   dessinerCarteEleve(sessions);
-  dessinerRevientCourt(sessions);
   dessinerFichesRecentes(sessions);
   dessinerEtagere(sessions);
   dessinerAccesOutils();
@@ -597,16 +597,6 @@ function dessinerEspace() {
   soignerTypographie($('ecran-espace'));
   // Sans await : la page est déjà dessinée, le compteur se posera dessus.
   rafraichirQuotas();
-}
-
-/* Trois notions au plus, en haut de page : celles qui sont revenues. Le détail
- * par matière attend dans sa tuile — ici on ne montre que ce qui insiste. */
-function dessinerRevientCourt(sessions) {
-  const notions = notionsQuiReviennent(sessions).filter((n) => n.fois > 1).slice(0, 3);
-  $('pan-revient').hidden = notions.length === 0;
-  const liste = $('liste-reviennent');
-  liste.innerHTML = '';
-  notions.forEach((n) => liste.appendChild(ligneNotion(n, true, sessions)));
 }
 
 /* --- Les fiches, sur sa page ---------------------------------------------
@@ -816,10 +806,9 @@ function dessinerMatiere() {
 }
 
 function dessinerMatiereRevoir(sessions, cle) {
-  /* Pas de notions dans la vue « tout » : le tableau de bord montre déjà les
-   * trois qui insistent, et chaque matière montre les siennes. Les treize d'un
-   * coup y ajoutaient un écran entier avant même la première fiche, alors
-   * qu'on vient ici pour chercher. */
+  /* Pas de notions dans la vue « tout » : chaque matière montre les siennes,
+   * et les treize d'un coup ajoutaient ici un écran entier avant même la
+   * première fiche, alors qu'on vient sur cet écran pour chercher. */
   if (!cle) { $('pan-matiere-revoir').hidden = true; return; }
   const notions = notionsQuiReviennent(sessions).filter((n) => n.matiere === cle);
   $('pan-matiere-revoir').hidden = notions.length === 0;
@@ -829,7 +818,7 @@ function dessinerMatiereRevoir(sessions, cle) {
   // Bornées comme le reste : neuf notions d'affilée sur une matière chargée
   // ajoutaient un écran entier. Les cinq premières sont celles qui insistent.
   const visibles = revoirDeplie ? notions : notions.slice(0, PAR_PAGE_TOUT);
-  visibles.forEach((n) => liste.appendChild(ligneNotion(n, false, sessions)));
+  visibles.forEach((n) => liste.appendChild(ligneNotion(n, sessions)));
 
   const plus = $('plus-revoir');
   const reste = notions.length - visibles.length;
@@ -1524,7 +1513,7 @@ function basculerAtelier() {
  * l'élève repasser un contrôle sur une notion qu'il n'a pas relue depuis
  * qu'il l'a ratée.
  */
-function ligneNotion(n, montrerMatiere = true, sessions = []) {
+function ligneNotion(n, sessions = []) {
   const li = document.createElement('li');
   const pliage = document.createElement('details');
   pliage.className = 'revient';
@@ -1537,18 +1526,13 @@ function ligneNotion(n, montrerMatiere = true, sessions = []) {
   titre.textContent = n.notion;
   const badge = document.createElement('span');
   badge.className = 'revient-fois';
-  badge.textContent = n.fois > 1 ? '×' + n.fois : (montrerMatiere ? nomMatiere(n.matiere) : '');
+  badge.textContent = n.fois > 1 ? '×' + n.fois : '';
   tete.append(titre, badge);
 
   const corps = document.createElement('div');
   corps.className = 'revient-corps';
-  // Dans un tiroir de matière, redire la matière sous chaque notion ne dit rien.
-  if (montrerMatiere) {
-    const matiere = document.createElement('p');
-    matiere.className = 'revient-matiere';
-    matiere.textContent = nomMatiere(n.matiere);
-    corps.appendChild(matiere);
-  }
+  // La matière n'est plus redite ici : ces lignes ne paraissent que dans le
+  // tiroir d'une matière, dont l'écran porte déjà le nom en titre.
   if (n.pourquoi) {
     const pourquoi = document.createElement('p');
     pourquoi.className = 'revient-pourquoi';

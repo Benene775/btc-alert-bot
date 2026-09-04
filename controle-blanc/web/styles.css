@@ -4191,15 +4191,6 @@ h1 {
 
 .revient-corps { padding: 0 12px 12px; }
 
-.revient-matiere {
-  font-family: var(--mono);
-  font-size: .6rem;
-  letter-spacing: .1em;
-  text-transform: uppercase;
-  color: var(--encre-douce);
-  margin: 0;
-}
-
 .revient-pourquoi { font-size: .88rem; color: var(--encre-douce); margin: 7px 0 0; }
 
 /* Ce qu'il y a déjà à relire sur cette notion.
