@@ -40,7 +40,24 @@ function attacherAuCompte(identifiant) {
 }
 
 const VERSION_ETAT = 1;
-const COTE_MAX_PHOTO = 1568;   // au-delà, le modèle redimensionne de toute façon
+/* 1568 px sur le grand côté. Au-dessus, le modèle redimensionne de toute façon :
+ * rien à gagner. En dessous non plus — et c'est beaucoup moins évident, parce que
+ * réduire l'image coûte PLUS cher, pas moins.
+ *
+ * Mesuré, une page manuscrite de seconde, la même à quatre tailles :
+ *
+ *   1104 px   4999 jetons d'entrée · 1464 de sortie   0,0246 $   transcription juste
+ *    900 px   4624 · 1851                             0,0278 $   +13 %
+ *    700 px   4274 · 2096                             0,0295 $   +20 %, premiers contresens
+ *    550 px   4099 · 2188                             0,0301 $   +22 %, phrases fausses
+ *
+ * L'entrée baisse — moins de pixels, moins de jetons d'image — mais la sortie
+ * monte plus vite : le modèle réfléchit plus longtemps pour déchiffrer une image
+ * floue, et un jeton de sortie coûte cinq fois un jeton d'entrée. À 550 px il
+ * lisait « nous » pour « mais » et inventait une définition de l'espèce
+ * endémique. Rogner ici perd de l'argent et de la justesse en même temps.
+ */
+const COTE_MAX_PHOTO = 1568;
 const QUALITE_PHOTO = 0.82;
 
 let etat = null;
