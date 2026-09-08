@@ -299,6 +299,37 @@ python3 outils/essai.py --corpus cites-grecques --niveau 6e --matiere histoire-g
 Le corpus est un banc d’essai, pas du contenu à servir : le produit tient sur le fait
 que c’est le cours de *ce prof-là* qui tombe au contrôle.
 
+### La garde
+
+`pytest` vérifie le code ; il ne peut rien dire de ce que le modèle produit. Un mot
+changé dans une consigne peut faire disparaître les pièges d’une fiche, transformer un
+contrôle en QCM ou faire apparaître une note chiffrée, **sans casser une seule ligne de
+Python**. La garde lance la chaîne sur trois cours toujours identiques et vérifie ce qui
+doit rester vrai quoi qu’il arrive :
+
+```bash
+python3 outils/garde.py                 # avant de pousser un changement de consigne
+python3 outils/garde.py --effort low    # « est-ce que ce réglage casse quelque chose ? »
+python3 outils/garde.py --modele claude-opus-5
+```
+
+Environ **0,28 $** le passage, quatre à cinq minutes, et le code de sortie vaut 1 dès
+qu’une vérification tombe — elle s’enchaîne donc dans un script. Chaque échec porte la
+preuve : l’énoncé fautif est cité dans le message, pour qu’on n’ait pas à relancer pour
+comprendre.
+
+Ce n’est **pas** un banc d’essai : la garde ne note pas la qualité et ne compare pas
+deux réglages. Elle attrape les cassures franches, pas les dérives — un cas peut passer
+avec une fiche médiocre. Elle dit seulement que rien n’est cassé.
+
+La lecture des photos n’est pas couverte par défaut : le corpus part d’un cours déjà
+transcrit, et le cahier d’un élève n’a rien à faire dans un dépôt public. Poser
+`CB_GARDE_PHOTOS` sur un dossier d’images ajoute ce cas-là.
+
+Les vérifications de la garde sont elles-mêmes couvertes par `tests/test_garde.py`,
+hors ligne : sans ça, elle pourrait devenir un tampon vert qui ne regarde plus rien, et
+on ne s’en apercevrait qu’en payant le passage.
+
 Chaque fichier de `outils/corpus/` déclare le programme qu’il suit, parce qu’ils ne
 changent pas au même moment : les maths ont basculé sur l’arrêté du 17 avril 2025, en
 vigueur depuis la rentrée 2025 ; l’histoire suit encore l’arrêté de 2015 modifié, et ne
@@ -640,6 +671,7 @@ controle-blanc/
 │   ├── polices.py    refabrique polices.css (découpe et embarque les polices)
 │   ├── artefact.py   fabrique la démonstration autonome, en un seul fichier
 │   ├── essai.py      passe de vraies photos, ou un chapitre du corpus, dans la chaîne
+│   ├── garde.py      trois cas figés : ce qui doit rester vrai après un changement
 │   ├── corpus/       les programmes de 6e, qui tiennent lieu de photos
 │   └── demonstration/  le faux serveur et les jeux de contenus (histoire, espagnol)
 └── tests/            le parcours complet, hors ligne

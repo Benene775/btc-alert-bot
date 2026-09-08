@@ -19,8 +19,12 @@ import sys
 
 RACINE = pathlib.Path(__file__).resolve().parent.parent
 
-# Nos propres modules, et ceux que pytest injecte dans le chemin des tests.
-NOTRES = {"app", "outils", "tests", "conftest", "banc_essai"}
+# Nos propres modules, et ceux que pytest injecte dans le chemin des tests. Les
+# outils s'importent entre eux par leur nom de fichier — « garde.py » se sert de
+# « essai.py » — donc on les lit du dossier plutôt que de tenir une liste à la
+# main, qui se périme au prochain outil ajouté.
+NOTRES = ({"app", "outils", "tests", "conftest", "banc_essai"}
+          | {f.stem for f in (RACINE / "outils").glob("*.py")})
 
 # Le nom qu'on importe n'est pas toujours celui qu'on installe.
 PAQUET = {
