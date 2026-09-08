@@ -24,7 +24,10 @@ ACTIONS = {"analyse", "fiche_generale", "fiche_ciblee", "controle", "correction"
 def test_chaque_appel_dit_de_quelle_action_il_est():
     """Un appel qui oublie son action lèverait une erreur — mais seulement en
     mode réel, jamais dans les tests, qui ne passent pas par là."""
-    appels = SOURCE.count("return _appel(")
+    # Les sites d'appel, pas la définition — et pas seulement ceux qui rendent
+    # directement : « generer_controle » garde son résultat avant de le remettre
+    # à plat, et compter « return _appel( » l'aurait laissé passer.
+    appels = len(re.findall(r"(?<!def )_appel\(", SOURCE))
     nommes = len(re.findall(r'action="(\w+)"', SOURCE))
     assert appels == 5, f"{appels} appels au modèle, cinq attendus"
     assert nommes == appels, f"{appels - nommes} appel(s) sans action"

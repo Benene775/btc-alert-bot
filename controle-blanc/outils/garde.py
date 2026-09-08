@@ -184,14 +184,16 @@ def verifier_controle(controle: dict, notions: list[str], duree_format: int) -> 
               f"Q{n} ne renvoie à aucun endroit du cours")
         exige((q.get("duree_minutes") or 0) > 0, f"Q{n} n'a pas de durée")
 
-    # La consigne demande « 2 à 5 éléments vérifiables », et rien ne l'impose :
-    # le schéma n'a pas de minItems. Le modèle en écrit parfois un seul sur une
-    # question courte. Une garde qui échoue là-dessus est une garde qu'on cesse
-    # de lancer — on tolère un écart, pas deux.
+    # Le schéma impose maintenant deux critères de correction — « essentiel » et
+    # « second », deux champs obligatoires plutôt qu'un tableau sans minimum. La
+    # garde tolérait un écart tant que rien ne l'imposait ; elle n'a plus de
+    # raison de le faire. Il reste un cas possible : « required » impose la
+    # présence d'un champ, pas son contenu, et un « second » vide est retiré à
+    # la mise à plat.
     maigres = [q["numero"] for q in questions if len(q.get("points_attendus") or []) < 2]
-    exige(len(maigres) <= 1,
-          f"{len(maigres)} questions ont moins de 2 points attendus (Q"
-          + ", Q".join(str(m) for m in maigres) + ") : elles ne sont pas corrigeables")
+    exige(not maigres,
+          "moins de 2 points attendus, donc pas corrigeable : Q"
+          + ", Q".join(str(m) for m in maigres))
 
     total = sum(q.get("duree_minutes", 0) for q in questions)
     bas, haut = duree_format * 0.5, duree_format * 1.5

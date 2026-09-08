@@ -274,8 +274,13 @@ laquelle dans « notion » et dans quel chapitre.
 - Si la question s'appuie sur un document, tu écris ce document toi-même dans « document » \
 (texte court, tableau décrit en toutes lettres, extrait). Tu n'y renvoies jamais à une \
 image que l'élève n'a pas.
-- « points_attendus » : ce qu'une bonne réponse doit contenir, en 2 à 5 éléments \
-vérifiables. C'est le corrigé, l'élève ne le verra qu'après.
+- « corrige » : ce qu'une bonne réponse doit contenir, en éléments vérifiables. \
+« essentiel » est l'élément sans lequel la réponse est fausse ; « second » est celui \
+qui sépare « presque » de « juste » ; « en_plus » en ajoute jusqu'à trois. Les deux \
+premiers ne sont jamais vides : avec un seul critère, la correction ne peut plus \
+distinguer une réponse partielle d'une réponse complète, et l'élève n'apprend rien de \
+son « à revoir ». Si une question n'admet pas deux critères, c'est qu'elle est trop \
+maigre : pose-en une autre. C'est le corrigé, l'élève ne le verra qu'après.
 - « ou_dans_le_cours » : où l'élève retrouve ça dans SON cours (le titre du chapitre et \
 la phrase ou le passage concerné).
 - « duree_minutes » : le temps qu'un élève de {niveau} met raisonnablement.
@@ -309,14 +314,49 @@ SCHEMA_CONTROLE = {
                     "document": {"type": "string", "description": "Vide si la question n'en a pas."},
                     "notion": {"type": "string"},
                     "chapitre": {"type": "string"},
-                    "points_attendus": {"type": "array", "items": {"type": "string"}},
+                    # Le corrigé en trois champs plutôt qu'en un tableau, parce
+                    # qu'un tableau ne peut pas porter de minimum : l'API refuse
+                    # « minItems » au-delà de 1 (400, « values other than 0 or 1
+                    # are not supported »), comme elle refuse « maxItems ». Deux
+                    # champs obligatoires et un tableau pour le reste disent la
+                    # même chose avec ce qu'elle accepte — et « llm.py » remet
+                    # le tout à plat, si bien que le reste du produit continue de
+                    # ne connaître que « points_attendus ».
+                    "corrige": {
+                        "type": "object",
+                        "description": "Ce qu'une bonne réponse doit contenir. Deux "
+                                       "éléments au moins : avec un seul, la correction "
+                                       "ne peut plus distinguer une réponse partielle "
+                                       "d'une réponse complète.",
+                        "properties": {
+                            "essentiel": {
+                                "type": "string",
+                                "description": "L'élément sans lequel la réponse est fausse.",
+                            },
+                            "second": {
+                                "type": "string",
+                                "description": "Le deuxième élément vérifiable, celui qui "
+                                               "sépare « presque » de « juste ». Jamais vide : "
+                                               "si la question n'en admet pas deux, c'est "
+                                               "qu'elle est trop maigre — pose-en une autre.",
+                            },
+                            "en_plus": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Jusqu'à trois éléments supplémentaires, "
+                                               "vide si la question n'en demande pas.",
+                            },
+                        },
+                        "required": ["essentiel", "second", "en_plus"],
+                        "additionalProperties": False,
+                    },
                     "ou_dans_le_cours": {"type": "string"},
                     "duree_minutes": {"type": "integer"},
                     "poids": {"type": "integer"},
                 },
                 "required": [
                     "numero", "partie", "enonce", "document", "notion", "chapitre",
-                    "points_attendus", "ou_dans_le_cours", "duree_minutes", "poids",
+                    "corrige", "ou_dans_le_cours", "duree_minutes", "poids",
                 ],
                 "additionalProperties": False,
             },

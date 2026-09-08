@@ -313,7 +313,7 @@ python3 outils/garde.py --effort low    # « est-ce que ce réglage casse quelqu
 python3 outils/garde.py --modele claude-opus-5
 ```
 
-Environ **0,28 $** le passage, quatre à cinq minutes, et le code de sortie vaut 1 dès
+Entre **0,28 et 0,37 $** le passage, quatre à cinq minutes, et le code de sortie vaut 1 dès
 qu’une vérification tombe — elle s’enchaîne donc dans un script. Chaque échec porte la
 preuve : l’énoncé fautif est cité dans le message, pour qu’on n’ait pas à relancer pour
 comprendre.

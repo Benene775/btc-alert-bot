@@ -199,16 +199,13 @@ def test_une_question_qui_ne_renvoie_nulle_part_est_attrapee():
         garde.verifier_controle(controle, NOTIONS, 55)
 
 
-def test_une_seule_question_maigre_est_toleree_pas_deux():
-    """Le schéma n'impose pas les « 2 à 5 éléments » que demande la consigne :
-    le modèle en écrit parfois un seul. Une garde qui échoue là-dessus est une
-    garde qu'on cesse de lancer."""
+def test_une_question_maigre_est_attrapee():
+    """La garde en tolérait une tant que le schéma ne pouvait pas imposer les
+    deux critères. Il le peut maintenant — deux champs obligatoires au lieu d'un
+    tableau — donc elle n'en tolère plus aucune."""
     controle = controle_correct()
     controle["questions"][0]["points_attendus"] = ["seul"]
-    garde.verifier_controle(controle, NOTIONS, 55)
-
-    controle["questions"][1]["points_attendus"] = ["seul"]
-    with pytest.raises(garde.Manque, match="corrigeables"):
+    with pytest.raises(garde.Manque, match="pas corrigeable"):
         garde.verifier_controle(controle, NOTIONS, 55)
 
 
@@ -275,3 +272,54 @@ def test_les_trois_cas_existent_dans_le_corpus():
         assert cas["corpus"] in connus, f"« {cas['corpus'] } » n'est plus dans le corpus"
     assert sum(1 for c in garde.CAS if c["corriger"]) == 1, (
         "la correction est l'étape la plus chère : un seul cas doit la lancer")
+
+
+# --- Le corrigé de chaque question ------------------------------------------
+
+def test_le_schema_impose_deux_criteres_de_correction():
+    """La consigne demandait « 2 à 5 éléments » et rien ne l'imposait : le
+    schéma portait un simple tableau, et le modèle en écrivait parfois un seul.
+
+    L'API refuse « minItems » au-delà de 1 comme elle refuse « maxItems » — un
+    vrai appel le confirme, message pour message : « For 'array' type, 'minItems'
+    values other than 0 or 1 are not supported ». Le minimum passe donc par deux
+    champs obligatoires plutôt que par un tableau.
+    """
+    from app import prompts
+
+    question = prompts.SCHEMA_CONTROLE["properties"]["questions"]["items"]
+    assert "points_attendus" not in question["properties"], (
+        "le tableau est revenu : rien n'impose plus deux critères"
+    )
+    corrige = question["properties"]["corrige"]
+    assert set(corrige["required"]) == {"essentiel", "second", "en_plus"}
+    assert "corrige" in question["required"]
+    # Et le mot-clé refusé ne doit revenir nulle part.
+    assert "minItems" not in str(prompts.SCHEMA_CONTROLE)
+
+
+def test_le_corrige_redevient_points_attendus():
+    """La forme sur le fil est une décision de llm.py et de lui seul : partout
+    ailleurs — correction, démonstration, faux serveur, rapport du banc — une
+    question porte « points_attendus », une liste de chaînes."""
+    from app.llm import _aplatir_corriges
+
+    controle = {"questions": [
+        {"numero": 1, "corrige": {"essentiel": "Le premier",
+                                  "second": "Le deuxième",
+                                  "en_plus": ["Un troisième"]}},
+        # Un champ obligatoire peut arriver vide : « required » impose sa
+        # présence, pas son contenu.
+        {"numero": 2, "corrige": {"essentiel": "Seul", "second": "   ", "en_plus": []}},
+        # Une question déjà à plat (démonstration, rejeu) traverse sans dommage.
+        {"numero": 3, "points_attendus": ["Déjà", "à plat"]},
+    ]}
+    _aplatir_corriges(controle)
+
+    assert controle["questions"][0]["points_attendus"] == [
+        "Le premier", "Le deuxième", "Un troisième"]
+    assert controle["questions"][1]["points_attendus"] == ["Seul"]
+    assert controle["questions"][2]["points_attendus"] == ["Déjà", "à plat"]
+    assert all("corrige" not in q for q in controle["questions"]), (
+        "« corrige » traîne encore : la forme du schéma fuit hors de llm.py"
+    )

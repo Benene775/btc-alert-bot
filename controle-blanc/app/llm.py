@@ -245,13 +245,36 @@ def generer_controle(
         contrainte_notions=contrainte_notions,
         contrainte_deja_posees=contrainte_deja,
     )
-    return _appel(
+    donnees, usage = _appel(
         action="controle",
         blocs_systeme=_systeme_avec_cours(niveau, chapitres, "controle"),
         contenu_utilisateur=[{"type": "text", "text": consigne}],
         schema=prompts.SCHEMA_CONTROLE,
         max_tokens=20000,
     )
+    _aplatir_corriges(donnees)
+    return donnees, usage
+
+
+def _aplatir_corriges(controle: dict[str, Any]) -> None:
+    """« corrige » redevient « points_attendus », la liste que tout le reste attend.
+
+    Le schéma demande deux champs nommés plutôt qu'un tableau, parce que c'est
+    le seul moyen d'imposer un minimum de deux éléments : l'API refuse
+    « minItems » au-delà de 1. La conversion est faite ici, tout de suite, pour
+    que la forme sur le fil reste une décision de ce fichier et de lui seul —
+    ailleurs (la correction, la démonstration, le faux serveur, le rapport du
+    banc, les tests), une question porte toujours « points_attendus ».
+    """
+    for question in controle.get("questions") or []:
+        corrige = question.pop("corrige", None)
+        if not isinstance(corrige, dict):
+            continue
+        points = [corrige.get("essentiel"), corrige.get("second")]
+        points += corrige.get("en_plus") or []
+        # Un champ obligatoire peut arriver vide : « required » impose sa
+        # présence, pas son contenu. On ne garde que ce qui dit quelque chose.
+        question["points_attendus"] = [p.strip() for p in points if isinstance(p, str) and p.strip()]
 
 
 
