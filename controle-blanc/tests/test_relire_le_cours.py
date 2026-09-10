@@ -89,8 +89,14 @@ def test_ajouter_des_pages_n_efface_pas_un_signalement():
 def test_la_page_d_accueil_l_annonce_avec_un_exemple_de_maths():
     accueil = PAGE[PAGE.index('id="ecran-accueil"') : PAGE.index('id="ecran-connexion"')]
     assert "On relit ton cours, aussi" in accueil
-    assert "225 = 9 × 45" in accueil, "l'exemple annoncé n'est pas là"
-    assert "9 × 45 = 405" in accueil, "l'exemple ne montre pas pourquoi c'est faux"
+    # L'exemple doit être une faute que l'ÉLÈVE peut avoir écrite, et une sortie
+    # qu'on a vraiment vue. Le premier jet montrait « 225 = 9 × 45 » : c'était
+    # une MAUVAISE LECTURE du modèle sur un cahier où l'élève avait juste, donnée
+    # à voir comme sa faute — pour illustrer la fonction dont tout l'intérêt est
+    # justement de distinguer les deux.
+    assert "225 = 9 × 45" not in accueil, "l'exemple présente une erreur de lecture comme une faute d'élève"
+    assert "divisible par 4" in accueil, "l'exemple annoncé n'est pas là"
+    assert "14 se termine par 4" in accueil, "l'exemple ne montre pas pourquoi c'est faux"
     # Et la promesse ne doit pas dépasser ce que le produit fait.
     assert "On ne réécrit rien" in accueil
 
