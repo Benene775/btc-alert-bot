@@ -596,6 +596,10 @@
   <input type="file" id="champ-photos" accept="image/*" multiple hidden>
 
   <ul id="liste-photos" class="vignettes"></ul>
+  <!-- Ce que le modèle n'a pas pu lire, quand il n'a rien pu lire du tout. Ça
+       reste à l'écran tant que l'élève n'a pas refait ses photos : c'est
+       exactement le moment où il décide de recommencer ou de laisser tomber. -->
+  <div id="alerte-relecture" class="alerte" hidden></div>
   <p class="aide reste-pages" id="reste-pages" hidden></p>
   <p class="aide" id="aide-ordre" hidden>L’ordre compte : c’est celui de ton cours. Tire la poignée d’une page pour la déplacer.</p>
   <p class="masque" id="annonce-photos" role="status" aria-live="polite"></p>

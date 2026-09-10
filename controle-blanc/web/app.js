@@ -3342,9 +3342,21 @@ async function analyser() {
 
     const nouveaux = resultat.chapitres || [];
     if (!nouveaux.length) {
-      message("Aucune page n’était lisible. Reprends-les en photo, plus près et bien à plat.", 'alerte', 8000);
+      // Le modèle dit page par page ce qui a bloqué — l'ombre, la lumière, la
+      // netteté, la distance. Un message court qui s'efface au bout de huit
+      // secondes jetait ce conseil au moment précis où il sert. Il reste donc
+      // affiché, et le message générique ne sert plus que de filet.
+      const dit = dessinerRemarquesPhotos('alerte-relecture', illisibles.length > 1
+        ? 'Aucune page n’est passée. Voici ce qui a bloqué, page par page :'
+        : 'Cette page n’est pas passée :');
+      if (!dit) {
+        message("Aucune page n’était lisible. Reprends-les en photo, plus près et bien à plat.",
+                'alerte', 8000);
+      }
       return;
     }
+    // Une reprise qui marche efface l'avis précédent.
+    $('alerte-relecture').hidden = true;
     // Fusion : on peut ajouter des pages plus tard sans perdre ce qui a été lu.
     const titresConnus = new Set(etat.chapitres.map((c) => c.titre));
     nouveaux.forEach((c) => { if (!titresConnus.has(c.titre)) etat.chapitres.push({ ...c, actif: true }); });
@@ -3375,6 +3387,25 @@ async function analyser() {
   } catch (e) { gererErreur(e); }
 }
 
+/* Ce que le modèle n'a pas pu lire, page par page, avec ce qu'il faut corriger.
+ * Deux écrans s'en servent : « périmètre » quand une partie seulement est
+ * passée, et « photos » quand rien n'est passé. Le second cas est le plus
+ * important, et c'était celui qui n'affichait rien.
+ *
+ * Rend vrai s'il y avait quelque chose à dire. */
+function dessinerRemarquesPhotos(idBoite, entete) {
+  const boite = $(idBoite);
+  const remarques = etat.remarquesPhotos || [];
+  boite.hidden = remarques.length === 0;
+  if (boite.hidden) return false;
+  boite.innerHTML = '<b>' + echapper(entete) + '</b><ul>'
+    + remarques.map((p) => '<li>Page ' + (p.index + 1) + ' — '
+                           + echapper(p.remarque) + '</li>').join('')
+    + '</ul>';
+  return true;
+}
+
+
 /* ------------------------------------------- étape 2 : le périmètre ------ */
 
 function dessinerPerimetre() {
@@ -3385,15 +3416,7 @@ function dessinerPerimetre() {
 
   dessinerDoutes();
 
-  const alerte = $('alerte-photos');
-  if (etat.remarquesPhotos && etat.remarquesPhotos.length) {
-    alerte.innerHTML = '<b>Certaines pages sont mal passées :</b><ul>'
-      + etat.remarquesPhotos.map((p) => '<li>Page ' + (p.index + 1) + ' — ' + echapper(p.remarque) + '</li>').join('')
-      + '</ul>';
-    alerte.hidden = false;
-  } else {
-    alerte.hidden = true;
-  }
+  dessinerRemarquesPhotos('alerte-photos', 'Certaines pages sont mal passées :');
 
   const liste = $('liste-chapitres');
   liste.innerHTML = '';
