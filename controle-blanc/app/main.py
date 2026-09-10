@@ -98,7 +98,12 @@ def gerer_quota(_: Request, exc: store.QuotaDepasse) -> JSONResponse:
 
 @app.exception_handler(llm.ErreurModele)
 def gerer_modele(_: Request, exc: llm.ErreurModele) -> JSONResponse:
-    return JSONResponse(status_code=503, content={"erreur": "modele", "message": str(exc)})
+    # « reessayable » distingue l'incident de la panne : sur une panne de crédit,
+    # inviter à réessayer envoie l'élève se cogner à la même porte indéfiniment.
+    reessayable = not isinstance(exc, llm.CreditEpuise)
+    return JSONResponse(status_code=503,
+                        content={"erreur": "modele", "message": str(exc),
+                                 "reessayable": reessayable})
 
 
 @app.exception_handler(store.ErreurAuth)

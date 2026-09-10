@@ -29,6 +29,30 @@ class ErreurModele(Exception):
     """Le modèle n'a pas pu répondre. Message déjà formulé pour l'élève."""
 
 
+class CreditEpuise(ErreurModele):
+    """Le compte n'a plus de crédit chez le fournisseur.
+
+    Rangé à part parce que ce n'est pas un incident : c'est une panne
+    d'exploitation. Tant que le compte n'est pas rechargé, AUCUN appel ne
+    passera, pour PERSONNE. Dire « réessaie » à l'élève est alors un mensonge
+    qui le fera revenir jusqu'à ce qu'il abandonne — et le seul qui puisse y
+    faire quelque chose n'est pas devant l'écran.
+    """
+
+
+def _est_une_panne_de_credit(exc: Exception) -> bool:
+    """L'API ne donne pas de code distinct : le même « invalid_request_error »
+    sert à toutes les requêtes mal formées, et sur un appel en flux le statut
+    remonte même à 200. Il ne reste que le message, cherché en minuscules et
+    sans dépendre de sa ponctuation.
+
+    Rencontré une fois, en vrai, au milieu d'un parcours :
+    « Your credit balance is too low to access the Anthropic API. »
+    """
+    texte = str(getattr(exc, "message", "") or exc).lower()
+    return "credit balance is too low" in texte or "purchase credits" in texte
+
+
 def client() -> Any:
     global _client
     if _client is None:
@@ -84,6 +108,17 @@ def _appel(
             "Ça bouchonne en ce moment. Réessaie dans une minute, ton travail est gardé."
         ) from exc
     except anthropic.APIStatusError as exc:
+        if _est_une_panne_de_credit(exc):
+            # « critical » et pas « error » : dans un journal, c'est la seule
+            # ligne de la journée qui demande une action immédiate, et elle ne
+            # doit pas se perdre au milieu des erreurs ordinaires.
+            logger.critical(
+                "CRÉDIT ÉPUISÉ chez le fournisseur — plus aucun appel ne passera, "
+                "pour aucun élève, tant que le compte n'est pas rechargé : %s", exc)
+            raise CreditEpuise(
+                "Le service est à l'arrêt pour quelques heures. Ce n'est ni ta photo "
+                "ni ton cours : ton travail est gardé, reviens tout à l'heure."
+            ) from exc
         logger.error("erreur API (%s) : %s", exc.status_code, exc)
         raise ErreurModele(
             "L'analyse n'a pas abouti. Réessaie — si ça recommence, préviens ton professeur."

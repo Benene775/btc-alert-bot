@@ -2606,7 +2606,11 @@ async function api(chemin, options = {}) {
     throw new ErreurApi(corps.message || 'Limite atteinte pour aujourd’hui.', 'quota');
   }
   if (reponse.status === 503) {
-    throw new ErreurApi(corps.message || 'Le service est indisponible. Réessaie.', 'modele');
+    const erreur = new ErreurApi(corps.message || 'Le service est indisponible. Réessaie.', 'modele');
+    // Une panne côté service n'est pas un incident : réessayer n'y changera
+    // rien, et le message ne doit pas le laisser croire.
+    erreur.reessayable = corps.reessayable !== false;
+    throw erreur;
   }
   throw new ErreurApi(corps.detail || corps.message || "Ça n’a pas marché. Réessaie.", 'autre');
 }
