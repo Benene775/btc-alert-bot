@@ -74,6 +74,17 @@ def analyse(nombre_photos: int) -> dict[str, Any]:
     return {
         "photos": photos,
         "matiere_detectee": "Histoire-Géographie",
+        # Une ligne fausse dans le cours. C'est le cas rare, mais c'est celui que
+        # la page d'accueil met en avant : la démonstration doit le montrer,
+        # sinon elle contredit la promesse.
+        "a_verifier": [
+            {"page": 0,
+             "ecrit": "L'armistice est signé le 11 novembre 1919.",
+             "probleme": "L'armistice de la Première Guerre mondiale, c'est le "
+                         "11 novembre 1918. 1919, c'est le traité de Versailles, "
+                         "signé le 28 juin.",
+             "plutot": "L'armistice est signé le 11 novembre 1918."},
+        ],
         # Deux doutes, dont un chiffre : c'est le cas que l'écran doit savoir
         # montrer, et celui qui coûte le plus cher à laisser passer.
         "doutes": [

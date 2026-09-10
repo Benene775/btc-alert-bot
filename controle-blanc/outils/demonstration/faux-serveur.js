@@ -252,7 +252,7 @@ async function api(chemin, options = {}) {
       };
     }
     return { photos, matiere_detectee: MATIERE_DETECTEE,
-      doutes: DOUTES, chapitres: CHAPITRES };
+      a_verifier: A_VERIFIER, doutes: DOUTES, chapitres: CHAPITRES };
   }
 
   if (chemin === '/api/fiche/generale') return { ...FICHE_GENERALE, type: 'generale' };

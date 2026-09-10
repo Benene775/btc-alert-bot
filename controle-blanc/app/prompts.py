@@ -95,6 +95,20 @@ les notions du chapitre, en premier.
 - Repère la structure du cours : le titre, les parties (I., II., a), b)…), les définitions, \
 les exemples, les « à retenir ». Restitue-la dans la transcription, elle guidera les questions.
 
+Ce qui te paraît faux, tu le signales sans le corriger :
+- Tu transcris toujours ce qui est écrit, jamais ce que ça devrait être. Corriger en \
+silence retirerait à l'élève la seule occasion de s'en apercevoir, et il réviserait une \
+version de son cours que son professeur n'a pas écrite.
+- Signaler demande une certitude, pas une impression : un calcul qui ne tombe pas juste, \
+une définition qui contredit celle écrite deux lignes plus haut, une date impossible. Si \
+tu hésites entre « c'est faux » et « j'ai mal lu », c'est un doute, pas un signalement.
+- Tu ne signales jamais une tournure maladroite, une abréviation, une faute d'orthographe \
+ni un raccourci de notation. Ce sont des notes prises en classe, pas un manuel.
+- Tu n'as pas le dernier mot, et tu ne fais pas semblant de l'avoir. Le professeur a pu \
+simplifier exprès, ou l'élève recopier un contre-exemple. Tu écris ce qui te paraît \
+clocher, tu montres le calcul quand il y en a un, et tu le laisses vérifier.
+- Vide dans l'immense majorité des cas.
+
 Ce dont tu n'es pas sûr, tu le demandes :
 - Une transcription fausse ne se voit pas. L'élève lira une fiche impeccable, bâtie sur un mot que tu as mal lu, et il n'a aucun moyen de s'en apercevoir. Alors quand tu hésites, tu le dis — c'est lui qui sait lire son écriture, pas toi.
 - Un doute, c'est un endroit où tu as vraiment hésité entre deux lectures possibles, ou que tu as reconstitué d'après le contexte au lieu de le lire. Ce n'est PAS un passage important : si tu peux dire sans hésiter ce qui est écrit, ce n'en est pas un, même s'il s'agit de la définition centrale du chapitre. Important et illisible sont deux choses différentes, et confondre les deux fait poser des questions pour rien.
@@ -154,6 +168,38 @@ SCHEMA_ANALYSE = {
             "type": "string",
             "description": "Matière déduite du contenu, ou chaîne vide si indécidable.",
         },
+        # Ce qui semble faux dans le cours lui-même. À ne pas confondre avec les
+        # deux autres canaux : « remarque » dit ce qui ne va pas avec la PHOTO,
+        # « doutes » dit ce qu'on n'a pas su LIRE, et ceci dit ce qu'on a bien lu
+        # mais qui paraît FAUX. Trois problèmes différents, trois écrans
+        # différents — les mélanger, c'est apprendre à l'élève à tout ignorer.
+        "a_verifier": {
+            "type": "array",
+            "description": "Ce qui semble faux dans le cours. Vide dans l'immense "
+                           "majorité des cas : un cours recopié en classe est juste.",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "page": {"type": "integer", "description": "Index de la photo, à partir de 0."},
+                    "ecrit": {
+                        "type": "string",
+                        "description": "Ce qui est écrit dans le cahier, au caractère près.",
+                    },
+                    "probleme": {
+                        "type": "string",
+                        "description": "Ce qui cloche, en une phrase, en tutoyant. "
+                                       "Montre le calcul quand il y en a un.",
+                    },
+                    "plutot": {
+                        "type": "string",
+                        "description": "Ce que ce devrait être, si tu peux le dire. "
+                                       "Chaîne vide sinon.",
+                    },
+                },
+                "required": ["page", "ecrit", "probleme", "plutot"],
+                "additionalProperties": False,
+            },
+        },
         "doutes": {
             "type": "array",
             # Pas de « maxItems » : l'API le REFUSE dans un schéma de sortie
@@ -205,7 +251,7 @@ SCHEMA_ANALYSE = {
             },
         },
     },
-    "required": ["photos", "matiere_detectee", "doutes", "chapitres"],
+    "required": ["photos", "matiere_detectee", "a_verifier", "doutes", "chapitres"],
     "additionalProperties": False,
 }
 

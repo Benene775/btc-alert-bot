@@ -119,6 +119,16 @@ const CHAPITRE = SEQUENCE_MADRID;
 const CHAPITRES = [SEQUENCE_TURISMO, SEQUENCE_MADRID];
 const MATIERE_DETECTEE = 'Espagnol';
 
+/* En langue vivante, l’erreur du cahier est dans la langue étudiée : la
+   transcription rétablit la forme correcte, et on dit laquelle et pourquoi. */
+const A_VERIFIER = [
+  { page: 1,
+    ecrit: '¡Que bonita es Madrid!',
+    probleme: 'Dans une exclamative, « qué » porte toujours l’accent écrit. '
+            + 'Sans accent, « que » est une conjonction et la phrase ne veut plus rien dire.',
+    plutot: '¡Qué bonita es Madrid!' },
+];
+
 const DOUTES = [
   { page: 0, lu: 'el 13 por ciento del PIB',
     pourquoi: 'le chiffre pourrait être un 18' },

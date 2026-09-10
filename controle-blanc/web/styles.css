@@ -788,6 +788,49 @@ select {
   margin: 0 0 var(--e3);
 }
 
+/* La relecture du cours, sur la page d'accueil. La ligne fautive est barrée en
+   rouge comme dans la marge d'une copie, et l'explication tient dessous. */
+.relecture { display: flex; flex-direction: column; gap: var(--e3); }
+.relecture-mot { margin: 0; max-width: 62ch; color: var(--encre-douce); }
+.relecture-fin { font-size: .92rem; }
+.copie-verif .copie-reponse { color: var(--rouge); }
+
+/* Le même bloc que les doutes, mais rouge : ce n'est pas une question qu'on
+   pose à l'élève, c'est quelque chose qu'on lui montre. */
+.a-verifier { border-left-color: var(--rouge); }
+
+.verif { border-top: 1px solid var(--trait); padding-top: 12px; }
+.verif:first-child { border-top: 0; padding-top: 0; }
+
+/* Ce qui est écrit dans le cahier : une citation du cours, pas notre texte. */
+.verif-ecrit {
+  font-family: var(--manuscrit);
+  font-size: 1.06rem;
+  margin: 0 0 6px;
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in srgb, var(--rouge) 55%, transparent);
+  text-decoration-thickness: 2px;
+}
+
+.verif-probleme { font-size: .9rem; margin: 0; }
+
+.verif-plutot {
+  font-family: var(--manuscrit);
+  font-size: 1.02rem;
+  margin: 8px 0 0;
+  color: var(--accent);
+}
+
+.verif-page {
+  font-family: var(--mono);
+  font-size: .62rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--encre-douce);
+  display: block;
+  margin: 6px 0 0;
+}
+
 .doutes h3 {
   font-family: var(--titre);
   font-size: 1.02rem;

@@ -161,7 +161,7 @@
         <span class="deroule-numero">1</span>
         <div>
           <h3>Tu photographies ton cours</h3>
-          <p>Deux minutes. Plusieurs pages d’un coup, écriture à la main comprise. Si une photo est illisible, on te le dit tout de suite.</p>
+          <p>Deux minutes. Plusieurs pages d’un coup, écriture à la main comprise. Si une photo est illisible, on te le dit tout de suite — et si une ligne de ton cours semble fausse, aussi.</p>
         </div>
       </li>
       <li>
@@ -179,6 +179,33 @@
         </div>
       </li>
     </ol>
+  </section>
+
+  <!-- La relecture du cours. Mise en avant parce que c'est la seule chose ici
+       qu'un cahier ne peut pas faire pour lui-même : personne ne relit le cours
+       d'un élève entre le jour où il l'écrit et le jour du contrôle. -->
+  <section class="bloc a-reveler">
+    <p class="titre-bloc">On relit ton cours, aussi</p>
+    <div class="relecture">
+      <p class="relecture-mot">
+        Ton cours est recopié à la main, en classe, vite, sous la dictée. Il arrive
+        qu’une ligne soit fausse — et c’est la pire chose qui puisse arriver à une
+        révision : tu apprends l’erreur par cœur. En maths, chaque calcul est refait
+        pendant qu’on te lit.
+      </p>
+      <figure class="copie copie-verif" aria-label="Exemple d’une ligne signalée">
+        <div class="copie-marge"><span class="copie-numero">4</span></div>
+        <div class="copie-corps seyes">
+          <p class="copie-reponse verif-ecrit">225 = 9 × 45</p>
+          <p class="copie-note">9 × 45 = 405, pas 225. Vérifie cette ligne : ce serait
+            plutôt 225 = 9 × 25.</p>
+        </div>
+      </figure>
+      <p class="relecture-mot relecture-fin">
+        On ne réécrit rien. Ton cours reste celui de ton professeur — c’est à lui
+        qu’il faut le redemander. On te montre juste ce qui cloche.
+      </p>
+    </div>
   </section>
 
   <section class="bloc bande a-reveler">
@@ -615,6 +642,17 @@
   <p class="chapeau">C’est bien tout ce qui tombe au contrôle ?</p>
 
   <div id="alerte-photos" class="alerte" hidden></div>
+
+  <!-- Ce qui a été bien lu, mais qui paraît faux. Passe avant les doutes : un
+       mot mal lu, l'élève le rectifie en deux secondes ; une ligne fausse dans
+       son cours, il l'apprend par cœur et la ressort le jour du contrôle.
+       On ne corrige rien de soi-même — le cours reste celui du professeur. -->
+  <section id="a-verifier" class="doutes a-verifier" hidden>
+    <h3 id="a-verifier-titre">Une ligne à vérifier dans ton cours</h3>
+    <p class="doutes-mot">Je ne change rien à ton cours : c'est celui de ton
+      professeur. Mais ça, ça vaut le coup de le lui redemander.</p>
+    <ul id="liste-a-verifier"></ul>
+  </section>
 
   <!-- Ce que le modèle n'a pas lu avec certitude. Deux au maximum : c'est
        l'élève qui sait lire son écriture, mais il n'a pas cinq minutes. -->

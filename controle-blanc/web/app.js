@@ -83,6 +83,7 @@ function etatNeuf(sessionId, lien) {
     dateControle: '',
     chapitres: [],
     remarquesPhotos: [],
+    aVerifier: [],
     doutes: [],
     chemin: '',
     ordreCarrefour: [],
@@ -3340,6 +3341,14 @@ async function analyser() {
         page: d.page, lu: d.lu || '', pourquoi: d.pourquoi || '', repondu: false,
       })).filter((d) => d.lu));
 
+    // Empilé comme les doutes : ajouter des pages plus tard ne doit pas effacer
+    // une ligne signalée que l'élève n'a pas encore vérifiée.
+    etat.aVerifier = (etat.aVerifier || []).concat(
+      (resultat.a_verifier || [])
+        .map((v) => ({ page: v.page, ecrit: v.ecrit || '',
+                       probleme: v.probleme || '', plutot: v.plutot || '' }))
+        .filter((v) => v.ecrit && v.probleme));
+
     const nouveaux = resultat.chapitres || [];
     if (!nouveaux.length) {
       // Le modèle dit page par page ce qui a bloqué — l'ombre, la lumière, la
@@ -3387,6 +3396,56 @@ async function analyser() {
   } catch (e) { gererErreur(e); }
 }
 
+/* Ce que le modèle a bien lu mais qui paraît faux dans le cours lui-même.
+ *
+ * On ne corrige rien : le cours reste celui du professeur, et une application
+ * qui réécrit silencieusement le cahier ferait réviser à l'élève une version
+ * que personne n'a enseignée. On montre la ligne, on dit ce qui cloche, et on
+ * le renvoie à son professeur. La ligne est barrée, pas remplacée.
+ */
+function dessinerAVerifier() {
+  const boite = $('a-verifier');
+  const liste = etat.aVerifier || [];
+  boite.hidden = liste.length === 0;
+  if (boite.hidden) return;
+
+  $('a-verifier-titre').textContent = liste.length > 1
+    ? liste.length + ' lignes à vérifier dans ton cours'
+    : 'Une ligne à vérifier dans ton cours';
+
+  const ul = $('liste-a-verifier');
+  ul.innerHTML = '';
+  liste.forEach((v) => {
+    const li = document.createElement('li');
+    li.className = 'verif';
+
+    const ecrit = document.createElement('p');
+    ecrit.className = 'verif-ecrit';
+    ecrit.textContent = v.ecrit;
+
+    const probleme = document.createElement('p');
+    probleme.className = 'verif-probleme';
+    probleme.textContent = v.probleme;
+
+    li.append(ecrit, probleme);
+
+    if (v.plutot) {
+      const plutot = document.createElement('p');
+      plutot.className = 'verif-plutot';
+      plutot.textContent = v.plutot;
+      li.appendChild(plutot);
+    }
+
+    const page = document.createElement('span');
+    page.className = 'verif-page';
+    page.textContent = 'page ' + ((v.page || 0) + 1) + ' de ton cahier';
+    li.appendChild(page);
+
+    ul.appendChild(li);
+  });
+}
+
+
 /* Ce que le modèle n'a pas pu lire, page par page, avec ce qu'il faut corriger.
  * Deux écrans s'en servent : « périmètre » quand une partie seulement est
  * passée, et « photos » quand rien n'est passé. Le second cas est le plus
@@ -3414,6 +3473,7 @@ function dessinerPerimetre() {
     ? "J’ai repéré " + nombre + ' chapitres.'
     : "J’ai repéré 1 chapitre.";
 
+  dessinerAVerifier();
   dessinerDoutes();
 
   dessinerRemarquesPhotos('alerte-photos', 'Certaines pages sont mal passées :');

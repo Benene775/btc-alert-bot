@@ -250,6 +250,16 @@ const QUESTIONS_BIS = [
 const CHAPITRES = [CHAPITRE];
 const MATIERE_DETECTEE = 'Histoire-Géographie / EMC';
 
+/* Une ligne fausse dans le cours lui-même — la date la plus recopiée de travers
+   du programme. On ne la corrige pas dans la transcription : on la montre. */
+const A_VERIFIER = [
+  { page: 0,
+    ecrit: 'L’armistice est signé le 11 novembre 1919.',
+    probleme: 'L’armistice de la Première Guerre mondiale, c’est le 11 novembre 1918. '
+            + '1919, c’est le traité de Versailles, signé le 28 juin.',
+    plutot: 'L’armistice est signé le 11 novembre 1918.' },
+];
+
 const DOUTES = [
   { page: 1, lu: 'environ 700 000 victimes',
     pourquoi: 'le nombre est écrit serré, entre deux lignes' },
