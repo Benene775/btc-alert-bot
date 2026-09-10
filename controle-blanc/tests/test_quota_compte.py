@@ -250,3 +250,53 @@ def test_une_seance_ne_depasse_pas_un_cours():
     accumuler douze envois de huit pages, la fiche porterait sur un trimestre —
     et le plafond par cours ne voudrait plus rien dire."""
     assert config.QUOTAS["analyse"]["session"] == config.MAX_PHOTOS_PAR_ANALYSE
+
+
+def test_un_refus_de_quota_ne_s_efface_pas_tout_seul():
+    """Mesuré en épuisant les compteurs sur les vraies routes : le serveur rend
+    un 429 avec « Tu as fait toutes tes fiches du mois. Celles que tu as déjà
+    sont toujours sur ta page ; le compteur repart le 1er. »
+
+    Ce message porte une date et une marche à suivre, et l'élève vient de faire
+    trois ou quatre gestes pour l'obtenir — ouvrir l'outil, choisir son cours,
+    cocher ses chapitres, lancer. Sept secondes ne suffisent pas à retenir les
+    deux, et il se retrouvait sur un écran sans explication.
+    """
+    bloc = SCRIPT[SCRIPT.index("function gererErreur"):]
+    bloc = bloc[: bloc.index("\n}\n")]
+    assert "erreur.genre === 'quota' ? 0 : 7000" in bloc, (
+        "le refus de quota s'efface encore tout seul"
+    )
+    # Et seulement lui : un message qu'il faut fermer à la main devient vite un
+    # message qu'on ferme sans lire.
+    envoi = SCRIPT[SCRIPT.index("function message("):]
+    envoi = envoi[: envoi.index("\n}\n")]
+    assert "if (duree > 0)" in envoi and "dataset.persistant" in envoi
+
+
+def test_il_peut_l_ecarter_et_il_ne_suit_pas_d_ecran_en_ecran():
+    montrer = SCRIPT[SCRIPT.index("function montrer(id)"):]
+    montrer = montrer[: montrer.index("\n}\n")]
+    assert "dataset.persistant" in montrer, (
+        "un reproche qui suit l'élève de page en page"
+    )
+    assert "$('message').onclick" in SCRIPT, "rien ne permet de le fermer"
+
+
+def test_le_seul_plafond_de_seance_atteignable_a_son_message():
+    """Les autres sont inatteignables : pour les fiches et les contrôles, le
+    plafond du mois est identique ou plus bas, et il est vérifié avant. Seul
+    celui des pages par cours (8 contre 96 dans le mois) se rencontre — et il
+    répondait « Limite atteinte pour ce cours », ce qui est vrai et inutile."""
+    from app import store
+
+    message = store.MESSAGES_QUOTA[("analyse", "session")]
+    assert "Huit pages par cours" in message
+    # Il doit dire la sortie, pas seulement la limite.
+    assert "deuxième cours" in message
+
+    for action in ("fiche_generale", "controle", "fiche_ciblee"):
+        assert config.QUOTAS_MOIS[action] <= config.QUOTAS[action]["session"], (
+            f"le plafond de séance de « {action} » est devenu atteignable : "
+            "il lui faut son propre message"
+        )

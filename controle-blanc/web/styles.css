@@ -2208,6 +2208,13 @@ details.detail-reponse p { font-size: .92rem; margin: 0 0 10px; }
 
 .message[data-ton="alerte"] { background: var(--rouge); color: var(--papier); }
 
+/* Celui qui reste se signale : un liseré, et le curseur qui dit qu'on peut le
+   fermer. Sans ça il se confond avec ceux qui vont disparaître tout seuls. */
+.message[data-persistant] {
+  cursor: pointer;
+  border: 1px solid color-mix(in srgb, var(--sur-accent) 35%, transparent);
+}
+
 /* --- Dialogue ----------------------------------------------------------- */
 
 dialog {

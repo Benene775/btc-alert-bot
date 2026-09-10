@@ -2636,6 +2636,12 @@ function envoyerJson(chemin, corps, methode = 'POST') {
 
 function montrer(id) {
   ecrans().forEach((section) => { section.hidden = section.id !== id; });
+  // Un message persistant appartient à l'écran où il est né : le traîner
+  // ailleurs, c'est un reproche qui suit l'élève de page en page.
+  if ($('message').dataset.persistant) {
+    $('message').hidden = true;
+    delete $('message').dataset.persistant;
+  }
   // La fiche du jour vit hors des écrans — sinon « position: fixed » se cale
   // sur la section, qui porte un transform. Elle ne se cache donc pas avec eux :
   // on la referme à la main en quittant sa page.
@@ -2712,13 +2718,24 @@ function attendre(texte, sousTexte = '') {
 function fermerAttente() { $('attente').hidden = true; }
 
 let minuteurMessage = null;
+/* « duree = 0 » : le message reste jusqu'à ce qu'on le ferme ou qu'on change
+ * d'écran. Réservé à ce qui doit pouvoir être relu — un refus de quota dit une
+ * date (« le compteur repart le 1er ») et une marche à suivre, et sept secondes
+ * ne suffisent pas à retenir les deux. Tout le reste s'efface tout seul : un
+ * message qu'il faut fermer à la main devient vite un message qu'on ferme sans
+ * lire. */
 function message(texte, ton = 'neutre', duree = 4200) {
   const boite = $('message');
   boite.textContent = texte;
   boite.dataset.ton = ton;
   boite.hidden = false;
   clearTimeout(minuteurMessage);
-  minuteurMessage = setTimeout(() => { boite.hidden = true; }, duree);
+  if (duree > 0) {
+    delete boite.dataset.persistant;
+    minuteurMessage = setTimeout(() => { boite.hidden = true; }, duree);
+  } else {
+    boite.dataset.persistant = 'oui';
+  }
 }
 
 function gererErreur(erreur) {
@@ -2729,7 +2746,11 @@ function gererErreur(erreur) {
       oublierLeCompte();
       return exigerEntree(null);
     }
-    message(erreur.message, erreur.genre === 'quota' ? 'neutre' : 'alerte', 7000);
+    // Un refus de quota reste affiché : il porte une date et une marche à
+    // suivre, et l'élève vient de faire trois ou quatre gestes pour y arriver.
+    message(erreur.message,
+            erreur.genre === 'quota' ? 'neutre' : 'alerte',
+            erreur.genre === 'quota' ? 0 : 7000);
     if (erreur.genre === 'session') demarrerSession();
     return;
   }
@@ -5335,6 +5356,12 @@ document.addEventListener('DOMContentLoaded', () => {
     evenement.target.value = '';
   };
   $('bouton-analyser').onclick = analyser;
+  // Un message qui reste doit pouvoir partir : on le touche, il s'en va.
+  $('message').onclick = () => {
+    if (!$('message').dataset.persistant) return;
+    $('message').hidden = true;
+    delete $('message').dataset.persistant;
+  };
 
   $('bouton-perimetre-ok').onclick = confirmerPerimetre;
   $('bouton-plus-de-photos').onclick = () => montrer('ecran-photos');

@@ -925,6 +925,15 @@ MESSAGES_QUOTA = {
     ("analyse", "jour"): (
         "Ça dépasse tes pages du jour. Retires-en quelques-unes, ou reviens demain."
     ),
+    # Le seul plafond de séance qu'on puisse atteindre : pour les fiches et les
+    # contrôles, celui du mois est identique ou plus bas, et il est vérifié
+    # avant. Sans cette entrée, l'élève lisait « Limite atteinte pour ce cours »
+    # — vrai, et inutile : il n'apprenait ni le chiffre, ni qu'un deuxième cours
+    # lui rouvre huit pages.
+    ("analyse", "session"): (
+        "Huit pages par cours, c'est le maximum. Garde les plus importantes — "
+        "ou photographie la suite comme un deuxième cours, ça repart de zéro."
+    ),
     ("fiche_generale", "jour"): "Tu as déjà généré tes fiches générales du jour. Reviens demain.",
     ("fiche_ciblee", "jour"): "Tu as déjà généré tes fiches ciblées du jour. Reviens demain.",
     # Le mois, lui, ne se rattrape pas demain : le message doit le dire, et
