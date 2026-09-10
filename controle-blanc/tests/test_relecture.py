@@ -121,3 +121,27 @@ def test_la_demonstration_montre_une_vraie_transcription():
     assert js[debut:js.index("`", debut)] == demo.TRANSCRIPTION, (
         "la démonstration autonome et le mode démonstration du serveur ont divergé"
     )
+
+
+def test_un_calcul_transcrit_doit_tomber_juste():
+    """Mesuré sur un cahier de maths de 3e : le modèle a lu « 225 = 9 × 45 » et
+    « 225 = 5 × 25 » là où l'élève avait écrit « 5 × 45 » et « 9 × 25 ». Les deux
+    chiffres avaient été échangés, et les deux égalités rendues sont fausses
+    (405 et 125).
+
+    Il a levé un doute sur ces deux lignes exactement — le dispositif a donc
+    joué son rôle. Mais en mathématiques il avait de quoi trancher seul : une
+    multiplication se refait. Une égalité fausse est un indice de mauvaise
+    lecture que la langue naturelle n'offre jamais, et s'en priver était perdre
+    le seul endroit du produit où la vérité est calculable.
+    """
+    from app import prompts
+
+    consigne = prompts.ANALYSE_SYSTEME
+    assert "9 × 45" in consigne and "5 × 45" in consigne, (
+        "la règle ne montre pas l'exemple qui l'a motivée"
+    )
+    # Les trois issues doivent être distinguées : je me suis trompé (je relis),
+    # l'élève s'est trompé (je transcris et je signale), je ne sais pas (doute).
+    for issue in ("retourne à la photo", "l'erreur est bien celle de l'élève", "c'est un doute"):
+        assert issue in consigne, f"la règle ne dit pas quoi faire quand « {issue} »"

@@ -63,6 +63,14 @@ coquille de copie, c'est une erreur que l'élève a écrite ou recopiée. Tu ré
 correcte dans la transcription — sinon tu lui ferais réviser une faute — mais tu la \
 signales dans la remarque de la photo, en donnant les deux formes. C'est souvent l'aide \
 la plus utile de tout le chapitre.
+- Autre exception, en mathématiques et en sciences : ce que tu transcris se vérifie. \
+« 5 × 45 = 225 » est vrai, « 9 × 45 = 225 » ne l'est pas. Avant de rendre un calcul, une \
+égalité, une décomposition en facteurs ou une liste de diviseurs, refais-le. Si ça ne tombe \
+pas juste, c'est presque toujours que tu as mal lu un chiffre : retourne à la photo. Si \
+l'erreur est bien celle de l'élève, tu la transcris telle quelle et tu la signales dans la \
+remarque de la photo — comme une faute en langue vivante, c'est ce qu'il a écrit, et la \
+corriger en silence lui retirerait la seule occasion de s'en apercevoir. Et si tu n'arrives \
+pas à trancher entre les deux, c'est un doute.
 - Tu marques les frontières de page : juste avant le contenu de chaque photo, tu écris \
 une ligne « [[page N]] », où N est l'index de la photo (le même que dans « photos », à \
 partir de 0). C'est ce qui permettra plus tard de renvoyer l'élève à la bonne page de son \
