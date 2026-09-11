@@ -154,6 +154,18 @@ def _poser_cookie(reponse: JSONResponse, jeton: str, requete: Request) -> None:
         secure=requete.url.scheme == "https",
         path="/",
     )
+    # Le piège du déploiement derrière un proxy : uvicorn ne croit l'en-tête
+    # « X-Forwarded-Proto » que des machines listées dans --forwarded-allow-ips,
+    # et par défaut il n'y a que 127.0.0.1. Sur Render, Railway ou Fly, le proxy
+    # a une autre adresse : l'application voit du http, et ce cookie part sans
+    # Secure sans que rien ne le signale. On le signale — à la première
+    # connexion, et fort.
+    if requete.url.scheme != "https" and config.PUBLIC_BASE_URL.startswith("https://"):
+        logger.critical(
+            "COOKIE SANS « Secure » — le site est annoncé en https (%s) mais la requête "
+            "arrive en http : le proxy n'est pas reconnu. Pose CB_IPS_PROXY=* sur la "
+            "plateforme, sinon le jeton de connexion circule en clair.",
+            config.PUBLIC_BASE_URL)
 
 
 def compte_connecte(cb_jeton: str | None = Cookie(default=None)) -> dict[str, str]:
