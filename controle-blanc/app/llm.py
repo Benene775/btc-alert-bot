@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from typing import Any
 
 from . import config, demo, prompts
@@ -336,7 +337,50 @@ def generer_controle(
         max_tokens=20000,
     )
     _aplatir_corriges(donnees)
+    _reprendre_les_documents(donnees)
     return donnees, usage
+
+
+# Ce qui, dans un énoncé, renvoie à un document qu'on est censé avoir sous les
+# yeux. Le déterminant compte : « le texte » désigne un document, « un texte »
+# est ce qu'on demande à l'élève d'écrire.
+_RENVOI_A_UN_DOCUMENT = re.compile(
+    r"(?:\b(?:le|la|les|ce|cet|cette|ces|du|des|au|aux)\s+|\bl['’])"
+    r"(?:document|texte|tableau|graphique|extrait|sch[eé]ma|carte|corpus|frise|figure"
+    r"|illustration|photographie|image|courbe|affiche|caricature|témoignage)s?\b"
+    r"|ci-(?:dessus|dessous|contre)",
+    re.IGNORECASE,
+)
+
+
+def _reprendre_les_documents(controle: dict[str, Any]) -> None:
+    """Une question qui renvoie à un document sans le porter reçoit le dernier vu.
+
+    L'élève voit UNE question à la fois : le document écrit dans la question 3
+    n'existe plus à l'écran à la question 4. Le modèle, lui, compose comme sur
+    un sujet papier, où tout reste sous les yeux — il a posé la question 4
+    « d'après le document » en laissant le champ vide, et la question est
+    devenue sans réponse possible. Trouvé par un testeur, pas par un test.
+
+    La consigne le dit maintenant. Mais une consigne se respecte « presque
+    toujours », et presque toujours ne suffit pas quand le raté rend une
+    question impossible. Ce filet ne se trompe que dans un sens : il peut
+    afficher un document de trop, jamais en retirer un qui manquait.
+    """
+    dernier = ""
+    for question in controle.get("questions") or []:
+        if not isinstance(question, dict):
+            continue
+        porte = (question.get("document") or "").strip()
+        if porte:
+            question["document"] = porte
+            dernier = porte
+        elif dernier and _RENVOI_A_UN_DOCUMENT.search(question.get("enonce") or ""):
+            logger.info(
+                "question %s : renvoi à un document sans document — on reprend le précédent",
+                question.get("numero"),
+            )
+            question["document"] = dernier
 
 
 def _aplatir_corriges(controle: dict[str, Any]) -> None:

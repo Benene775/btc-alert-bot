@@ -328,6 +328,12 @@ laquelle dans « notion » et dans quel chapitre.
 - Si la question s'appuie sur un document, tu écris ce document toi-même dans « document » \
 (texte court, tableau décrit en toutes lettres, extrait). Tu n'y renvoies jamais à une \
 image que l'élève n'a pas.
+- L'élève voit UNE question à la fois, seule à l'écran, sans retour en arrière possible. \
+Un document n'est donc lisible que dans la question qui le porte. Si plusieurs questions \
+s'appuient sur le même document, tu le recopies EN ENTIER dans le champ « document » de \
+chacune d'elles, mot pour mot — ce n'est pas une redite, c'est la seule façon qu'il soit \
+sous ses yeux. Une question qui dit « d'après le document » sans le porter est une \
+question à laquelle l'élève ne peut pas répondre.
 - « corrige » : ce qu'une bonne réponse doit contenir, en éléments vérifiables. \
 « essentiel » est l'élément sans lequel la réponse est fausse ; « second » est celui \
 qui sépare « presque » de « juste » ; « en_plus » en ajoute jusqu'à trois. Les deux \
