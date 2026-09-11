@@ -242,6 +242,31 @@ body {
 .menu-entree:hover,
 .menu-entree:focus-visible { background: var(--accent-doux); color: var(--accent); }
 
+/* Les deux archives se partagent une ligne : deux moitiés égales disent qu'on
+   choisit l'une OU l'autre, là où deux lignes empilées les faisaient lire comme
+   deux étapes. */
+.menu-paire {
+  display: flex;
+  gap: 4px;
+}
+
+/* « flex: 1 1 0 » pour que les deux fassent la même largeur — deux largeurs de
+   texte diraient que l'une compte plus que l'autre. « min-width: max-content »
+   pour qu'aucune ne descende sous son libellé : la base nulle, seule, faisait
+   passer « Mes contrôles » à la ligne. Et comme une moitié cachée n'est plus un
+   élément flexible, celle qui reste prend toute la ligne au lieu de flotter sur
+   la moitié gauche. */
+.menu-moitie {
+  flex: 1 1 0;
+  min-width: max-content;
+  gap: 7px;
+  padding-inline: 10px;
+  font-size: .88rem;
+  white-space: nowrap;
+}
+
+.menu-moitie .menu-signe { width: auto; }
+
 .menu-signe {
   width: 22px;
   font-family: var(--titre);
@@ -4454,6 +4479,57 @@ h1 {
 .recherche::placeholder { color: color-mix(in srgb, var(--encre) 42%, transparent); }
 .recherche::-webkit-search-cancel-button { -webkit-appearance: none; }
 
+/* --- La bascule entre les deux archives ----------------------------------
+ *
+ * Deux moitiés égales, et une seule allumée. Le compte est là pour qu'on sache
+ * ce qu'on trouvera de l'autre côté avant d'y aller — un onglet vide qu'on
+ * découvre après avoir cliqué est un aller-retour pour rien.
+ */
+.bascule {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--encre) 5%, transparent);
+}
+
+.bascule-cote {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  font-family: inherit;
+  font-size: .82rem;
+  font-weight: 700;
+  color: color-mix(in srgb, var(--encre) 58%, transparent);
+  cursor: pointer;
+  transition: background .18s ease, color .18s ease;
+}
+
+.bascule-cote[aria-selected="true"] {
+  background: var(--carte);
+  color: var(--encre);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .08);
+}
+
+.bascule-compte {
+  font-family: var(--mono);
+  font-size: .64rem;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  opacity: .6;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bascule-cote { transition: none; }
+}
+
 .filtres {
   display: flex;
   gap: 5px;
@@ -4855,12 +4931,9 @@ h1 {
 
   /* Dans une matière, les fiches et les contrôles se lisent côte à côte : ce
      sont deux listes courtes, les empiler laissait la moitié de l'écran vide. */
-  .matiere-listes {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--e4);
-    align-items: start;
-  }
+  /* Plus de deux colonnes ici : la bascule n'en montre qu'une à la fois, et une
+     archive seule dans une demi-largeur laisserait un vide à côté d'elle. */
+  .matiere-listes { display: block; }
 }
 
 /* --- Écrans larges ------------------------------------------------------

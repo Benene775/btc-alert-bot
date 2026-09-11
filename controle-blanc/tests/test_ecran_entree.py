@@ -102,10 +102,14 @@ def test_les_onglets_sont_annonces_comme_des_onglets():
     """Un lecteur d'écran doit dire « onglet 1 sur 2, sélectionné », pas
     « bouton ». C'est trois attributs, et sans eux la moitié du sens est peinte
     au lieu d'être dite."""
-    assert 'role="tablist"' in PAGE
-    assert PAGE.count('role="tab"') == 2
-    assert PAGE.count('role="tabpanel"') == 2
-    assert 'aria-controls="volet-connexion"' in PAGE
+    # Borné à l'écran d'entrée : d'autres onglets vivent ailleurs dans la page
+    # (les archives en ont deux), et les compter tous ne dirait rien d'ici.
+    entree = PAGE[PAGE.index('id="ecran-connexion"'):]
+    entree = entree[: entree.index("</section>")]
+    assert 'role="tablist"' in entree
+    assert entree.count('role="tab"') == 2
+    assert entree.count('role="tabpanel"') == 2
+    assert 'aria-controls="volet-connexion"' in entree
 
 
 def test_ni_le_jeton_ni_le_mot_de_passe_ne_sont_gardes_par_le_script():

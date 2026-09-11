@@ -54,12 +54,19 @@
              obligent à lire, et un menu se parcourt du regard. -->
         <span class="menu-signe" aria-hidden="true">⌂</span>Ma page
       </button>
-      <button type="button" class="menu-entree" role="menuitem" id="menu-controle">
-        <span class="menu-signe" aria-hidden="true">✎</span>Mes contrôles blancs
-      </button>
-      <button type="button" class="menu-entree" role="menuitem" id="menu-fiche">
-        <span class="menu-signe" aria-hidden="true">▤</span>Mes fiches de révision
-      </button>
+      <!-- Les deux archives sur une seule ligne : elles sont de même rang et
+           s'opposent l'une à l'autre. Empilées, elles allongeaient un menu de
+           quatre lignes où « Ma page » se perdait. Les noms raccourcissent pour
+           tenir à deux sur la largeur d'un téléphone — « Mes contrôles » ne
+           peut pas désigner autre chose ici. -->
+      <div class="menu-paire" role="none">
+        <button type="button" class="menu-entree menu-moitie" role="menuitem" id="menu-fiche">
+          <span class="menu-signe" aria-hidden="true">▤</span>Mes fiches
+        </button>
+        <button type="button" class="menu-entree menu-moitie" role="menuitem" id="menu-controle">
+          <span class="menu-signe" aria-hidden="true">✎</span>Mes contrôles
+        </button>
+      </div>
       <button type="button" class="menu-entree" role="menuitem" id="menu-reprendre" hidden>
         <span class="menu-signe" aria-hidden="true">↩</span>Reprendre où j’en étais
       </button>
@@ -606,8 +613,24 @@
     <button type="button" class="archive-plus" id="plus-revoir" hidden></button>
   </section>
 
+  <!-- Fiches et contrôles ne se cherchent pas dans le même geste : on relit une
+       fiche, on passe un contrôle une fois. L'un sous l'autre, il fallait faire
+       défiler le premier pour atteindre le second — et deviner où il
+       s'arrêtait. Une bascule : on choisit, on ne voit que ça. -->
+  <div class="bascule" id="bascule-archives" role="tablist"
+       aria-label="Fiches ou contrôles blancs">
+    <button type="button" class="bascule-cote" id="onglet-fiches" role="tab"
+            aria-selected="true" aria-controls="pan-mes-fiches">
+      Fiches<span class="bascule-compte" id="compte-onglet-fiches"></span>
+    </button>
+    <button type="button" class="bascule-cote" id="onglet-controles" role="tab"
+            aria-selected="false" aria-controls="pan-mes-controles">
+      Contrôles blancs<span class="bascule-compte" id="compte-onglet-controles"></span>
+    </button>
+  </div>
+
   <div class="matiere-listes">
-  <section class="pan" id="pan-mes-fiches">
+  <section class="pan" id="pan-mes-fiches" role="tabpanel" aria-labelledby="onglet-fiches">
     <div class="archive">
       <label class="masque" for="recherche-fiches">Chercher une fiche</label>
       <input type="search" id="recherche-fiches" class="recherche" placeholder="Chercher une fiche…"
@@ -620,7 +643,8 @@
     </div>
   </section>
 
-  <section class="pan" id="pan-mes-controles">
+  <section class="pan" id="pan-mes-controles" role="tabpanel"
+           aria-labelledby="onglet-controles" hidden>
     <div class="archive">
       <label class="masque" for="recherche-controles">Chercher un contrôle blanc</label>
       <input type="search" id="recherche-controles" class="recherche" placeholder="Chercher un contrôle…"

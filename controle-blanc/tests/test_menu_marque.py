@@ -43,23 +43,33 @@ def test_le_menu_ne_fabrique_rien():
 
 
 def test_les_entrees_disent_qu_elles_menent_aux_siens():
-    """« Contrôle blanc » pouvait se lire « en faire un ». « Mes contrôles
-    blancs » ne se lit que d'une façon."""
+    """« Contrôle blanc » pouvait se lire « en faire un ». « Mes contrôles » ne
+    se lit que d'une façon — et ici, « contrôles » ne peut désigner que les
+    blancs, l'élève n'en a pas d'autres dans l'application."""
     menu = PAGE[PAGE.index('id="menu-marque"'):PAGE.index('id="menu-reprendre"')]
-    assert "Mes contrôles blancs" in menu
-    assert "Mes fiches de révision" in menu
+    assert "Mes contrôles" in menu
+    assert "Mes fiches" in menu
 
 
-def test_on_arrive_sur_le_bon_panneau():
-    """Les deux archives sont l'une sous l'autre sur un téléphone : venir
-    chercher ses contrôles ne doit pas obliger à faire défiler les fiches."""
-    assert 'id="pan-mes-fiches"' in PAGE
-    assert 'id="pan-mes-controles"' in PAGE
-    viser = SCRIPT[SCRIPT.index("function viserUnPanneau("):]
-    viser = viser[: viser.index("\n}\n")]
-    assert "scrollIntoView" in viser
-    assert "requestAnimationFrame" in viser, "montrer() remet la page en haut : il faut attendre le rendu"
-    assert "innerHeight" in viser, "un panneau déjà visible ne doit pas bouger"
+def test_les_deux_archives_partagent_une_ligne():
+    """Elles sont de même rang et s'opposent l'une à l'autre. Empilées, elles
+    faisaient un menu de quatre lignes où « Ma page » se perdait."""
+    menu = PAGE[PAGE.index('id="menu-marque"'):PAGE.index('id="menu-reprendre"')]
+    paire = menu[menu.index('class="menu-paire"'):]
+    assert 'id="menu-fiche"' in paire and 'id="menu-controle"' in paire
+    bloc = STYLE[STYLE.index(".menu-moitie {"):]
+    bloc = bloc[: bloc.index("}")]
+    assert "flex: 1 1 0" in bloc, "deux moitiés égales, pas deux largeurs de texte"
+    assert "min-width: max-content" in bloc, "un libellé ne doit pas passer à la ligne"
+
+
+def test_on_arrive_sur_le_bon_onglet():
+    """Venir chercher ses contrôles ne doit pas obliger à passer les fiches."""
+    assert "ouvrirMatiere(null, 'controles')" in BLOC
+    ouvrir = SCRIPT[SCRIPT.index("function ouvrirMatiere("):]
+    ouvrir = ouvrir[: ouvrir.index("\n}\n")]
+    assert "basculerArchive(viser)" in ouvrir
+    assert "basculerArchive(viser)" in ouvrir and ouvrir.index("basculerArchive(viser)") < ouvrir.index("montrer(")
 
 
 def test_deux_entrees_ne_portent_pas_le_meme_signe():

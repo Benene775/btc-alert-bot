@@ -768,27 +768,29 @@ function ouvrirMatiere(cle, viser) {
   archives.fiches.tout = false;
   archives.controles.tout = false;
   revoirDeplie = false;
+  basculerArchive(viser);
   dessinerMatiere();
   montrer('ecran-matiere');
-  if (viser) viserUnPanneau(viser);
 }
 
-/* Venir chercher ses contrôles ne doit pas obliger à passer les fiches.
+/* Fiches d'un côté, contrôles de l'autre.
  *
- * Les deux archives sont côte à côte sur un écran large et l'une sous l'autre
- * sur un téléphone — c'est là que ça compte. « montrer » vient de remettre la
- * page en haut, donc on attend le rendu avant de mesurer quoi que ce soit.
+ * Les deux ne se cherchent pas dans le même geste : on relit une fiche, on
+ * passe un contrôle une fois. Empilés, il fallait faire défiler le premier pour
+ * atteindre le second, et deviner où il s'arrêtait — deux listes de lignes
+ * grises se ressemblent beaucoup. On en montre une seule, et la bascule dit
+ * combien il y en a de l'autre côté : un onglet vide qu'on découvre après avoir
+ * cliqué est un aller-retour pour rien.
  */
-function viserUnPanneau(quoi) {
-  const panneau = $(quoi === 'controles' ? 'pan-mes-controles' : 'pan-mes-fiches');
-  if (!panneau) return;
-  requestAnimationFrame(() => {
-    // Déjà en haut de l'écran : le déplacer serait un mouvement pour rien, et
-    // un mouvement pour rien fait croire qu'on a cliqué à côté.
-    if (panneau.getBoundingClientRect().top > window.innerHeight * 0.4) {
-      panneau.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  });
+let archiveOuverte = 'fiches';
+
+function basculerArchive(quoi) {
+  archiveOuverte = quoi === 'controles' ? 'controles' : 'fiches';
+  const surLesFiches = archiveOuverte === 'fiches';
+  $('onglet-fiches').setAttribute('aria-selected', String(surLesFiches));
+  $('onglet-controles').setAttribute('aria-selected', String(!surLesFiches));
+  $('pan-mes-fiches').hidden = !surLesFiches;
+  $('pan-mes-controles').hidden = surLesFiches;
 }
 
 function dessinerMatiere() {
@@ -837,8 +839,13 @@ function dessinerMatiere() {
   $('titre-controles').textContent = dansTout ? 'Tous tes contrôles blancs' : 'Tes contrôles blancs';
 
   dessinerMatiereRevoir(sessions, cle);
-  dessinerMesFiches(sessions);
-  dessinerMesControles(sessions);
+  const combienDeFiches = dessinerMesFiches(sessions);
+  const combienDeControles = dessinerMesControles(sessions);
+  // Y compris le zéro : c'est justement le chiffre le plus utile. Sans lui, un
+  // onglet muet ne dit pas s'il est vide ou si le compte n'est pas affiché, et
+  // on clique pour le savoir.
+  $('compte-onglet-fiches').textContent = String(combienDeFiches || 0);
+  $('compte-onglet-controles').textContent = String(combienDeControles || 0);
   soignerTypographie($('ecran-matiere'));
 }
 
@@ -5367,6 +5374,8 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   $('bouton-espace-nouveau').onclick = () => demarrerSession();
   $('bouton-tout-voir').onclick = () => ouvrirMatiere(null);
+  $('onglet-fiches').onclick = () => basculerArchive('fiches');
+  $('onglet-controles').onclick = () => basculerArchive('controles');
   $('retour-etagere').onclick = () => { montrer('ecran-espace'); dessinerEspace(); };
 
   const changerMois = (pas) => {
