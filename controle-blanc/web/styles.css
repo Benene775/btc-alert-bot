@@ -4983,6 +4983,47 @@ h1 {
   }
 }
 
+/* --- L'ordre de sa page sur un téléphone ---------------------------------
+ *
+ * Mesuré sur 390×844, avec trois matières : la page fait 2,4 écrans, et
+ * « Photographier un nouveau cours » — l'action première du produit — arrivait
+ * à 1681 px, soit un écran entier SOUS le pli. Il fallait passer devant tout ce
+ * qu'on avait déjà fait pour atteindre ce pour quoi on était venu. Ses
+ * matières, elles, étaient à un demi-écran.
+ *
+ * Rien n'est supprimé ni redessiné : c'est l'ordre qui change. Ce qui agit
+ * monte, ce qui raconte descend.
+ *
+ * « display: contents » sur le conteneur de droite est ce qui rend ça possible
+ * sans toucher au HTML : il porte le prochain contrôle ET l'atelier d'emblème,
+ * qui ne vont pas au même endroit. Remonter le conteneur entier ouvrirait
+ * l'atelier au-dessus de la carte qu'il modifie.
+ */
+@media (max-width: 859px) {
+  /* Serré : les deux cartes se touchaient et se lisaient comme un seul objet.
+     Un espacement de section entre elles les aurait séparées pour rien. */
+  .espace-haut { display: flex; flex-direction: column; gap: var(--e2); }
+  .espace-haut > .espace-haut-droite { display: contents; }
+
+  /* Ce qui presse avant ce qui raconte : la prochaine échéance porte le seul
+     bouton « Réviser » de la page. La carte, elle, ne se touche pas — on la
+     regarde. */
+  .espace-haut #prochain { order: 1; }
+  .espace-haut .carte-annee { order: 2; }
+  /* L'atelier s'ouvre depuis la carte : il reste sous elle. */
+  .espace-haut #atelier { order: 3; }
+
+  /* Puis, dans l'ordre où l'on s'en sert : photographier un cours, relire une
+     fiche, ouvrir une matière, fabriquer autre chose. */
+  #bouton-espace-nouveau { order: 1; }
+  #pan-fiches { order: 2; }
+  #pan-matieres { order: 3; }
+  #pan-outils { order: 4; }
+  .invite-app { order: 5; }
+  #bouton-quitter-espace { order: 6; }
+  .pied-compte { order: 7; }
+}
+
 /* --- L'espace personnel sur grand écran ---------------------------------
  *
  * En colonne de 620 px au milieu de 1280, la page paraissait vide sur les
