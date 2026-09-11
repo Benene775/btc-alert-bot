@@ -2222,6 +2222,17 @@ async function seConnecter() {
 
 /* --- S’inscrire ---------------------------------------------------------- */
 
+/* L'âge déclaré, et l'accord quand il le faut. Le serveur revérifie les deux —
+ * ici on évite seulement à l'élève un aller-retour pour se faire dire non. */
+function ageDeclare() {
+  if ($('age-15').checked) return { majeur_15: true, accord_parental: false };
+  if ($('age-moins').checked) {
+    return { majeur_15: false, accord_parental: $('case-accord').checked };
+  }
+  return null;
+}
+
+
 async function sInscrire() {
   const prenom = $('champ-prenom-inscription').value.trim();
   const niveau = $('champ-classe-inscription').value;
@@ -2242,10 +2253,17 @@ async function sInscrire() {
   if (mdp !== confirmation) {
     return direErreur('erreur-inscription', 'Les deux mots de passe ne sont pas les mêmes.');
   }
+  const age = ageDeclare();
+  if (!age) return direErreur('erreur-inscription', 'Dis-nous si tu as 15 ans ou plus.');
+  if (!age.majeur_15 && !age.accord_parental) {
+    return direErreur('erreur-inscription',
+      'En dessous de 15 ans, il faut l’accord de tes parents. Montre-leur ce qui est '
+      + 'écrit juste au-dessus, et coche la case quand ils sont d’accord.');
+  }
   try {
     const reponse = await pendant($('bouton-inscription'), 'On crée ton compte…',
       () => envoyerJson('/api/auth/inscription',
-        { email, mot_de_passe: mdp, prenom, niveau }));
+        { email, mot_de_passe: mdp, prenom, niveau, ...age }));
     $('champ-mdp-inscription').value = '';
     $('champ-mdp-confirmation').value = '';
     await ouvrirLaPorte(reponse);
@@ -5253,6 +5271,14 @@ document.addEventListener('DOMContentLoaded', () => {
     majJauge();
     $('erreur-inscription').hidden = true;
   });
+
+  // Le bloc de l'accord ne paraît que s'il sert : posé d'emblée, il ferait lire
+  // un avertissement à des lycéens que ça ne concerne pas.
+  ['age-15', 'age-moins'].forEach((id) => $(id).addEventListener('change', () => {
+    $('bloc-accord').hidden = !$('age-moins').checked;
+    $('erreur-inscription').hidden = true;
+  }));
+  $('case-accord').addEventListener('change', () => { $('erreur-inscription').hidden = true; });
   // Le code arrive souvent par copier-coller depuis la boîte mail, avec des
   // espaces. On nettoie à la frappe plutôt que de refuser à la validation.
   $('champ-code').addEventListener('input', (e) => {

@@ -307,6 +307,39 @@
       <select id="champ-classe-inscription" name="classe"></select>
       <p class="entree-note">Elle règle le niveau de tes contrôles blancs.</p>
 
+      <!-- L'âge se demande par tranche, jamais par date de naissance : une date
+           serait une donnée de plus à garder, et seule la tranche change la
+           règle. En dessous de 15 ans, le consentement du seul élève ne vaut
+           pas — d'où la question, et ce qu'il doit montrer à ses parents. -->
+      <fieldset class="age">
+        <legend>Ton âge</legend>
+        <label class="age-choix">
+          <input type="radio" name="age" value="15" id="age-15">
+          <span>J’ai 15 ans ou plus</span>
+        </label>
+        <label class="age-choix">
+          <input type="radio" name="age" value="moins" id="age-moins">
+          <span>J’ai moins de 15 ans</span>
+        </label>
+      </fieldset>
+
+      <div class="accord" id="bloc-accord" hidden>
+        <p class="accord-titre">Il faut l’accord de tes parents.</p>
+        <p class="accord-mot">Montre-leur ces quatre lignes, ça suffit :</p>
+        <ul class="accord-liste">
+          <li>Repère garde ton prénom, ta classe et ton adresse mail. Ni ton nom,
+            ni ta date de naissance, ni ton établissement.</li>
+          <li>Tes photos de cours ne sont pas conservées : elles servent à écrire
+            ta fiche, puis elles disparaissent.</li>
+          <li>Rien n’est vendu ni transmis à qui que ce soit.</li>
+          <li>Tu peux tout effacer en un clic, depuis ta page, quand tu veux.</li>
+        </ul>
+        <label class="accord-case">
+          <input type="checkbox" id="case-accord">
+          <span>Je leur ai demandé, et ils sont d’accord.</span>
+        </label>
+      </div>
+
       <label for="champ-email-inscription">Ton adresse mail</label>
       <input type="email" id="champ-email-inscription" name="email" required
              autocomplete="email" inputmode="email" enterkeyhint="next"

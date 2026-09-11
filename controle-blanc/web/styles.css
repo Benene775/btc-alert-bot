@@ -2487,6 +2487,35 @@ h1 {
 
 /* Trois barres : trop court, ça va, solide. Une jauge dit où on en est pendant
    qu'on tape ; une liste de règles ne se lit qu'après le refus. */
+/* L'âge et l'accord parental. Sobres exprès : c'est une formalité honnête, pas
+   un avertissement — l'encadrer en rouge ferait fuir la moitié des familles
+   pour une question à laquelle il faut simplement répondre. */
+.age { border: 0; margin: var(--e3) 0 0; padding: 0; }
+.age legend { font-size: .84rem; color: var(--encre-douce); padding: 0 0 6px; }
+.age-choix, .accord-case {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  padding: 7px 0;
+  font-size: .94rem;
+}
+.age-choix input, .accord-case input { flex: 0 0 auto; accent-color: var(--accent); }
+
+.accord {
+  border: 1px solid var(--trait-fort);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--rayon);
+  background: var(--carte);
+  padding: 14px 16px;
+  margin: var(--e2) 0 0;
+}
+
+.accord-titre { font-family: var(--titre); font-size: 1rem; margin: 0 0 4px; }
+.accord-mot { font-size: .86rem; color: var(--encre-douce); margin: 0 0 8px; }
+.accord-liste { margin: 0 0 10px; padding-left: 18px; font-size: .88rem; }
+.accord-liste li { margin: 0 0 5px; }
+.accord-case { padding-top: 4px; }
+
 .jauge-mdp {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

@@ -38,12 +38,18 @@ def adresse_neuve() -> str:
     return f"eleve-{secrets.token_hex(4)}@exemple.test"
 
 
-def inscrire(c: TestClient, email: str | None = None, mot_de_passe: str = MDP_DE_TEST) -> str:
+def inscrire(c: TestClient, email: str | None = None, mot_de_passe: str = MDP_DE_TEST,
+             majeur_15: bool = True, accord_parental: bool = False) -> str:
     """Ouvre un compte et laisse le client connecté (le TestClient garde le
-    cookie). Rend l'adresse utilisée."""
+    cookie). Rend l'adresse utilisée.
+
+    « majeur_15 » par défaut : les tests qui ne parlent pas d'âge n'ont pas à
+    s'en occuper. Ceux qui en parlent le disent — voir test_age_et_accord.py.
+    """
     email = email or adresse_neuve()
     reponse = c.post("/api/auth/inscription", json={
-        "email": email, "mot_de_passe": mot_de_passe, "prenom": "Lina", "niveau": "4e"})
+        "email": email, "mot_de_passe": mot_de_passe, "prenom": "Lina", "niveau": "4e",
+        "majeur_15": majeur_15, "accord_parental": accord_parental})
     assert reponse.status_code == 200, reponse.text
     return email
 

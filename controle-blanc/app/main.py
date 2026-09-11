@@ -169,7 +169,9 @@ def inscription(corps: Inscription, request: Request) -> JSONResponse:
     """Ouvrir un compte, et être connecté dans la foulée : demander de se
     reconnecter juste après s'être inscrit, c'est un formulaire pour rien."""
     email = store.normaliser_email(corps.email)
-    compte_id = store.inscrire(email, corps.mot_de_passe, corps.prenom, corps.niveau)
+    compte_id = store.inscrire(email, corps.mot_de_passe, corps.prenom, corps.niveau,
+                               majeur_15=corps.majeur_15,
+                               accord_parental=corps.accord_parental)
     jeton = store.ouvrir_jeton(compte_id)
     reponse = JSONResponse({"connecte": True, "email": email, "compte": compte_id,
                             "prenom": store.nettoyer_prenom(corps.prenom),

@@ -35,7 +35,7 @@ def test_s_inscrire_ouvre_le_compte_et_connecte_dans_la_foulee(visiteur: TestCli
     formulaire pour rien."""
     email = adresse_neuve()
     reponse = visiteur.post("/api/auth/inscription", json={
-        "email": email, "mot_de_passe": MDP_DE_TEST, "prenom": "Lina", "niveau": "4e"})
+        "email": email, "mot_de_passe": MDP_DE_TEST, "prenom": "Lina", "niveau": "4e", "majeur_15": True})
     assert reponse.status_code == 200, reponse.text
     corps = reponse.json()
     assert corps["connecte"] is True and corps["email"] == email
@@ -60,7 +60,7 @@ def test_deux_fois_la_meme_adresse_ne_fait_pas_deux_comptes(visiteur: TestClient
     fantôme à qui se réinscrit par erreur, et son travail resterait dans l'autre."""
     email = inscrire(visiteur)
     encore = visiteur.post("/api/auth/inscription",
-                           json={"email": email, "mot_de_passe": MDP_DE_TEST})
+                           json={"email": email, "mot_de_passe": MDP_DE_TEST, "majeur_15": True})
     assert encore.status_code == 400
     corps = encore.json()
     assert corps["genre"] == "existe", "la page doit pouvoir emmener au bon volet"
@@ -82,7 +82,7 @@ def test_la_casse_et_les_espaces_ne_font_pas_deux_comptes(visiteur: TestClient):
 ])
 def test_un_mot_de_passe_trop_faible_est_refuse(visiteur: TestClient, faible, pourquoi):
     reponse = visiteur.post("/api/auth/inscription",
-                            json={"email": adresse_neuve(), "mot_de_passe": faible})
+                            json={"email": adresse_neuve(), "mot_de_passe": faible, "majeur_15": True})
     assert reponse.status_code == 400, pourquoi
     assert reponse.json()["genre"] == "mdp"
 
@@ -92,10 +92,10 @@ def test_on_refuse_son_propre_prenom_et_sa_propre_adresse(visiteur: TestClient):
     premières qu'un élève choisit."""
     assert visiteur.post("/api/auth/inscription", json={
         "email": "lina.martin@exemple.test", "mot_de_passe": "linalinalina",
-        "prenom": "Lina"}).status_code == 400
+        "prenom": "Lina", "majeur_15": True}).status_code == 400
     assert visiteur.post("/api/auth/inscription", json={
         "email": "lina.martin@exemple.test",
-        "mot_de_passe": "lina.martin99"}).status_code == 400
+        "mot_de_passe": "lina.martin99", "majeur_15": True}).status_code == 400
 
 
 def test_pas_de_regle_de_composition_absurde(visiteur: TestClient):
@@ -103,7 +103,7 @@ def test_pas_de_regle_de_composition_absurde(visiteur: TestClient):
     « Motdepasse1! », que tout dictionnaire connaît, et à écrire le mot de passe
     sur un cahier. Une phrase longue en minuscules doit passer."""
     reponse = visiteur.post("/api/auth/inscription", json={
-        "email": adresse_neuve(), "mot_de_passe": "trois mots colles ensemble"})
+        "email": adresse_neuve(), "mot_de_passe": "trois mots colles ensemble", "majeur_15": True})
     assert reponse.status_code == 200, reponse.text
 
 
@@ -112,7 +112,7 @@ def test_pas_de_regle_de_composition_absurde(visiteur: TestClient):
 def test_une_adresse_qui_n_en_est_pas_une_est_refusee(visiteur: TestClient, mauvaise: str):
     assert visiteur.post("/api/auth/inscription",
                          json={"email": mauvaise,
-                               "mot_de_passe": MDP_DE_TEST}).status_code == 400
+                               "mot_de_passe": MDP_DE_TEST, "majeur_15": True}).status_code == 400
 
 
 # --- La connexion -----------------------------------------------------------
@@ -406,7 +406,7 @@ def test_le_mot_de_passe_n_est_jamais_stocke_en_clair(visiteur: TestClient):
     a, b = adresse_neuve(), adresse_neuve()
     for email in (a, b):
         visiteur.post("/api/auth/inscription",
-                      json={"email": email, "mot_de_passe": MDP_DE_TEST})
+                      json={"email": email, "mot_de_passe": MDP_DE_TEST, "majeur_15": True})
         visiteur.post("/api/auth/sortir")
     with store.curseur() as cur:
         cur.execute("SELECT email, mot_de_passe FROM comptes WHERE email IN (?, ?)", (a, b))
@@ -434,7 +434,7 @@ def test_le_jeton_ne_se_lit_pas_depuis_la_page(visiteur: TestClient):
     """HttpOnly : une faille d'affichage dans une fiche ne doit pas donner le
     compte. C'est aussi pourquoi le jeton ne va pas dans localStorage."""
     reponse = visiteur.post("/api/auth/inscription",
-                            json={"email": adresse_neuve(), "mot_de_passe": MDP_DE_TEST})
+                            json={"email": adresse_neuve(), "mot_de_passe": MDP_DE_TEST, "majeur_15": True})
     pose = reponse.headers["set-cookie"].lower()
     assert "httponly" in pose
     assert "samesite=lax" in pose

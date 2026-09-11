@@ -22,6 +22,12 @@ class Inscription(BaseModel):
     mot_de_passe: str = Field(max_length=256)
     prenom: str = Field(default="", max_length=80)
     niveau: str = Field(default="", max_length=16)
+    # L'âge se demande par tranche, jamais par date de naissance : une date est
+    # une donnée de plus à garder, et seule la tranche change la règle qui
+    # s'applique. Les deux valent « non » par défaut — donc un client qui
+    # n'envoie rien se voit refuser, plutôt que passer pour majeur.
+    majeur_15: bool = False
+    accord_parental: bool = False
 
 
 class Connexion(BaseModel):

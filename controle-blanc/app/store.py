@@ -75,6 +75,13 @@ CREATE TABLE IF NOT EXISTS comptes (
     mot_de_passe  TEXT NOT NULL DEFAULT '',
     prenom        TEXT NOT NULL DEFAULT '',
     niveau        TEXT NOT NULL DEFAULT '',
+    -- Ce que l'élève a déclaré de son âge, et la date de sa déclaration. Ce
+    -- n'est pas sa date de naissance : on ne la demande pas, et une tranche
+    -- suffit à savoir quelle règle s'applique. En dessous de 15 ans, son seul
+    -- consentement ne vaut pas (article 8 du RGPD) ; la date dit quand il a
+    -- déclaré avoir l'accord de ses parents. Une case sans date ne prouve rien.
+    majeur_15     INTEGER NOT NULL DEFAULT 0,
+    accord_le     TEXT NOT NULL DEFAULT '',
     cree_le       TEXT NOT NULL,
     vu_le         TEXT NOT NULL
 );
@@ -213,9 +220,13 @@ def _init(conn: sqlite3.Connection) -> None:
     # empreinte vide : impossible à deviner (aucun mot de passe ne s'y compare),
     # et « mot de passe oublié » leur en donne un.
     comptes = {ligne[1] for ligne in conn.execute("PRAGMA table_info(comptes)")}
-    for colonne in ("mot_de_passe", "prenom", "niveau"):
+    for colonne in ("mot_de_passe", "prenom", "niveau", "accord_le"):
         if comptes and colonne not in comptes:
             conn.execute(f"ALTER TABLE comptes ADD COLUMN {colonne} TEXT NOT NULL DEFAULT ''")
+    # Les comptes ouverts avant la question restent à 0 : on ne sait pas leur
+    # âge, et prétendre le contraire serait pire que l'ignorer.
+    if comptes and "majeur_15" not in comptes:
+        conn.execute("ALTER TABLE comptes ADD COLUMN majeur_15 INTEGER NOT NULL DEFAULT 0")
     conn.commit()
 
 
@@ -534,7 +545,8 @@ def nettoyer_prenom(brut: str) -> str:
     return prenom
 
 
-def inscrire(email: str, mot_de_passe: str, prenom: str = "", niveau: str = "") -> str:
+def inscrire(email: str, mot_de_passe: str, prenom: str = "", niveau: str = "",
+             majeur_15: bool = False, accord_parental: bool = False) -> str:
     """Ouvre un compte. Rend son identifiant.
 
     Une adresse déjà inscrite est refusée — et c'est le seul endroit du produit
@@ -543,6 +555,15 @@ def inscrire(email: str, mot_de_passe: str, prenom: str = "", niveau: str = "") 
     et son travail resterait dans l'autre.
     """
     verifier_forme_mot_de_passe(mot_de_passe, email, prenom)
+    # Vérifié ici et pas seulement dans le navigateur : une case cochée côté
+    # client ne coûte rien à contourner, et c'est précisément la trace qu'on
+    # garde. Sans accord, on n'ouvre pas le compte — on ne l'ouvre pas « en
+    # attendant », parce qu'un compte ouvert travaille.
+    if not majeur_15 and not accord_parental:
+        raise ErreurAuth(
+            "En dessous de 15 ans, il faut l'accord de tes parents pour ouvrir un "
+            "compte. Montre-leur la page, et reviens quand ils sont d'accord.",
+            "accord")
     with curseur() as cur:
         cur.execute("SELECT 1 FROM comptes WHERE email = ?", (email,))
         if cur.fetchone():
@@ -551,10 +572,12 @@ def inscrire(email: str, mot_de_passe: str, prenom: str = "", niveau: str = "") 
                 "« mot de passe oublié ».", "existe")
         identifiant = secrets.token_urlsafe(9)
         cur.execute(
-            "INSERT INTO comptes (id, email, mot_de_passe, prenom, niveau, cree_le, vu_le)"
-            " VALUES (?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO comptes (id, email, mot_de_passe, prenom, niveau,"
+            " majeur_15, accord_le, cree_le, vu_le) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (identifiant, email, _hacher_mot_de_passe(mot_de_passe),
              nettoyer_prenom(prenom), (niveau or "").strip()[:16],
+             1 if majeur_15 else 0,
+             "" if majeur_15 else maintenant(),
              maintenant(), maintenant()),
         )
     return identifiant
