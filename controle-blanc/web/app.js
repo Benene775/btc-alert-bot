@@ -5284,6 +5284,57 @@ async function envoyerSignalement(motif) {
 
 /* --------------------------------------------- reprise / tableau de bord - */
 
+/* Ce qu'on a déjà fait dans cette matière, ouvrable depuis la séance.
+ *
+ * La liste d'étapes juste au-dessus dit « Fiche générale lue » et « 0 contrôle
+ * blanc passé ». C'est un état, pas une porte : l'élève qui revient sur sa
+ * séance veut RELIRE sa fiche, pas apprendre qu'elle existe. Il devait
+ * ressortir, ouvrir sa page, puis la matière, puis la liste — quatre gestes
+ * pour revenir à ce qu'il avait sous les yeux la veille.
+ *
+ * La matière, pas la séance : un élève photographie son cours en deux fois, ou
+ * reprend un chapitre plus tard, et ses fiches d'histoire sont ses fiches
+ * d'histoire. C'est aussi ce qui a été demandé.
+ */
+const DEJA_SUR_LA_PAGE = 3;
+
+function dessinerDejaFait() {
+  const matiere = etat && etat.matiere;
+  const sessions = matiere
+    ? sessionsFaites().filter((s) => (s.matiere || '') === matiere)
+    : [];
+
+  const remplir = (genre, elements, sousTitre, ouvrir) => {
+    const pan = $('pan-deja-' + genre);
+    pan.hidden = elements.length === 0;
+    if (pan.hidden) return;
+    const liste = $('liste-deja-' + genre);
+    liste.innerHTML = '';
+    // Les plus récents : ce qu'on revient chercher est presque toujours le
+    // dernier. Le bouton dit combien il y en a derrière.
+    elements.slice(0, DEJA_SUR_LA_PAGE).forEach((e) => {
+      const li = ligneArchive({ ...e, titre: titreCourt(e.titre) }, sousTitre, false);
+      li.querySelector('.ligne-archive').onclick = () => ouvrir(e.session.sessionId, e.rang);
+      liste.appendChild(li);
+    });
+  };
+
+  const fiches = toutesLesFiches(sessions);
+  const controles = tousLesControles(sessions);
+  remplir('fiches', fiches, (f) => (f.type === 'ciblee' ? 'ciblée' : ''), ouvrirFicheGardee);
+  remplir('controles', controles,
+          (c) => c.questions + (c.questions > 1 ? ' questions' : ' question'),
+          ouvrirControleGarde);
+
+  // Une seule porte vers le reste, et seulement s'il y a un reste.
+  const reste = (fiches.length + controles.length) - Math.min(fiches.length, DEJA_SUR_LA_PAGE)
+    - Math.min(controles.length, DEJA_SUR_LA_PAGE);
+  const tout = $('tout-voir-matiere');
+  tout.hidden = reste <= 0;
+  if (!tout.hidden) tout.textContent = 'Voir les ' + (fiches.length + controles.length);
+  tout.onclick = () => ouvrirMatiere(matiere);
+}
+
 function dessinerReprise() {
   const jours = joursAvantControle();
   const rappel = $('rappel-date');
@@ -5321,6 +5372,8 @@ function dessinerReprise() {
     li.append(marqueur, texte);
     liste.appendChild(li);
   });
+
+  dessinerDejaFait();
 
   $('texte-lien').textContent = etat.lien || (location.origin + '/?s=' + etat.sessionId);
 

@@ -2147,6 +2147,11 @@ details.detail-reponse p { font-size: .92rem; margin: 0 0 10px; }
 
 .etapes { list-style: none; padding: 0; margin: 0 0 24px; }
 
+/* Ce qu'on a déjà fait dans la matière, sur l'écran de reprise. L'écran
+   n'espace pas ses sections — elles portent leurs marges — et sans celle-ci la
+   dernière ligne collait au bloc du lien. */
+.pan-deja { margin-bottom: var(--e4); }
+
 .etapes li {
   display: flex;
   align-items: baseline;

@@ -896,6 +896,25 @@
 
   <ul id="liste-etapes" class="etapes"></ul>
 
+  <!-- Ce qu'on a déjà fait dans cette matière, ouvrable depuis ici.
+       La liste d'étapes au-dessus dit « Fiche générale lue » et « 0 contrôle
+       blanc passé » : c'est un état, pas une porte. L'élève qui revient sur sa
+       séance veut relire sa fiche, pas apprendre qu'elle existe — il devait
+       ressortir, ouvrir sa page, puis la matière. Les deux panneaux restent
+       cachés tant qu'il n'y a rien dedans. -->
+  <section class="pan pan-deja" id="pan-deja-fiches" hidden>
+    <div class="pan-tete">
+      <h2 class="pan-titre">Tes fiches dans cette matière</h2>
+      <button type="button" class="pan-lien" id="tout-voir-matiere" hidden></button>
+    </div>
+    <ul class="archive-liste" id="liste-deja-fiches"></ul>
+  </section>
+
+  <section class="pan pan-deja" id="pan-deja-controles" hidden>
+    <h2 class="pan-titre">Tes contrôles blancs dans cette matière</h2>
+    <ul class="archive-liste" id="liste-deja-controles"></ul>
+  </section>
+
   <div class="lien-reprise">
     <p class="lien-reprise-titre">Garde ce lien</p>
     <p class="lien-reprise-aide">C’est lui qui retrouve ton cours et tes résultats. Envoie-le-toi.</p>
