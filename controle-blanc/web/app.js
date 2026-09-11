@@ -2853,9 +2853,25 @@ async function initialiser() {
     $('bouton-reprendre').hidden = false;
   }
   dessinerRonds();
-  montrer('ecran-accueil');
   armerRevelations();
   armerCopie();
+
+  // Où l'on atterrit en rouvrant l'application.
+  //
+  // L'accueil est une vitrine : le titre, l'argumentaire, la fiche d'exemple qui
+  // défile. Tout ça sert à convaincre quelqu'un qui ne connaît pas encore le
+  // produit — et ne sert plus à rien dès qu'on a un compte. Y renvoyer un élève
+  // à chaque ouverture, c'est lui faire traverser le magasin pour atteindre son
+  // casier, trois fois par semaine.
+  //
+  // Il vient chercher ses fiches : on le pose dessus. « Reprendre » ne se perd
+  // pas au passage, le menu de la marque le porte sur tous les écrans, et
+  // « Revenir » ramène à l'accueil pour qui veut le revoir.
+  if (compte) {
+    tracer('ouverture', { origine: 'page_perso' });
+    return ouvrirEspace();
+  }
+  montrer('ecran-accueil');
 }
 
 function remplirSelecteur(selecteur, valeurs, defaut) {
@@ -2986,7 +3002,7 @@ function ouvrirMenuMarque(ouvre) {
     $('menu-fiche').hidden = cours.size === 0;
     // « Reprendre » n'a de sens qu'avec une séance en cours, et pas quand on y
     // est déjà : le proposer là ferait un aller-retour sur place.
-    $('menu-reprendre').hidden = !etat || ecranVisible() === 'ecran-reprise';
+    $('menu-reprendre').hidden = !laSeanceDuRetour() || ecranVisible() === 'ecran-reprise';
   }
   menu.hidden = !veut;
   bouton.setAttribute('aria-expanded', String(veut));
@@ -3010,7 +3026,7 @@ function armerMenuMarque() {
   $('menu-espace').onclick = () => { ouvrirMenuMarque(false); ouvrirEspace(); };
   $('menu-controle').onclick = () => { ouvrirMenuMarque(false); ouvrirAtelier('controle'); };
   $('menu-fiche').onclick = () => { ouvrirMenuMarque(false); ouvrirAtelier('fiche'); };
-  $('menu-reprendre').onclick = () => { ouvrirMenuMarque(false); reprendre(); };
+  $('menu-reprendre').onclick = () => { ouvrirMenuMarque(false); reprendreLaDerniere(); };
 
   // Un menu qu'on ne peut pas refermer sans choisir est un piège : cliquer à
   // côté et Échap doivent tous les deux marcher.
@@ -3029,6 +3045,30 @@ function reprendre() {
   if (!etat) return montrer('ecran-accueil');
   dessinerReprise();
   montrer('ecran-reprise');
+}
+
+/* « Reprendre », d'où qu'on le demande.
+ *
+ * Deux situations y mènent, et elles n'ont pas le même état en mémoire : en
+ * cours de route « etat » est déjà là ; à la réouverture de l'application il ne
+ * l'est pas — la séance dort dans le navigateur, personne ne l'a relue. Une
+ * seule fonction pour les deux, sinon le menu marche pendant la séance et ne
+ * marche plus au retour, c'est-à-dire exactement quand on en a besoin.
+ */
+function laSeanceDuRetour() {
+  if (etat) return etat;
+  const derniere = localStorage.getItem(CLE_DERNIERE);
+  return (derniere && charger(derniere)) || null;
+}
+
+function reprendreLaDerniere() {
+  if (etat) return reprendre();
+  const trouve = laSeanceDuRetour();
+  if (!trouve) return demarrerSession();
+  etat = trouve;
+  lirePages(etat.sessionId).then((pages) => { photosDuCours = pages; });
+  tracer('ouverture', { origine: 'reprise' });
+  reprendre();
 }
 
 /* ----------------------------------------------- étape 1 : le contexte --- */
@@ -5366,15 +5406,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // d'une case qui n'est plus là.
   grille.addEventListener('scroll', cacherApercuJour, { passive: true });
   $('fermer-fiche-jour').onclick = () => { jourChoisi = null; dessinerEspace(); };
-  $('bouton-reprendre').onclick = () => {
-    const derniere = localStorage.getItem(CLE_DERNIERE);
-    const trouve = derniere && charger(derniere);
-    if (!trouve) return demarrerSession();
-    etat = trouve;
-    lirePages(etat.sessionId).then((pages) => { photosDuCours = pages; });
-    tracer('ouverture', { origine: 'reprise' });
-    reprendre();
-  };
+  $('bouton-reprendre').onclick = () => reprendreLaDerniere();
 
   $('bouton-vers-photos').onclick = validerContexte;
   $('champ-photos').onchange = (evenement) => {
