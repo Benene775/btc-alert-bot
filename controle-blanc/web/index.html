@@ -44,8 +44,22 @@
 
 <!-- Le glyphe de la marque, défini une fois. « Repère » : le filet de marge
      d'une page, trois lignes, et celle qu'on est venu relire — surlignée.
-     Les couleurs viennent des variables, donc il suit le thème. -->
+     Les couleurs viennent des variables, donc il suit le thème.
+     Le soleil et la lune sont ici pour la même raison : tracés au trait, en
+     « currentColor », ils prennent la couleur du bouton qui les porte — allumé
+     ou éteint, clair ou sombre, sans deux jeux d'images à tenir à jour. -->
 <svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
+  <symbol id="glyphe-soleil" viewBox="0 0 24 24">
+    <g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+      <circle cx="12" cy="12" r="4.1"/>
+      <path d="M12 2.8v2.3M12 18.9v2.3M21.2 12h-2.3M5.1 12H2.8"/>
+      <path d="M18.5 5.5l-1.6 1.6M7.1 16.9l-1.6 1.6M18.5 18.5l-1.6-1.6M7.1 7.1L5.5 5.5"/>
+    </g>
+  </symbol>
+  <symbol id="glyphe-lune" viewBox="0 0 24 24">
+    <path d="M20.3 14.8A8.7 8.7 0 0 1 9.2 3.7 8.7 8.7 0 1 0 20.3 14.8Z"
+          fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+  </symbol>
   <symbol id="glyphe-repere" viewBox="0 0 32 32">
     <rect width="32" height="32" rx="8.5" fill="var(--accent)"/>
     <rect x="13.6" y="12.9" width="12.6" height="6.2" rx="3.1" fill="var(--sur-accent)" fill-opacity=".26"/>
@@ -453,6 +467,20 @@
 <!-- MA PAGE — tout ce que l’élève a déjà fait, relu depuis son téléphone -->
 <section id="ecran-espace" class="ecran ecran-espace" hidden>
 
+  <!-- L'apparence, en haut et sans un mot : deux dessins disent tout, et le
+       bouton allumé est celui qu'on a sous les yeux. Pas de « Auto » : celui
+       qui n'y touche jamais suit son téléphone, et c'est le cas de départ. -->
+  <div class="apparence" role="radiogroup" aria-label="Apparence">
+    <button type="button" class="apparence-cote" id="apparence-claire" role="radio"
+            aria-checked="false" data-apparence="light" aria-label="Mode jour">
+      <svg class="apparence-signe" aria-hidden="true" focusable="false"><use href="#glyphe-soleil"/></svg>
+    </button>
+    <button type="button" class="apparence-cote" id="apparence-sombre" role="radio"
+            aria-checked="false" data-apparence="dark" aria-label="Mode nuit">
+      <svg class="apparence-signe" aria-hidden="true" focusable="false"><use href="#glyphe-lune"/></svg>
+    </button>
+  </div>
+
   <!-- Une seule carte, rien de caché. Le retournement était un mécanisme en
        quête de contenu : la frise, qu'il fallait aller chercher au dos, est
        la plus belle chose de cette page — elle vit maintenant devant. -->
@@ -612,21 +640,6 @@
 
   <!-- Le compte, en bas et en petit : on n'ouvre pas le site pour le gérer.
        Effacer est à côté de sortir, parce que c'est là qu'on le cherche. -->
-  <!-- L'apparence. Trois choix et pas deux : un simple interrupteur clair/sombre
-       enlève à l'élève le basculement automatique du soir, qu'il avait avant
-       d'y toucher. « Auto » reste donc le défaut et reste joignable. -->
-  <div class="apparence">
-    <span class="apparence-mot" id="apparence-mot">Apparence</span>
-    <div class="bascule bascule-trois" role="radiogroup" aria-labelledby="apparence-mot">
-      <button type="button" class="bascule-cote" id="apparence-auto" role="radio"
-              aria-checked="true" data-apparence="auto">Auto</button>
-      <button type="button" class="bascule-cote" id="apparence-claire" role="radio"
-              aria-checked="false" data-apparence="light">Clair</button>
-      <button type="button" class="bascule-cote" id="apparence-sombre" role="radio"
-              aria-checked="false" data-apparence="dark">Sombre</button>
-    </div>
-  </div>
-
   <div class="pied-compte">
     <p class="pied-compte-adresse" id="compte-adresse"></p>
     <div class="pied-compte-liens">

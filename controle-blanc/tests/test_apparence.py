@@ -19,18 +19,55 @@ STYLE = (RACINE / "web" / "styles.css").read_text(encoding="utf-8")
 TETE = PAGE[: PAGE.index("</head>")]
 
 
-def test_les_trois_choix_sont_sur_la_page_perso():
+def _espace() -> str:
     espace = PAGE[PAGE.index('id="ecran-espace"'):]
-    espace = espace[: espace.index('id="ecran-matiere"')]
-    for identifiant in ("apparence-auto", "apparence-claire", "apparence-sombre"):
+    return espace[: espace.index('id="ecran-matiere"')]
+
+
+def test_le_choix_est_en_haut_de_la_page_perso():
+    """En bas, il fallait savoir qu'il existait. En haut, on le voit en
+    arrivant — et c'est là qu'on y pense, en ouvrant l'application le soir."""
+    espace = _espace()
+    for identifiant in ("apparence-claire", "apparence-sombre"):
         assert f'id="{identifiant}"' in espace, identifiant
+    assert espace.index('class="apparence"') < espace.index('class="espace-haut"')
 
 
-def test_trois_choix_et_pas_deux():
-    """Un interrupteur clair/sombre retire le basculement automatique du soir —
-    celui qu'on avait AVANT d'y toucher, et qu'on ne retrouverait plus."""
+def test_deux_dessins_plutot_que_deux_mots():
+    """Un soleil et une lune se lisent avant d'être lus. Tracés au trait en
+    « currentColor », ils prennent la couleur du bouton : allumé ou éteint,
+    clair ou sombre, sans deux jeux d'images à tenir à jour."""
+    assert 'id="glyphe-soleil"' in PAGE and 'id="glyphe-lune"' in PAGE
+    assert 'href="#glyphe-soleil"' in PAGE and 'href="#glyphe-lune"' in PAGE
+    for glyphe in ("glyphe-soleil", "glyphe-lune"):
+        bloc = PAGE[PAGE.index(f'id="{glyphe}"'):]
+        bloc = bloc[: bloc.index("</symbol>")]
+        assert "currentColor" in bloc, glyphe
+    # Un dessin sans mot doit être nommé pour qui ne le voit pas.
+    assert 'aria-label="Mode jour"' in PAGE
+    assert 'aria-label="Mode nuit"' in PAGE
+
+
+def test_il_n_y_a_pas_de_bouton_auto():
+    """Demandé ainsi. Le comportement automatique reste celui de départ — qui
+    n'y touche jamais suit son téléphone — mais on ne peut plus y revenir après
+    avoir choisi. C'est le prix de deux boutons au lieu de trois.
+
+    « auto » reste une valeur interne : c'est l'état d'un élève qui n'a encore
+    rien décidé."""
+    assert 'data-apparence="auto"' not in PAGE
     assert "const APPARENCES = ['auto', 'light', 'dark']" in SCRIPT
-    assert 'data-apparence="auto"' in PAGE
+
+
+def test_le_bouton_allume_est_celui_qu_on_a_sous_les_yeux():
+    """Et pas celui qu'on a rangé : sans choix, aucun des deux ne serait allumé
+    alors que l'écran est bien dans l'un des deux états."""
+    bloc = SCRIPT[SCRIPT.index("function dessinerApparence()"):]
+    bloc = bloc[: bloc.index("\n}\n")]
+    assert "apparenceEffective()" in bloc
+    effective = SCRIPT[SCRIPT.index("function apparenceEffective()"):]
+    effective = effective[: effective.index("\n}\n")]
+    assert "(prefers-color-scheme: dark)" in effective
 
 
 def test_auto_est_le_defaut_et_n_ecrit_rien():
@@ -82,8 +119,11 @@ def test_le_mode_auto_suit_l_appareil_qui_change_d_avis():
     bloc = SCRIPT[SCRIPT.index("function suivreLaLumiereDeLAppareil()"):]
     bloc = bloc[: bloc.index("\n}\n")]
     assert "'change'" in bloc
-    assert "apparenceChoisie() === 'auto'" in bloc, (
+    assert "apparenceChoisie() !== 'auto'" in bloc, (
         "un choix explicite ne doit pas être écrasé par l'appareil"
+    )
+    assert "dessinerApparence()" in bloc, (
+        "sinon le soleil reste allumé sur un écran passé en nuit"
     )
 
 
@@ -133,20 +173,21 @@ def test_le_reglage_ne_quitte_pas_l_appareil():
 
 
 def test_l_etat_est_dit_pas_seulement_peint():
-    """Trois boutons dont un seul est allumé : sans aria-checked, un lecteur
-    d'écran annonce trois boutons identiques."""
+    """Deux boutons dont un seul est allumé : sans aria-checked, un lecteur
+    d'écran annonce deux boutons identiques."""
     assert 'role="radiogroup"' in PAGE
-    assert PAGE.count('role="radio"') == 3
+    assert PAGE.count('role="radio"') == 2
     dessiner = SCRIPT[SCRIPT.index("function dessinerApparence()"):]
     dessiner = dessiner[: dessiner.index("\n}\n")]
     assert "setAttribute('aria-checked'" in dessiner
 
 
-def test_le_choix_actif_se_peint_comme_un_onglet_actif():
-    """Même composant que la bascule des archives : deux grammaires visuelles
-    pour le même geste obligeraient à réapprendre."""
-    assert '.bascule-cote[aria-checked="true"]' in STYLE
-    assert ".bascule-trois { grid-template-columns: repeat(3, minmax(0, 1fr)); }" in STYLE
+def test_l_allume_se_distingue_sans_pastille():
+    """À deux boutons de la taille d'une icône, un fond plein ferait une tache
+    en haut de la page : c'est la couleur d'accent qui dit lequel est le sien."""
+    bloc = STYLE[STYLE.index('.apparence-cote[aria-checked="true"] {'):]
+    bloc = bloc[: bloc.index("}")]
+    assert "var(--accent)" in bloc
 
 
 def test_l_etat_est_redessine_en_ouvrant_sa_page():

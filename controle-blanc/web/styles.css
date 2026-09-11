@@ -3076,6 +3076,51 @@ h1 {
 
 .ecran-espace { display: flex; flex-direction: column; gap: var(--e4); }
 
+/* --- Jour ou nuit --------------------------------------------------------
+ *
+ * Deux dessins, pas un mot : un soleil et une lune se lisent avant d'être lus.
+ * Posés en haut à droite, sur la marge de la carte, là où l'œil passe déjà en
+ * arrivant — et assez petits pour ne pas concurrencer le prénom.
+ *
+ * L'allumé prend l'accent plutôt qu'une pastille : à deux boutons de la taille
+ * d'une icône, un fond plein ferait une tache, et la couleur suffit à dire
+ * lequel est le sien.
+ */
+.apparence {
+  margin-bottom: calc(-1 * var(--e3));
+  display: flex;
+  justify-content: flex-end;
+  gap: 2px;
+}
+
+.apparence-cote {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: color-mix(in srgb, var(--encre) 38%, transparent);
+  cursor: pointer;
+  transition: color .18s ease, background .18s ease;
+}
+
+.apparence-cote:hover { color: color-mix(in srgb, var(--encre) 70%, transparent); }
+
+.apparence-cote[aria-checked="true"] {
+  color: var(--accent);
+  background: var(--accent-doux);
+}
+
+.apparence-signe { width: 19px; height: 19px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .apparence-cote { transition: none; }
+}
+
 .bandeau-droite { display: flex; align-items: center; gap: var(--e2); }
 
 
@@ -4527,27 +4572,6 @@ h1 {
    grammaire. Le libellé actif est dit par « aria-selected » dans un jeu
    d'onglets et par « aria-checked » dans un choix unique — les deux se peignent
    pareil. */
-.bascule-trois { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-
-.apparence {
-  margin-top: var(--e4);
-  display: flex;
-  align-items: center;
-  gap: var(--e2);
-}
-
-.apparence-mot {
-  font-family: var(--mono);
-  font-size: .66rem;
-  letter-spacing: .14em;
-  text-transform: uppercase;
-  color: color-mix(in srgb, var(--encre) 52%, transparent);
-  white-space: nowrap;
-}
-
-.apparence .bascule { flex: 1 1 auto; }
-.apparence .bascule-cote { font-size: .78rem; min-height: 36px; }
-
 /* L'ombre portée suffit sur fond clair, où la pastille est blanche sur gris.
    En sombre elle ne se voit plus — une carte sombre sur un rail sombre — et le
    côté allumé ne tenait plus qu'à la couleur du texte. L'anneau, lui, se voit

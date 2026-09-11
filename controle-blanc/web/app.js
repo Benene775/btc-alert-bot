@@ -2094,6 +2094,17 @@ async function ouvrirControleGarde(sessionId, rang) {
 const CLE_APPARENCE = 'cb.apparence';
 const APPARENCES = ['auto', 'light', 'dark'];
 
+/* Ce qu'on a SOUS LES YEUX, qui n'est pas toujours ce qu'on a choisi : tant
+ * qu'on n'a rien choisi, c'est l'appareil qui décide. Les deux boutons
+ * s'allument là-dessus et pas sur la préférence rangée — sinon, au premier
+ * chargement, aucun des deux ne serait allumé alors que l'écran est bien dans
+ * l'un des deux états. */
+function apparenceEffective() {
+  const choix = apparenceChoisie();
+  if (choix !== 'auto') return choix;
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
 function apparenceChoisie() {
   try {
     const gardee = localStorage.getItem(CLE_APPARENCE);
@@ -2138,15 +2149,21 @@ function peindreLaBordure() {
  * la barre du téléphone garderait la couleur du matin. */
 function suivreLaLumiereDeLAppareil() {
   const nuit = window.matchMedia('(prefers-color-scheme: dark)');
-  const suivre = () => { if (apparenceChoisie() === 'auto') peindreLaBordure(); };
+  const suivre = () => {
+    if (apparenceChoisie() !== 'auto') return;
+    peindreLaBordure();
+    // Et les deux boutons, qui montrent ce qu'on a sous les yeux : sans ça, le
+    // soleil resterait allumé sur un écran passé en nuit.
+    dessinerApparence();
+  };
   if (nuit.addEventListener) nuit.addEventListener('change', suivre);
   else if (nuit.addListener) nuit.addListener(suivre);
 }
 
 function dessinerApparence() {
-  const choix = apparenceChoisie();
+  const visible = apparenceEffective();
   document.querySelectorAll('[data-apparence]').forEach((bouton) => {
-    bouton.setAttribute('aria-checked', String(bouton.dataset.apparence === choix));
+    bouton.setAttribute('aria-checked', String(bouton.dataset.apparence === visible));
   });
 }
 
