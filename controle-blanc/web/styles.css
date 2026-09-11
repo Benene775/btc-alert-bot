@@ -4512,10 +4512,41 @@ h1 {
   transition: background .18s ease, color .18s ease;
 }
 
-.bascule-cote[aria-selected="true"] {
+/* Trois choix pour l'apparence, deux pour les archives : même objet, même
+   grammaire. Le libellé actif est dit par « aria-selected » dans un jeu
+   d'onglets et par « aria-checked » dans un choix unique — les deux se peignent
+   pareil. */
+.bascule-trois { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+.apparence {
+  margin-top: var(--e4);
+  display: flex;
+  align-items: center;
+  gap: var(--e2);
+}
+
+.apparence-mot {
+  font-family: var(--mono);
+  font-size: .66rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--encre) 52%, transparent);
+  white-space: nowrap;
+}
+
+.apparence .bascule { flex: 1 1 auto; }
+.apparence .bascule-cote { font-size: .78rem; min-height: 36px; }
+
+/* L'ombre portée suffit sur fond clair, où la pastille est blanche sur gris.
+   En sombre elle ne se voit plus — une carte sombre sur un rail sombre — et le
+   côté allumé ne tenait plus qu'à la couleur du texte. L'anneau, lui, se voit
+   dans les deux. */
+.bascule-cote[aria-selected="true"],
+.bascule-cote[aria-checked="true"] {
   background: var(--carte);
   color: var(--encre);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, .08);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .08),
+              inset 0 0 0 1px color-mix(in srgb, var(--encre) 12%, transparent);
 }
 
 .bascule-compte {

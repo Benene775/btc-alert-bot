@@ -3,8 +3,19 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#fbf7f2">
-<meta name="theme-color" content="#17130e" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#fbf7f2" id="couleur-claire">
+<meta name="theme-color" content="#17130e" media="(prefers-color-scheme: dark)" id="couleur-sombre">
+<!-- Le seul script en ligne de la page, et il tient en deux lignes pour une
+     raison : le choix d'apparence doit être posé AVANT la première peinture.
+     Dans app.js, chargé en fin de body, la page s'afficherait d'abord dans le
+     thème du téléphone puis basculerait sous les yeux de l'élève — un éclair
+     blanc à 22 h, ce qui est exactement ce que le mode sombre veut éviter. -->
+<script>
+  try {
+    var choix = localStorage.getItem('cb.apparence');
+    if (choix === 'dark' || choix === 'light') document.documentElement.dataset.theme = choix;
+  } catch (e) { /* stockage refusé : on suit le téléphone */ }
+</script>
 <meta name="description" content="Repère : photographie ton cours, passe le contrôle blanc, et ne retravaille que les trois notions qui ne sont pas acquises. Sans note.">
 <title>Repère — on optimise tes révisions</title>
 <!-- Installable sur l'écran d'accueil : le manifeste donne le nom, l'icône et
@@ -591,6 +602,21 @@
 
   <!-- Le compte, en bas et en petit : on n'ouvre pas le site pour le gérer.
        Effacer est à côté de sortir, parce que c'est là qu'on le cherche. -->
+  <!-- L'apparence. Trois choix et pas deux : un simple interrupteur clair/sombre
+       enlève à l'élève le basculement automatique du soir, qu'il avait avant
+       d'y toucher. « Auto » reste donc le défaut et reste joignable. -->
+  <div class="apparence">
+    <span class="apparence-mot" id="apparence-mot">Apparence</span>
+    <div class="bascule bascule-trois" role="radiogroup" aria-labelledby="apparence-mot">
+      <button type="button" class="bascule-cote" id="apparence-auto" role="radio"
+              aria-checked="true" data-apparence="auto">Auto</button>
+      <button type="button" class="bascule-cote" id="apparence-claire" role="radio"
+              aria-checked="false" data-apparence="light">Clair</button>
+      <button type="button" class="bascule-cote" id="apparence-sombre" role="radio"
+              aria-checked="false" data-apparence="dark">Sombre</button>
+    </div>
+  </div>
+
   <div class="pied-compte">
     <p class="pied-compte-adresse" id="compte-adresse"></p>
     <div class="pied-compte-liens">

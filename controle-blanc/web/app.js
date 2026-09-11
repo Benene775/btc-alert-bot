@@ -610,6 +610,7 @@ function dessinerEspace() {
   dessinerFichesRecentes(sessions);
   dessinerEtagere(sessions);
   dessinerAccesOutils();
+  dessinerApparence();
   const echeances = dessinerAgenda(sessions);
   $('compte-agenda').textContent = echeances ? String(echeances) : '';
   soignerTypographie($('ecran-espace'));
@@ -2072,6 +2073,66 @@ async function ouvrirControleGarde(sessionId, rang) {
   const garde = (etat.controles || [])[rang];
   if (!garde || !garde.correction) return message("Cette correction n’est plus disponible.", 'alerte');
   afficherCorrection(garde.correction);
+}
+
+/* --- L'apparence ---------------------------------------------------------
+ *
+ * Le thème sombre existait dans la feuille de style depuis le début, mais
+ * personne ne pouvait le demander : l'élève subissait le réglage de son
+ * téléphone. Or on révise le soir, souvent dans un lit, et le téléphone d'un
+ * collégien est réglé par quelqu'un d'autre aussi souvent que par lui.
+ *
+ * Trois choix et pas deux. Un interrupteur clair/sombre paraît plus simple,
+ * mais il retire le basculement automatique du soir — celui qu'on avait AVANT
+ * d'y toucher, et qu'on ne peut plus retrouver. « Auto » est donc le défaut, et
+ * reste joignable.
+ *
+ * Ça ne quitte pas l'appareil : c'est un réglage d'écran, pas une préférence de
+ * compte. Le téléphone du soir et l'ordinateur du week-end n'ont pas la même
+ * lumière autour d'eux.
+ */
+const CLE_APPARENCE = 'cb.apparence';
+const APPARENCES = ['auto', 'light', 'dark'];
+
+function apparenceChoisie() {
+  try {
+    const gardee = localStorage.getItem(CLE_APPARENCE);
+    return APPARENCES.includes(gardee) ? gardee : 'auto';
+  } catch (e) {
+    return 'auto';
+  }
+}
+
+function poserApparence(choix) {
+  const propre = APPARENCES.includes(choix) ? choix : 'auto';
+  if (propre === 'auto') delete document.documentElement.dataset.theme;
+  else document.documentElement.dataset.theme = propre;
+  try {
+    if (propre === 'auto') localStorage.removeItem(CLE_APPARENCE);
+    else localStorage.setItem(CLE_APPARENCE, propre);
+  } catch (e) { /* stockage refusé : le choix vaut pour cette visite */ }
+  peindreLaBordure(propre);
+  dessinerApparence();
+}
+
+/* La couleur de la barre du téléphone. Deux balises « theme-color » se
+ * relaient par media query ; un choix explicite doit donc en éteindre une,
+ * sinon l'application installée garde une barre blanche autour d'un écran noir.
+ */
+function peindreLaBordure(choix) {
+  const claire = $('couleur-claire');
+  const sombre = $('couleur-sombre');
+  if (!claire || !sombre) return;
+  if (choix === 'dark') { claire.media = 'not all'; sombre.media = 'all'; }
+  else if (choix === 'light') { claire.media = 'all'; sombre.media = 'not all'; }
+  else { claire.removeAttribute('media'); sombre.media = '(prefers-color-scheme: dark)'; }
+}
+
+function dessinerApparence() {
+  const choix = apparenceChoisie();
+  document.querySelectorAll('[data-apparence]').forEach((bouton) => {
+    bouton.setAttribute('aria-checked', String(bouton.dataset.apparence === choix));
+  });
 }
 
 function ouvrirEspace() {
@@ -5374,6 +5435,13 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   $('bouton-espace-nouveau').onclick = () => demarrerSession();
   $('bouton-tout-voir').onclick = () => ouvrirMatiere(null);
+  document.querySelectorAll('[data-apparence]').forEach((bouton) => {
+    bouton.onclick = () => poserApparence(bouton.dataset.apparence);
+  });
+  // La barre du téléphone suit dès le départ : le petit script de l'en-tête a
+  // posé le thème, mais il ne touche pas aux balises « theme-color ».
+  peindreLaBordure(apparenceChoisie());
+
   $('onglet-fiches').onclick = () => basculerArchive('fiches');
   $('onglet-controles').onclick = () => basculerArchive('controles');
   $('retour-etagere').onclick = () => { montrer('ecran-espace'); dessinerEspace(); };
