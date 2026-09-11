@@ -394,7 +394,12 @@ def verifier_forme_mot_de_passe(clair: str, email: str = "", prenom: str = "") -
         raise ErreurAuth("Ce mot de passe est trop courant. Trouve autre chose.", "mdp")
     if prenom and len(prenom) >= 3 and prenom.lower() in bas:
         raise ErreurAuth("Évite ton prénom dans ton mot de passe.", "mdp")
-    if email and email.split("@")[0].lower() in bas:
+    # La même garde que pour le prénom, qui manquait ici : sans elle, une adresse
+    # « jp@… » interdit tout mot de passe contenant « jp », et « a@… » tout mot de
+    # passe contenant un « a » — c'est-à-dire presque tous. L'élève lit « évite
+    # ton adresse mail dans ton mot de passe » sans comprendre, et renonce.
+    debut = email.split("@")[0].lower() if email else ""
+    if len(debut) >= 3 and debut in bas:
         raise ErreurAuth("Évite ton adresse mail dans ton mot de passe.", "mdp")
     return clair
 

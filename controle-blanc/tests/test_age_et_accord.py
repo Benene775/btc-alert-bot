@@ -150,3 +150,27 @@ def test_et_le_produit_le_dit():
     # Et ça doit se retrouver le jour où le test s'arrête.
     assert PAGE.count("À REPRENDRE À LA FIN DU TEST") == 1
     assert "à reprendre à la fin du test" in PAGE.lower()
+
+
+def test_une_adresse_courte_ne_bloque_pas_tous_les_mots_de_passe():
+    """Trouvé en préparant la mise en ligne. Le contrôle du prénom ignorait déjà
+    les prénoms de moins de trois lettres ; celui de l'adresse n'avait pas la
+    même garde. « a@famille.fr » refusait donc tout mot de passe contenant un
+    « a » — l'élève lisait « évite ton adresse mail dans ton mot de passe » sans
+    comprendre, et renonçait à l'inscription.
+    """
+    from app import store
+
+    # Deux lettres : on ne cherche pas.
+    store.verifier_forme_mot_de_passe("chocolatine-du-matin", "jp@famille.fr")
+    store.verifier_forme_mot_de_passe("chocolatine-du-matin", "a@famille.fr")
+
+    # Trois et plus : on cherche toujours, c'est le but de la règle.
+    for email, mdp in (("lina@exemple.fr", "lina-du-matin-2026"),
+                       ("max@exemple.fr", "max-chocolatine-bleue")):
+        try:
+            store.verifier_forme_mot_de_passe(mdp, email)
+        except store.ErreurAuth as refus:
+            assert refus.genre == "mdp"
+        else:
+            raise AssertionError(f"« {mdp} » aurait dû être refusé pour {email}")
