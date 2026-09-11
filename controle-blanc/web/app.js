@@ -763,14 +763,13 @@ function dessinerEtagere(sessions) {
 /* --- La vue d'une matière ------------------------------------------------ */
 
 function ouvrirMatiere(cle, viser) {
-  matiereOuverte = cle;
-  archives.fiches.matiere = cle || '';
-  archives.controles.matiere = cle || '';
-  archives.fiches.tout = false;
-  archives.controles.tout = false;
-  revoirDeplie = false;
+  // On arrive d'ailleurs : la recherche de la dernière visite n'a plus de sens,
+  // et un élève qui ne voit pas le champ chercherait pourquoi sa liste est
+  // presque vide. Changer de matière SUR l'écran la garde, elle (choisirMatiere).
+  archives.recherche = '';
+  $('recherche').value = '';
   basculerArchive(viser);
-  dessinerMatiere();
+  choisirMatiere(cle || '');
   montrer('ecran-matiere');
 }
 
@@ -829,22 +828,21 @@ function dessinerMatiere() {
     tete.appendChild(nom);
   }
 
-  // La recherche et les filtres ne servent que dans la vue « tout » : dans une
-  // matière, le filtre par matière n'a plus rien à filtrer.
   const dansTout = !cle;
-  ['fiches', 'controles'].forEach((genre) => {
-    $('recherche-' + genre).dataset.tout = dansTout ? 'oui' : 'non';
-    $('filtres-' + genre).dataset.tout = dansTout ? 'oui' : 'non';
-  });
   $('titre-fiches').textContent = dansTout ? 'Toutes tes fiches' : 'Tes fiches';
   $('titre-controles').textContent = dansTout ? 'Tous tes contrôles blancs' : 'Tes contrôles blancs';
+
+  // Les outils avant les listes : la rangée des matières se bâtit sur tout le
+  // travail, et la recherche ne paraît que s'il y a de quoi chercher.
+  dessinerFiltres(sessions);
+  $('chercher').hidden = toutesLesFiches(sessions).length + tousLesControles(sessions).length === 0;
 
   dessinerMatiereRevoir(sessions, cle);
   const combienDeFiches = dessinerMesFiches(sessions);
   const combienDeControles = dessinerMesControles(sessions);
-  // Y compris le zéro : c'est justement le chiffre le plus utile. Sans lui, un
-  // onglet muet ne dit pas s'il est vide ou si le compte n'est pas affiché, et
-  // on clique pour le savoir.
+  // Les comptes suivent la recherche : c'est ce qui dit de quel côté est ce
+  // qu'on cherche, sans avoir à passer de l'autre pour le découvrir. Le zéro
+  // compris — un onglet muet ne dit pas s'il est vide ou si le compte manque.
   $('compte-onglet-fiches').textContent = String(combienDeFiches || 0);
   $('compte-onglet-controles').textContent = String(combienDeControles || 0);
   soignerTypographie($('ecran-matiere'));
@@ -1659,10 +1657,28 @@ function parPage() {
   return matiereOuverte ? PAR_PAGE : PAR_PAGE_TOUT;
 }
 
+/* Ce qu'on cherche et dans quelle matière valent pour les DEUX listes : c'est
+ * une seule question posée à tout son travail, pas deux questions parallèles.
+ * Seul « tout est déplié » reste propre à chaque liste — on en déplie une sans
+ * vouloir déplier l'autre. */
 const archives = {
-  fiches: { recherche: '', matiere: '', tout: false },
-  controles: { recherche: '', matiere: '', tout: false },
+  recherche: '',
+  matiere: '',
+  fiches: { tout: false },
+  controles: { tout: false },
 };
+
+/* Le tri partagé, écrit une fois : la liste dessinée et la liste des boutons
+ * à armer doivent retenir exactement les mêmes éléments, sinon on ouvre la
+ * fiche d'à côté. */
+function retenirArchive(elements) {
+  const cherche = sansAccent(archives.recherche);
+  return elements.filter((e) => {
+    if (archives.matiere && e.session.matiere !== archives.matiere) return false;
+    if (!cherche) return true;
+    return sansAccent(e.titre + ' ' + nomMatiere(e.session.matiere)).includes(cherche);
+  });
+}
 
 /* La couleur d'une matière ne change jamais : c'est son code, d'un écran à
  * l'autre. Prise sur sa position dans la liste des matières, pas au hasard. */
@@ -1702,32 +1718,19 @@ function dessinerArchive(genre, elements, sousTitre) {
   liste.innerHTML = '';
   $('vide-' + genre).hidden = elements.length > 0;
 
-  // Chercher et filtrer ne sert que dans la vue « tout », et seulement au-delà
-  // d'une poignée d'éléments : dans une matière, le filtre par matière n'a plus
-  // rien à filtrer.
-  const dansTout = $('recherche-' + genre).dataset.tout === 'oui';
-  const outils = dansTout && elements.length > PAR_PAGE_TOUT;
-  $('recherche-' + genre).hidden = !outils;
-  $('filtres-' + genre).hidden = !outils;
-  if (outils) dessinerFiltres(genre, elements);
-
-  const cherche = sansAccent(reglages.recherche);
-  const retenus = elements.filter((e) => {
-    if (reglages.matiere && e.session.matiere !== reglages.matiere) return false;
-    if (!cherche) return true;
-    return sansAccent(e.titre + ' ' + nomMatiere(e.session.matiere)).includes(cherche);
-  });
+  const retenus = retenirArchive(elements);
 
   if (!retenus.length && elements.length) {
     const li = document.createElement('li');
     li.className = 'panneau-vide';
-    li.textContent = 'Rien ne correspond. Essaie un autre mot, ou enlève le filtre.';
+    li.textContent = 'Rien ne correspond. Essaie un autre mot, ou une autre matière.';
     liste.appendChild(li);
     plus.hidden = true;
-    return elements.length;
+    return 0;
   }
 
   const visibles = reglages.tout ? retenus : retenus.slice(0, parPage());
+  liste.dataset.retenus = String(retenus.length);
   let moisCourant = null;
   visibles.forEach((e) => {
     const mois = moisDe(e.le);
@@ -1756,42 +1759,67 @@ function dessinerArchive(genre, elements, sousTitre) {
 
 /* Une puce par matière, avec son compte. La matière courante se retire d'un
  * second appui : un filtre qu'on ne sait pas enlever est un piège. */
-function dessinerFiltres(genre, elements) {
-  const reglages = archives[genre];
-  const boite = $('filtres-' + genre);
+/* La rangée des matières — qui est aussi la liste des matières.
+ *
+ * Elle se bâtit sur TOUT le travail, fiches et contrôles confondus, et pas sur
+ * la liste affichée : une matière ne doit pas disparaître de la rangée parce
+ * qu'on regarde l'onglet où elle n'a rien. Elle resterait alors introuvable
+ * depuis l'onglet d'à côté, qui est justement celui qu'on cherche.
+ *
+ * Elle reste visible dans une matière, pour qu'on en change d'un geste au lieu
+ * de repasser par sa page.
+ */
+function dessinerFiltres(sessions) {
+  const boite = $('filtres');
   boite.innerHTML = '';
 
   const comptes = new Map();
-  elements.forEach((e) => {
-    const cle = e.session.matiere || '';
-    comptes.set(cle, (comptes.get(cle) || 0) + 1);
-  });
+  matieres(sessions).forEach((m) => comptes.set(m.cle, m.fiches + m.controles));
+
+  // Une seule matière : la rangée n'offrirait aucun choix.
+  boite.hidden = comptes.size < 2;
+  if (boite.hidden) return;
 
   const puce = (cle, libelle, nombre) => {
     const bouton = document.createElement('button');
     bouton.type = 'button';
     bouton.className = 'puce';
     bouton.dataset.teinte = cle ? teinteMatiere(cle) : '';
-    bouton.setAttribute('aria-pressed', reglages.matiere === cle ? 'true' : 'false');
+    bouton.setAttribute('aria-pressed', archives.matiere === cle ? 'true' : 'false');
+    if (cle) bouton.setAttribute('aria-label', nomMatiere(cle));
     bouton.textContent = libelle;
-    if (nombre !== null) {
-      const compte = document.createElement('span');
-      compte.className = 'puce-compte';
-      compte.textContent = String(nombre);
-      bouton.appendChild(compte);
-    }
-    bouton.onclick = () => {
-      reglages.matiere = reglages.matiere === cle ? '' : cle;
-      reglages.tout = false;
-      dessinerMatiere();
-    };
+    const compte = document.createElement('span');
+    compte.className = 'puce-compte';
+    compte.textContent = String(nombre);
+    bouton.appendChild(compte);
+    // Recliquer sur la matière ouverte revient à tout : sinon on est enfermé
+    // dedans, la seule sortie étant le bouton de retour tout en haut.
+    bouton.onclick = () => choisirMatiere(archives.matiere === cle ? '' : cle);
     return bouton;
   };
 
-  boite.appendChild(puce('', 'Tout', elements.length));
+  let total = 0;
+  comptes.forEach((n) => { total += n; });
+  boite.appendChild(puce('', 'Tout', total));
+  // Le code court, pas le nom entier : c'est celui que porte déjà la pastille
+  // de chaque ligne, dans la même couleur. « Histoire-Géographie / EMC » en
+  // toutes lettres poussait les autres matières hors de l'écran, et il fallait
+  // faire défiler une rangée pour découvrir qu'on avait de la physique.
   [...comptes.entries()]
     .sort((a, b) => b[1] - a[1])
-    .forEach(([cle, nombre]) => boite.appendChild(puce(cle, nomMatiere(cle), nombre)));
+    .forEach(([cle, nombre]) => boite.appendChild(puce(cle, codeMatiere(cle), nombre)));
+}
+
+/* Changer de matière sans quitter l'écran — et sans perdre ce qu'on tapait :
+ * chercher « photosynthèse » puis regarder matière par matière est un geste
+ * naturel, que remettre la recherche à zéro casserait. */
+function choisirMatiere(cle) {
+  matiereOuverte = cle || null;
+  archives.matiere = cle || '';
+  archives.fiches.tout = false;
+  archives.controles.tout = false;
+  revoirDeplie = false;
+  dessinerMatiere();
 }
 
 function ligneArchive(e, sousTitre, avecCode = !matiereOuverte) {
@@ -1867,14 +1895,8 @@ function dessinerMesControles(sessions) {
 /* Les éléments effectivement dessinés, dans l'ordre : c'est eux que les
  * boutons doivent ouvrir, pas la liste complète. */
 function visiblesArchive(genre, elements) {
-  const reglages = archives[genre];
-  const cherche = sansAccent(reglages.recherche);
-  const retenus = elements.filter((e) => {
-    if (reglages.matiere && e.session.matiere !== reglages.matiere) return false;
-    if (!cherche) return true;
-    return sansAccent(e.titre + ' ' + nomMatiere(e.session.matiere)).includes(cherche);
-  });
-  return reglages.tout ? retenus : retenus.slice(0, parPage());
+  const retenus = retenirArchive(elements);
+  return archives[genre].tout ? retenus : retenus.slice(0, parPage());
 }
 
 /* La frise : un aperçu du calendrier, un carré par jour.
@@ -5485,16 +5507,17 @@ document.addEventListener('DOMContentLoaded', () => {
     jourChoisi = null;
     dessinerEspace();
   };
-  ['fiches', 'controles'].forEach((genre) => {
-    $('recherche-' + genre).oninput = (evenement) => {
-      archives[genre].recherche = evenement.target.value;
-      archives[genre].tout = false;
-      dessinerMatiere();
-      // Redessiner remplace le champ dans le DOM des filtres voisins, pas le
-      // champ lui-même : le focus et le curseur ne bougent pas.
-      $('recherche-' + genre).focus();
-    };
-  });
+  $('recherche').oninput = (evenement) => {
+    archives.recherche = evenement.target.value;
+    archives.fiches.tout = false;
+    archives.controles.tout = false;
+    dessinerMatiere();
+    // Redessiner refait les listes et les puces, pas le champ lui-même : le
+    // focus et le curseur ne bougent pas. On le remet quand même, parce qu'un
+    // clavier qui se referme à la deuxième lettre est une de ces pannes qu'on
+    // ne voit jamais sur un ordinateur.
+    $('recherche').focus();
+  };
 
   // Changer de mois, c'est ouvrir un autre mois : la vague rejoue.
   $('mois-precedent').onclick = () => { animerAgenda(); changerMois(-1); };

@@ -123,7 +123,10 @@ def test_l_archive_est_faite_pour_une_annee_entiere():
     assert "function dessinerArchive" in CODE_NU, "fiches et contrôles ne partagent pas leur liste"
     assert "const PAR_PAGE" in CODE_NU, "la liste n'est pas bornée"
     assert "function dessinerFiltres" in CODE_NU, "aucun filtre par matière"
-    assert 'id="recherche-fiches"' in PAGE and 'id="recherche-controles"' in PAGE
+    # Une seule recherche pour les deux listes : deux champs obligeaient à
+    # retaper le même mot après avoir changé d'onglet.
+    assert 'id="recherche"' in PAGE
+    assert PAGE.count('type="search"') == 1
     # Chercher « theoreme » doit trouver « théorème » : un élève ne tape pas les accents.
     assert "normalize('NFD')" in CODE_NU, "la recherche est sensible aux accents"
     # La couleur d'une matière est son code : elle ne doit pas dépendre du hasard.

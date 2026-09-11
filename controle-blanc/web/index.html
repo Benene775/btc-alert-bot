@@ -662,29 +662,47 @@
     <button type="button" class="archive-plus" id="plus-revoir" hidden></button>
   </section>
 
-  <!-- Fiches et contrôles ne se cherchent pas dans le même geste : on relit une
-       fiche, on passe un contrôle une fois. L'un sous l'autre, il fallait faire
-       défiler le premier pour atteindre le second — et deviner où il
-       s'arrêtait. Une bascule : on choisit, on ne voit que ça. -->
-  <div class="bascule" id="bascule-archives" role="tablist"
-       aria-label="Fiches ou contrôles blancs">
-    <button type="button" class="bascule-cote" id="onglet-fiches" role="tab"
-            aria-selected="true" aria-controls="pan-mes-fiches">
-      Fiches<span class="bascule-compte" id="compte-onglet-fiches"></span>
-    </button>
-    <button type="button" class="bascule-cote" id="onglet-controles" role="tab"
-            aria-selected="false" aria-controls="pan-mes-controles">
-      Contrôles blancs<span class="bascule-compte" id="compte-onglet-controles"></span>
-    </button>
+  <!-- Chercher et choisir sa matière valent pour les DEUX listes, donc au-dessus
+       de la bascule et pas dedans. Un champ par onglet obligeait à retaper le
+       même mot après avoir changé de côté — et à découvrir en changeant que ce
+       qu'on cherchait était de l'autre bord.
+
+       La rangée de matières est aussi la liste des matières : c'est là qu'on
+       vient voir ce qu'on a, et d'où l'on entre dans l'une d'elles. -->
+  <!-- Chercher, choisir sa matière, choisir son onglet : trois gestes de la
+       même question, donc serrés ensemble. L'écran espace ses sections ; eux
+       forment un seul bloc de commandes au-dessus de la liste.
+
+       Fiches et contrôles ne se cherchent pas dans le même geste — on relit
+       une fiche, on passe un contrôle une fois — mais on les cherche avec le
+       même mot. D'où une recherche pour les deux, et une bascule pour n'en
+       montrer qu'un. -->
+  <div class="trouver">
+    <div class="chercher" id="chercher" hidden>
+      <label class="masque" for="recherche">Chercher une fiche ou un contrôle</label>
+      <input type="search" id="recherche" class="recherche"
+             placeholder="Chercher une fiche, un contrôle…"
+             autocomplete="off" enterkeyhint="search">
+    </div>
+
+    <div class="filtres" id="filtres" role="group" aria-label="Choisir une matière" hidden></div>
+
+    <div class="bascule" id="bascule-archives" role="tablist"
+         aria-label="Fiches ou contrôles blancs">
+      <button type="button" class="bascule-cote" id="onglet-fiches" role="tab"
+              aria-selected="true" aria-controls="pan-mes-fiches">
+        Fiches<span class="bascule-compte" id="compte-onglet-fiches"></span>
+      </button>
+      <button type="button" class="bascule-cote" id="onglet-controles" role="tab"
+              aria-selected="false" aria-controls="pan-mes-controles">
+        Contrôles blancs<span class="bascule-compte" id="compte-onglet-controles"></span>
+      </button>
+    </div>
   </div>
 
   <div class="matiere-listes">
   <section class="pan" id="pan-mes-fiches" role="tabpanel" aria-labelledby="onglet-fiches">
     <div class="archive">
-      <label class="masque" for="recherche-fiches">Chercher une fiche</label>
-      <input type="search" id="recherche-fiches" class="recherche" placeholder="Chercher une fiche…"
-             autocomplete="off" enterkeyhint="search">
-      <div class="filtres" id="filtres-fiches" role="group" aria-label="Filtrer par matière"></div>
       <h2 class="pan-titre" id="titre-fiches">Ses fiches</h2>
       <ul class="archive-liste" id="liste-mes-fiches"></ul>
       <button type="button" class="archive-plus" id="plus-fiches" hidden></button>
@@ -695,10 +713,6 @@
   <section class="pan" id="pan-mes-controles" role="tabpanel"
            aria-labelledby="onglet-controles" hidden>
     <div class="archive">
-      <label class="masque" for="recherche-controles">Chercher un contrôle blanc</label>
-      <input type="search" id="recherche-controles" class="recherche" placeholder="Chercher un contrôle…"
-             autocomplete="off" enterkeyhint="search">
-      <div class="filtres" id="filtres-controles" role="group" aria-label="Filtrer par matière"></div>
       <h2 class="pan-titre" id="titre-controles">Ses contrôles blancs</h2>
       <ul class="archive-liste" id="liste-mes-controles"></ul>
       <button type="button" class="archive-plus" id="plus-controles" hidden></button>

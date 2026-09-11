@@ -4036,7 +4036,15 @@ h1 {
 .matiere-tete[data-teinte="3"] { background: var(--t3); }
 .matiere-tete[data-teinte="4"] { background: var(--t4); }
 .matiere-tete[data-teinte="5"] { background: var(--t5); }
-.matiere-tete[data-tout="oui"] { background: var(--carte); }
+/* « Tout ton travail » n'a ni code ni chiffres à porter : la carte n'entourait
+   qu'une ligne de titre, et mangeait le tiers d'un écran de téléphone avant la
+   première fiche. Dans une matière, en revanche, elle porte la couleur, le code
+   et l'échéance — elle a de quoi être une carte. */
+.matiere-tete[data-tout="oui"] {
+  background: none;
+  box-shadow: none;
+  padding: 0;
+}
 
 .matiere-code {
   flex: 0 0 auto;
@@ -4541,6 +4549,11 @@ h1 {
  * ce qu'on trouvera de l'autre côté avant d'y aller — un onglet vide qu'on
  * découvre après avoir cliqué est un aller-retour pour rien.
  */
+/* Le bloc des commandes : chercher, la matière, l'onglet. Serrés, parce que
+   c'est une seule question posée en trois temps — et détachés de la liste,
+   qui est la réponse. */
+.trouver { display: flex; flex-direction: column; gap: var(--e2); }
+
 .bascule {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
