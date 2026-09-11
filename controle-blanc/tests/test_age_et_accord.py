@@ -115,3 +115,38 @@ def test_le_navigateur_ne_devine_pas_a_la_place_de_l_eleve():
     bloc = bloc[: bloc.index("\n}\n")]
     assert "return null" in bloc
     assert "Dis-nous si tu as 15 ans ou plus." in SCRIPT
+
+
+def test_rien_ne_demande_de_payer():
+    """Le test est gratuit pour les dix familles. Rien dans le produit ne doit
+    laisser croire le contraire — ni un prix, ni un abonnement, ni un refus de
+    quota qui proposerait de « passer à la version supérieure ».
+
+    Les messages de quota disent tous « le compteur repart le 1er » : ce sont
+    des limites, pas des péages. Ce test empêche qu'un jour l'un d'eux devienne
+    une invitation à payer sans que personne s'en aperçoive.
+    """
+    from app import store
+
+    vu_par_l_eleve = (PAGE + SCRIPT
+                      + " ".join(store.MESSAGES_QUOTA.values())
+                      + (RACINE / "app" / "courrier.py").read_text(encoding="utf-8"))
+    # On interdit l'INVITATION à payer, pas le mot : le produit dit justement
+    # qu'il n'y a aucun paiement, et il doit pouvoir le dire.
+    for tournure in ("abonnement", "s’abonner", "passe à la version",
+                     "version supérieure", "premium", "débloquer",
+                     "payer pour", "carte bancaire requise", "essai gratuit"):
+        assert tournure not in vu_par_l_eleve.lower(), (
+            f"« {tournure} » apparaît dans ce que voit l'élève"
+        )
+
+
+def test_et_le_produit_le_dit():
+    """Un parent qui donne son accord se demande d'abord si ça va lui coûter
+    quelque chose. Répondre avant qu'il pose la question vaut mieux que de le
+    laisser chercher le piège."""
+    volet = PAGE[PAGE.index('id="volet-inscription"') : PAGE.index('id="volet-oubli"')]
+    assert "aucun paiement dans l’application" in volet
+    # Et ça doit se retrouver le jour où le test s'arrête.
+    assert PAGE.count("À REPRENDRE À LA FIN DU TEST") == 1
+    assert "à reprendre à la fin du test" in PAGE.lower()

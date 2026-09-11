@@ -176,7 +176,16 @@ def test_pas_de_petites_lignes_rassurantes():
     reviennent toutes seules dès qu'on écrit une page d'accueil. Le produit dit
     ce qu'il fait ; ce qu'il ne fait pas se lit dans les conditions, pas sous
     chaque bouton."""
-    ecrans = PAGE.split('id="ecran-accueil"')[1].split("<!-- MA PAGE")[0].lower()
+    ecrans = PAGE.split('id="ecran-accueil"')[1].split("<!-- MA PAGE")[0]
+    # Sauf le bloc que l'élève montre à ses parents. Ce n'est pas une petite
+    # ligne sous un bouton : c'est la liste des faits sur lesquels ils donnent
+    # leur accord, et « est-ce que ça va me coûter quelque chose » est la
+    # première question d'un parent. La taire là serait de la dissimulation, pas
+    # de la sobriété.
+    if 'id="bloc-accord"' in ecrans:
+        debut = ecrans.index('id="bloc-accord"')
+        ecrans = ecrans[:debut] + ecrans[ecrans.index("</div>", debut):]
+    ecrans = ecrans.lower()
     for tic in ("gratuit", "publicité", "revente", "rien n’est transmis",
                 "rien de transmis", "reste dans ton téléphone",
                 "restent dans ton téléphone", "ne sort pas de ton téléphone",
