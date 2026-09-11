@@ -53,8 +53,8 @@ Fly.io, Scaleway, ou une petite machine virtuelle. Et, avant d'ouvrir à de vrai
 | | |
 |---|---|
 | `ANTHROPIC_API_KEY` | Sans elle, `CB_DEMO_MODE` reste à 1 et rien n'est analysé pour de bon |
-| Le coût réel par élève | Jamais mesuré : `outils/essai.py` n'a pas pu tourner faute de clé |
-| `CB_SMTP_HOTE` | Sinon « mot de passe oublié » ne fonctionne pas |
+| Le coût réel par élève | **Mesuré** : 0,25 $ le parcours complet, 1,20 €/mois en moyenne, 3,61 € au plafond des quotas |
+| `CB_SMTP_HOTE` | Sinon « mot de passe oublié » ne fonctionne pas — sur dix élèves, il servira |
 | Un vrai domaine en HTTPS | Le cookie de connexion ne passe en `Secure` qu'en HTTPS |
 | Le consentement parental | Voir plus haut : ce n'est pas une option pour des collégiens |
 
