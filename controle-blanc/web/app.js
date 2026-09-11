@@ -608,7 +608,7 @@ function dessinerEspace() {
   const sessions = sessionsFaites();
   dessinerCarteEleve(sessions);
   dessinerFichesRecentes(sessions);
-  dessinerChoixMatiere(sessions);
+  dessinerChoixMatiere();
   dessinerAccesOutils();
   dessinerApparence();
   const echeances = dessinerAgenda(sessions);
@@ -703,69 +703,31 @@ function dessinerFiltreFiches(comptes, total) {
 
 /* Où l'on choisit sa matière.
  *
- * L'étagère d'avant ne montrait que les matières COMMENCÉES. C'était juste
- * pour un tableau de bord — on y voyait son travail — et faux pour aller
- * quelque part : l'élève qui cherche l'espagnol ne le trouvait nulle part tant
- * qu'il n'avait pas photographié un cours d'espagnol. Une liste qui change
- * selon ce qu'on a fait ne se parcourt pas, elle se devine.
+ * Rien que les matières. Le menu a porté un moment les comptes, les échéances
+ * et deux groupes — « commencées » d'un côté, le reste de l'autre. C'était
+ * répondre à une question qu'on ne pose pas ici : on vient choisir où aller,
+ * pas relire son bilan. Ce que contient une matière, on le lit une fois
+ * dedans ; ce qui approche est déjà sur la carte juste au-dessus.
  *
- * Les douze y sont donc, et un menu natif les porte. Douze tuiles comme avant
- * feraient onze cents pixels sur un téléphone ; le sélecteur du système, lui,
- * s'ouvre en plein écran et se manie au pouce. Ce qu'on perd en couleur, on le
- * regagne en libellés : chaque matière dit ce qu'elle contient, ce qu'une
- * pastille de trois lettres ne disait pas.
- *
- * Les commencées d'abord, dans un groupe à part : c'est là qu'on va neuf fois
- * sur dix, et le menu s'ouvre dessus.
+ * Les douze y sont, dans l'ordre du programme, commencées ou non : une liste
+ * qui change selon ce qu'on a fait ne se parcourt pas, elle se devine.
  */
-function dessinerChoixMatiere(sessions) {
+function dessinerChoixMatiere() {
   const choix = $('choix-matiere');
   choix.innerHTML = '';
 
-  const faites = new Map(matieres(sessions).map((m) => [m.cle, m]));
-  const chiffres = (m) => {
-    const bouts = [];
-    if (m.fiches) bouts.push(m.fiches + (m.fiches > 1 ? ' fiches' : ' fiche'));
-    if (m.controles) bouts.push(m.controles + (m.controles > 1 ? ' contrôles' : ' contrôle'));
-    if (m.prochaine) {
-      const jours = joursAvant(m.prochaine.date);
-      bouts.unshift(jours === 0 ? 'jour J' : 'J−' + jours);
-    }
-    return bouts.length ? ' — ' + bouts.join(' · ') : '';
-  };
-
-  const option = (valeur, texte) => {
-    const o = document.createElement('option');
-    o.value = valeur;
-    o.textContent = texte;
-    return o;
-  };
-
   // L'invite reste sélectionnée : le menu n'est pas un état, c'est une porte.
-  choix.appendChild(option('', 'Ouvrir une matière…'));
+  const invite = document.createElement('option');
+  invite.value = '';
+  invite.textContent = 'Ouvrir une matière…';
+  choix.appendChild(invite);
 
-  const totalFiches = toutesLesFiches(sessions).length;
-  const totalControles = tousLesControles(sessions).length;
-  if (totalFiches + totalControles) {
-    choix.appendChild(option('*', 'Tout ton travail — '
-      + [totalFiches + (totalFiches > 1 ? ' fiches' : ' fiche'),
-         totalControles + (totalControles > 1 ? ' contrôles' : ' contrôle')].join(' · ')));
-  }
-
-  const ranger = (titre, cles) => {
-    if (!cles.length) return;
-    const groupe = document.createElement('optgroup');
-    groupe.label = titre;
-    cles.forEach((cle) => {
-      const m = faites.get(cle);
-      groupe.appendChild(option(cle, nomMatiere(cle) + (m ? chiffres(m) : '')));
-    });
-    choix.appendChild(groupe);
-  };
-
-  const toutes = (config.matieres || []).map((m) => m.cle);
-  ranger('Commencées', toutes.filter((cle) => faites.has(cle)));
-  ranger('Les autres', toutes.filter((cle) => !faites.has(cle)));
+  (config.matieres || []).forEach((m) => {
+    const option = document.createElement('option');
+    option.value = m.cle;
+    option.textContent = m.nom;
+    choix.appendChild(option);
+  });
 }
 
 /* --- La vue d'une matière ------------------------------------------------ */
@@ -5501,7 +5463,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // On repose l'invite : revenir sur sa page et retrouver « Français » écrit
     // dans le menu ferait croire à un filtre posé, alors que rien n'est filtré.
     evenement.target.value = '';
-    if (cle) ouvrirMatiere(cle === '*' ? null : cle);
+    if (cle) ouvrirMatiere(cle);
   };
   document.querySelectorAll('[data-apparence]').forEach((bouton) => {
     bouton.onclick = () => poserApparence(bouton.dataset.apparence);

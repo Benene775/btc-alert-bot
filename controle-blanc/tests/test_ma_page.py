@@ -167,12 +167,21 @@ def test_toutes_les_matieres_y_sont_pas_seulement_les_commencees():
     bloc = CODE_NU[CODE_NU.index("function dessinerChoixMatiere") :]
     bloc = bloc[: bloc.index("\n}\n")]
     assert "config.matieres" in bloc, "la liste ne part pas des matières du programme"
-    assert "ranger('Commencées'" in bloc and "ranger('Les autres'" in bloc, (
-        "les commencées doivent venir en premier : c'est là qu'on va"
+    assert "sessions" not in bloc, (
+        "le menu se règle sur ce que l'élève a fait : il changerait de contenu"
     )
-    # Un libellé qui dit ce qu'il contient : sans ça, on ouvre pour savoir.
-    assert "fiches" in bloc and "contrôles" in bloc
-    assert "J−" in bloc, "l'échéance proche ne paraît pas dans le menu"
+
+
+def test_le_menu_ne_porte_que_des_matieres():
+    """Il a porté un moment les comptes, les échéances et deux groupes. C'était
+    répondre à une question qu'on ne pose pas ici : on vient choisir où aller,
+    pas relire son bilan. Ce que contient une matière se lit une fois dedans,
+    et ce qui approche est déjà sur la carte juste au-dessus."""
+    bloc = CODE_NU[CODE_NU.index("function dessinerChoixMatiere") :]
+    bloc = bloc[: bloc.index("\n}\n")]
+    for intrus in ("optgroup", "Commencées", "Tout ton travail", "fiches", "J−"):
+        assert intrus not in bloc, f"« {intrus} » n'a rien à faire dans le menu"
+    assert "m.nom" in bloc, "le libellé doit être le nom de la matière, rien de plus"
 
 
 def test_l_agenda_s_ouvre_depuis_la_frise():
