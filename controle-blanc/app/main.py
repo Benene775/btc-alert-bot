@@ -750,4 +750,58 @@ qui suppose un élève saturant les quatre compteurs.</p>
     return HTMLResponse(page_html)
 
 
+# --- Combien de temps le navigateur a le droit de garder un fichier ----------
+#
+# Sans en-tête, un navigateur invente sa propre règle : il garde le fichier une
+# fraction du temps écoulé depuis sa dernière modification. Ça ne se voit jamais
+# en développement, où l'on recharge de force, et ça se voit très mal en ligne —
+# le site est à jour pour celui qui vide son cache, périmé pour tous les autres.
+#
+# Pendant la phase de test, le code change plusieurs fois par jour. Un élève sur
+# un téléphone qu'on ne peut pas inspecter signalerait alors un défaut déjà
+# corrigé, ou ne verrait pas une correction qu'on lui a annoncée. Trouvé comme
+# ça, justement : un « app.js » corrigé et en ligne, invisible depuis le
+# navigateur qui l'avait déjà.
+#
+# « no-cache » ne veut pas dire « ne garde rien » : le navigateur garde le
+# fichier et redemande simplement au serveur s'il a changé. La réponse ordinaire
+# est un 304 vide — un aller-retour, pas un téléchargement.
+COQUE = {
+    "/", "/index.html", "/app.js", "/styles.css", "/polices.css",
+    "/manifeste.json", "/agent.js",
+}
+
+# Les icônes ne changent pas : les redemander à chaque démarrage serait payer un
+# aller-retour pour rien, sur des connexions qui n'en ont pas les moyens.
+UN_AN = 60 * 60 * 24 * 365
+
+
+def duree_de_cache(chemin: str) -> str | None:
+    """L'en-tête pour ce chemin, ou None si on ne se prononce pas.
+
+    Une fonction plutôt qu'un bloc dans le middleware : c'est la règle
+    elle-même qu'on veut pouvoir interroger, depuis un test comme depuis le
+    serveur, sans avoir à fabriquer une requête.
+    """
+    if chemin.startswith("/api/") or chemin.startswith("/admin/"):
+        # Un classeur ou un quota servis depuis le cache feraient réapparaître
+        # du travail effacé. L'agent de service le refuse déjà de son côté ;
+        # rien ne dit que le navigateur en fasse autant.
+        return "no-store"
+    if chemin in COQUE:
+        return "no-cache"
+    if chemin.startswith("/icones/"):
+        return f"public, max-age={UN_AN}, immutable"
+    return None
+
+
+@app.middleware("http")
+async def poser_la_duree_de_cache(requete: Request, suite):
+    reponse = await suite(requete)
+    entete = duree_de_cache(requete.url.path)
+    if entete:
+        reponse.headers["Cache-Control"] = entete
+    return reponse
+
+
 app.mount("/", StaticFiles(directory=config.WEB_DIR, html=True), name="web")
