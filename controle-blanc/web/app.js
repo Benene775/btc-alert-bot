@@ -4341,9 +4341,25 @@ function marquerNotion(titre, valeur) {
   if (!$('vue-ensemble').hidden) dessinerVueEnsemble(groupesCourants);
 }
 
+/* Ce que l'élève a mis de côté DANS LA FICHE QU'IL A SOUS LES YEUX.
+ *
+ * « etat.marques » appartient à la séance, pas à une fiche, et il est rangé par
+ * titre de partie. Une notion mise de côté dans la fiche générale y restait donc
+ * quand on ouvrait la fiche ciblée, dont les parties portent d'autres titres. La
+ * carte de fin annonçait alors « 1 notion à revoir » pendant que le second tour
+ * n'en retenait aucune — l'écran disait « 0 notion · à revoir » deux lignes plus
+ * haut — et « Refaire un tour » rebâtissait un paquet vide : rien ne se passait.
+ *
+ * On ne garde que les marques qui désignent une partie de cette fiche-ci. Les
+ * autres ne sont pas effacées : elles reviendront en rouvrant la fiche à
+ * laquelle elles appartiennent.
+ */
 function notionsARevoir() {
   const marques = etat.marques || {};
-  return Object.keys(marques).filter((titre) => marques[titre] === 'revoir');
+  const parties = new Set((((ficheCourante || {}).fiche || {}).sections || [])
+    .map((s) => s.titre));
+  return Object.keys(marques)
+    .filter((titre) => marques[titre] === 'revoir' && parties.has(titre));
 }
 
 function majRubansMarques() {
