@@ -4058,7 +4058,7 @@ async function demanderFicheGenerale(chapitres = null) {
   } catch (e) { gererErreur(e); }
 }
 
-async function demanderFicheCiblee() {
+async function demanderFicheCiblee(chapitres = null) {
   if (!etat.notionsFragiles.length) {
     message('Rien à cibler pour l’instant : passe un contrôle blanc d’abord.');
     return;
@@ -4068,7 +4068,7 @@ async function demanderFicheCiblee() {
     const fiche = await envoyerJson('/api/fiche/ciblee', {
       session_id: etat.sessionId,
       niveau: etat.niveau,
-      chapitres: chapitresRetenus(),
+      chapitres: chapitres || chapitresRetenus(),
       notions: etat.notionsFragiles,
     });
     fermerAttente();
@@ -4961,9 +4961,37 @@ function chapitresCochesAtelier() {
   return pris;
 }
 
+/* Ce que l'élève a raté au dernier contrôle de la séance choisie.
+ *
+ * L'atelier travaille sur des séances qui ne sont pas celle ouverte : on lit
+ * donc la séance cochée, pas « etat ». */
+function fragilesDeLAtelier() {
+  const pris = chapitresCochesAtelier();
+  return pris.length ? ((pris[0].session || {}).notionsFragiles || []) : [];
+}
+
 function majLancerAtelier() {
   const pris = chapitresCochesAtelier();
   $('bouton-lancer-atelier').disabled = pris.length === 0;
+
+  // Après un contrôle, « une fiche de révision » ne veut plus dire la même
+  // chose : refaire la générale rend exactement la feuille qu'on vient de lire.
+  // C'est ce qui est arrivé — la machine de la fiche ciblée existait, mais rien
+  // ne l'appelait depuis ici. On la prend, et on le DIT avant de dépenser :
+  // une fiche de deux notions là où l'élève en attendait dix serait une
+  // mauvaise surprise, même quand c'est la bonne.
+  const fragiles = outilChoisi === 'fiche' ? fragilesDeLAtelier() : [];
+  const bouton = $('bouton-lancer-atelier');
+  if (fragiles.length) {
+    bouton.textContent = 'Écrire ma fiche sur ce que j’ai raté';
+    $('atelier-aide').textContent = pris.length
+      ? 'Ton dernier contrôle a laissé ' + fragiles.length
+        + (fragiles.length > 1 ? ' notions fragiles' : ' notion fragile')
+        + ' : la fiche ne portera que là-dessus.'
+      : 'Coche au moins un chapitre.';
+    return;
+  }
+  bouton.textContent = (OUTILS[outilChoisi] || {}).bouton || bouton.textContent;
   $('atelier-aide').textContent = pris.length
     ? 'Tout est coché : décoche ce que tu ne révises pas.'
     : 'Coche au moins un chapitre.';
@@ -4983,8 +5011,13 @@ async function lancerAtelier() {
   const session = pris[0].session;
   const chapitres = pris.map((p) => p.chapitre);
 
+  const fragiles = session.notionsFragiles || [];
+
   await ouvrirSession(session.sessionId, () => {});
-  if (outilChoisi === 'fiche') return demanderFicheGenerale(chapitres);
+  if (outilChoisi === 'fiche') {
+    return fragiles.length ? demanderFicheCiblee(chapitres)
+                           : demanderFicheGenerale(chapitres);
+  }
   return lancerControle([], chapitres);
 }
 
