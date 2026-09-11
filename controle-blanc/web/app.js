@@ -761,7 +761,7 @@ function dessinerEtagere(sessions) {
 
 /* --- La vue d'une matière ------------------------------------------------ */
 
-function ouvrirMatiere(cle) {
+function ouvrirMatiere(cle, viser) {
   matiereOuverte = cle;
   archives.fiches.matiere = cle || '';
   archives.controles.matiere = cle || '';
@@ -770,6 +770,25 @@ function ouvrirMatiere(cle) {
   revoirDeplie = false;
   dessinerMatiere();
   montrer('ecran-matiere');
+  if (viser) viserUnPanneau(viser);
+}
+
+/* Venir chercher ses contrôles ne doit pas obliger à passer les fiches.
+ *
+ * Les deux archives sont côte à côte sur un écran large et l'une sous l'autre
+ * sur un téléphone — c'est là que ça compte. « montrer » vient de remettre la
+ * page en haut, donc on attend le rendu avant de mesurer quoi que ce soit.
+ */
+function viserUnPanneau(quoi) {
+  const panneau = $(quoi === 'controles' ? 'pan-mes-controles' : 'pan-mes-fiches');
+  if (!panneau) return;
+  requestAnimationFrame(() => {
+    // Déjà en haut de l'écran : le déplacer serait un mouvement pour rien, et
+    // un mouvement pour rien fait croire qu'on a cliqué à côté.
+    if (panneau.getBoundingClientRect().top > window.innerHeight * 0.4) {
+      panneau.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  });
 }
 
 function dessinerMatiere() {
@@ -2997,9 +3016,13 @@ function ouvrirMenuMarque(ouvre) {
   const bouton = $('bouton-accueil');
   const veut = ouvre === undefined ? menu.hidden : ouvre;
   if (veut) {
-    const cours = coursRepassables();
-    $('menu-controle').hidden = cours.size === 0;
-    $('menu-fiche').hidden = cours.size === 0;
+    // Ces deux entrées mènent à ce que l'élève a déjà fait : elles n'ont donc
+    // de sens que s'il a déjà quelque chose. Fabriquer se fait depuis sa page,
+    // où les plafonds du mois sont affichés à côté du bouton — un menu de
+    // navigation n'est pas le bon endroit pour dépenser.
+    const faites = sessionsFaites();
+    $('menu-controle').hidden = tousLesControles(faites).length === 0;
+    $('menu-fiche').hidden = toutesLesFiches(faites).length === 0;
     // « Reprendre » n'a de sens qu'avec une séance en cours, et pas quand on y
     // est déjà : le proposer là ferait un aller-retour sur place.
     $('menu-reprendre').hidden = !laSeanceDuRetour() || ecranVisible() === 'ecran-reprise';
@@ -3024,8 +3047,8 @@ function armerMenuMarque() {
     ouvrirMenuMarque();
   };
   $('menu-espace').onclick = () => { ouvrirMenuMarque(false); ouvrirEspace(); };
-  $('menu-controle').onclick = () => { ouvrirMenuMarque(false); ouvrirAtelier('controle'); };
-  $('menu-fiche').onclick = () => { ouvrirMenuMarque(false); ouvrirAtelier('fiche'); };
+  $('menu-controle').onclick = () => { ouvrirMenuMarque(false); ouvrirMatiere(null, 'controles'); };
+  $('menu-fiche').onclick = () => { ouvrirMenuMarque(false); ouvrirMatiere(null, 'fiches'); };
   $('menu-reprendre').onclick = () => { ouvrirMenuMarque(false); reprendreLaDerniere(); };
 
   // Un menu qu'on ne peut pas refermer sans choisir est un piège : cliquer à

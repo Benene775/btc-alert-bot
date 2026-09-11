@@ -38,8 +38,9 @@
 
 <header id="bandeau" hidden>
   <!-- La marque ouvre un menu : depuis n'importe quel écran, l'élève doit
-       pouvoir rejoindre sa page, un contrôle blanc ou une fiche sans avoir à
-       deviner par où repasser. -->
+       pouvoir rejoindre sa page et retrouver ce qu'il a déjà fait, sans avoir à
+       deviner par où repasser. Fabriquer, c'est autre chose, et ça se fait
+       depuis sa page — un menu qui navigue ne doit pas aussi dépenser. -->
   <div class="marque-menu">
     <button type="button" id="bouton-accueil" class="lien-bandeau"
             aria-haspopup="true" aria-expanded="false" aria-controls="menu-marque">
@@ -54,10 +55,10 @@
         <span class="menu-signe" aria-hidden="true">⌂</span>Ma page
       </button>
       <button type="button" class="menu-entree" role="menuitem" id="menu-controle">
-        <span class="menu-signe" aria-hidden="true">✎</span>Contrôle blanc
+        <span class="menu-signe" aria-hidden="true">✎</span>Mes contrôles blancs
       </button>
       <button type="button" class="menu-entree" role="menuitem" id="menu-fiche">
-        <span class="menu-signe" aria-hidden="true">▤</span>Fiche de révision
+        <span class="menu-signe" aria-hidden="true">▤</span>Mes fiches de révision
       </button>
       <button type="button" class="menu-entree" role="menuitem" id="menu-reprendre" hidden>
         <span class="menu-signe" aria-hidden="true">↩</span>Reprendre où j’en étais
@@ -606,7 +607,7 @@
   </section>
 
   <div class="matiere-listes">
-  <section class="pan">
+  <section class="pan" id="pan-mes-fiches">
     <div class="archive">
       <label class="masque" for="recherche-fiches">Chercher une fiche</label>
       <input type="search" id="recherche-fiches" class="recherche" placeholder="Chercher une fiche…"
@@ -619,7 +620,7 @@
     </div>
   </section>
 
-  <section class="pan">
+  <section class="pan" id="pan-mes-controles">
     <div class="archive">
       <label class="masque" for="recherche-controles">Chercher un contrôle blanc</label>
       <input type="search" id="recherche-controles" class="recherche" placeholder="Chercher un contrôle…"

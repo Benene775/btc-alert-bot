@@ -52,14 +52,16 @@ def test_un_lien_de_reprise_passe_avant_la_page_perso():
 def test_reprendre_marche_a_froid():
     """À la réouverture, « etat » est vide : la séance dort dans le navigateur.
     C'est précisément le moment où « Reprendre » doit marcher."""
-    bloc = SCRIPT[SCRIPT.index("function reprendreLaDerniere()"):][:500]
+    bloc = SCRIPT[SCRIPT.index("function reprendreLaDerniere()"):]
+    bloc = bloc[: bloc.index("\n}\n")]
     assert "laSeanceDuRetour()" in bloc
     assert "etat = trouve;" in bloc
     assert "lirePages(etat.sessionId)" in bloc, "les photos du cours doivent revenir aussi"
 
 
 def test_le_menu_voit_la_seance_endormie():
-    bloc = SCRIPT[SCRIPT.index("function ouvrirMenuMarque"):][:800]
+    bloc = SCRIPT[SCRIPT.index("function ouvrirMenuMarque"):]
+    bloc = bloc[: bloc.index("\n}\n")]
     assert "!laSeanceDuRetour()" in bloc, "le menu ne doit plus se régler sur « etat » seul"
 
 
