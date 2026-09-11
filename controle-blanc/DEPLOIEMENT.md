@@ -3,6 +3,19 @@
 Pour le test fermé : une dizaine d'élèves, un mois. Compte une demi-journée en
 tout, dont l'essentiel est de l'attente.
 
+**Ce que coûte un mois de test**, en deux factures qui n'ont rien à voir :
+
+| Quoi | Chez qui | Combien |
+|---|---|---|
+| Le serveur qui fait tourner le site | l'hébergeur | ~7 $/mois |
+| Le disque qui garde les comptes | l'hébergeur | ~0,25 $/mois (1 Go) |
+| La lecture des cours | Anthropic | 12 € en moyenne, 36 € si les dix saturent |
+
+Soit une cinquantaine d'euros au pire, dont sept d'hébergement. Les élèves ne
+paient rien et rien ne le leur demande : c'est toi qui portes les deux
+factures. L'hébergement se facture au prorata — on supprime le service à la fin
+du test et ça s'arrête.
+
 Ce qui est déjà fait et dont tu n'as pas à t'occuper : le mode application
 (manifeste, icônes, agent de service, invitation à installer), les quotas, la
 question de l'âge à l'inscription, le tableau de bord.
@@ -33,7 +46,9 @@ renvoie 404 — pour tout le monde, toi compris.
 Il faut **du Python avec un disque qui survit aux redémarrages**. C'est le seul
 critère, et c'est là qu'on se trompe : sur les offres gratuites de Render ou de
 Fly, le disque est éphémère, et la base SQLite — donc tous les comptes — est
-effacée à chaque redéploiement. Compte quelques euros par mois pour un disque.
+effacée à chaque redéploiement. Concrètement : un élève s'inscrit le mardi, tu
+corriges un défaut le mercredi, et jeudi son compte n'existe plus. C'est ce que
+la première offre payante achète, et c'est la seule raison de la prendre.
 
 Render, Railway, Fly.io ou une petite machine virtuelle font l'affaire. La
 suite décrit Render ; l'idée est la même ailleurs.
