@@ -1194,6 +1194,44 @@ def metriques() -> dict[str, Any]:
             par_compte_mois[cle] = par_compte_mois.get(cle, 0.0) + _cout_usd(ligne, tarifs_inconnus)
         couts_mensuels = sorted(par_compte_mois.values())
 
+        # --- Et les mêmes, par ÉLÈVE ----------------------------------------
+        # Tout ce qui précède compte par séance, c'est-à-dire par cours. Un élève
+        # qui ouvre six cours six jours de suite y apparaît comme six cours venus
+        # une fois chacun : zéro « revenu ». Or la question du test est « est-ce
+        # qu'un élève revient », pas « est-ce qu'un cours est rouvert ».
+        cur.execute(
+            "SELECT s.compte_id AS compte, e.jour AS jour FROM evenements e"
+            " JOIN sessions s ON s.id = e.session_id WHERE s.compte_id IS NOT NULL"
+            " GROUP BY s.compte_id, e.jour"
+        )
+        jours_par_compte: dict[str, set[str]] = {}
+        for ligne in cur.fetchall():
+            jours_par_compte.setdefault(ligne["compte"], set()).add(ligne["jour"])
+
+        eleves_actifs = len(jours_par_compte)
+        eleves_revenus = sum(1 for j in jours_par_compte.values() if len(j) >= 2)
+        # Revenir une semaine après la découverte, c'est autre chose que revenir
+        # le lendemain par curiosité : c'est le seul signe qu'un test d'un mois
+        # peut donner d'un usage qui tient.
+        eleves_une_semaine = 0
+        for jours in jours_par_compte.values():
+            if not jours:
+                continue
+            premier = date.fromisoformat(min(jours))
+            if any(date.fromisoformat(j) - premier >= timedelta(days=7) for j in jours):
+                eleves_une_semaine += 1
+        jours_actifs = sorted(len(j) for j in jours_par_compte.values())
+        jours_actifs_median = jours_actifs[len(jours_actifs) // 2] if jours_actifs else 0
+
+        # Combien de cours chacun a rentré : un élève qui en photographie un seul
+        # a essayé ; celui qui en photographie quatre s'en sert.
+        cur.execute(
+            "SELECT compte_id AS compte, COUNT(*) AS n FROM sessions"
+            " WHERE compte_id IS NOT NULL GROUP BY compte_id"
+        )
+        cours_par_eleve = sorted(int(l["n"]) for l in cur.fetchall())
+        eleves_deux_cours = sum(1 for n in cours_par_eleve if n >= 2)
+
         cur.execute("SELECT COUNT(*) AS n FROM sessions")
         sessions_creees = int(cur.fetchone()["n"])
 
@@ -1203,6 +1241,11 @@ def metriques() -> dict[str, Any]:
         "deux_fiches_ou_plus": deux_fiches,
         "revenus_un_autre_jour": revenus,
         "revenus_le_lendemain": revenus_j1,
+        "eleves_actifs": eleves_actifs,
+        "eleves_revenus_un_autre_jour": eleves_revenus,
+        "eleves_revenus_une_semaine_apres": eleves_une_semaine,
+        "jours_actifs_median_par_eleve": jours_actifs_median,
+        "eleves_deux_cours_ou_plus": eleves_deux_cours,
         "controles_termines": controles_termines,
         "questions_signalees": questions_signalees,
         "par_chemin": par_chemin,

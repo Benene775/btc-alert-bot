@@ -692,11 +692,20 @@ def tableau_de_bord(token: str = "") -> HTMLResponse:
  ul {{ padding-left: 18px; }} li {{ margin-bottom: 10px; font-size: .9rem; }}
 </style>
 <h1>Repère — mesures du test</h1>
-<h2>Les trois chiffres qui décident</h2>
+<h2>Par élève — ce que le test doit répondre</h2>
 <table>
- {ligne("Liens ouverts", m["ouvertures"], "sessions distinctes")}
+ {ligne("Élèves actifs", m["eleves_actifs"], "ont fait au moins une chose")}
+ {ligne("Revenus un autre jour", m["eleves_revenus_un_autre_jour"], "pas le même jour que la découverte")}
+ {ligne("Revenus une semaine après", m["eleves_revenus_une_semaine_apres"], "le seul signe d'un usage qui tient", classe="cle")}
+ {ligne("Jours actifs (médiane)", m["jours_actifs_median_par_eleve"], "par élève")}
+ {ligne("Ont rentré 2 cours ou plus", m["eleves_deux_cours_ou_plus"], "un seul cours = un essai")}
+</table>
+
+<h2>Par cours</h2>
+<table>
+ {ligne("Liens ouverts", m["ouvertures"], "séances distinctes")}
  {ligne("2 fiches ou plus", m["deux_fiches_ou_plus"], "sans qu'on le demande")}
- {ligne("Revenus le lendemain", m["revenus_le_lendemain"], "la seule qui compte vraiment", classe="cle")}
+ {ligne("Cours rouverts le lendemain", m["revenus_le_lendemain"], "un cours, pas un élève")}
 </table>
 <h2>Détail</h2>
 <table>

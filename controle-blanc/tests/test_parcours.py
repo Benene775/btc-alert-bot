@@ -287,13 +287,22 @@ def test_metriques_du_test(client, photo_factice):
 
     page = client.get("/admin/metriques", params={"token": "jeton-de-test"})
     assert page.status_code == 200
-    assert "Revenus le lendemain" in page.text
-    assert "la seule qui compte vraiment" in page.text
+    # Par élève d'abord : tout ce qui se compte par séance compte des COURS, et
+    # un élève qui en ouvre six six jours de suite y apparaîtrait comme six cours
+    # venus une fois chacun. La question du test est « est-ce qu'un élève
+    # revient », pas « est-ce qu'un cours est rouvert ».
+    assert page.text.index("Par élève") < page.text.index("Par cours")
+    assert "Revenus une semaine après" in page.text
+    assert "le seul signe d'un usage qui tient" in page.text
 
     mesures = store.metriques()
     assert mesures["ouvertures"] >= 1
     assert mesures["deux_fiches_ou_plus"] >= 1          # métrique 2
     assert "teste" in mesures["par_chemin"]             # répartition de l'étape 3
+    assert mesures["eleves_actifs"] >= 1, "les événements ne remontent pas au compte"
+    for cle in ("eleves_revenus_un_autre_jour", "eleves_revenus_une_semaine_apres",
+                "jours_actifs_median_par_eleve", "eleves_deux_cours_ou_plus"):
+        assert cle in mesures, cle
 
 
 def test_tableau_de_bord_protege(client: TestClient):
