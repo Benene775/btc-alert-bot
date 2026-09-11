@@ -78,9 +78,12 @@ def test_la_page_perso_vide_n_est_pas_un_cul_de_sac():
     page = (RACINE / "web" / "index.html").read_text(encoding="utf-8")
     debut = page.index('id="ecran-espace"')
     espace = page[debut:page.index('id="bouton-quitter-espace"', debut)]
-    assert 'id="vide-matieres"' in espace
-    assert "Photographie ton premier cours" in espace
+    # Le grand bouton dit quoi faire, et il est au-dessus du pli depuis qu'on a
+    # remis la page dans l'ordre. Le menu des matières est là aussi : il liste
+    # les douze, y compris quand on n'a encore rien fait.
     assert 'id="bouton-espace-nouveau"' in espace
+    assert "Photographier un nouveau cours" in espace
+    assert 'id="choix-matiere"' in espace
 
 
 def test_le_retour_est_mesure():

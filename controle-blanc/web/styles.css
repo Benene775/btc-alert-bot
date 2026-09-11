@@ -3330,7 +3330,6 @@ h1 {
 #ecran-espace[data-agenda="ouvert"] .frise,
 #ecran-espace[data-agenda="ouvert"] .frise-legende,
 #ecran-espace[data-agenda="ouvert"] .espace-haut-droite,
-#ecran-espace[data-agenda="ouvert"] #pan-matieres,
 #ecran-espace[data-agenda="ouvert"] #bouton-espace-nouveau,
 #ecran-espace[data-agenda="ouvert"] #bouton-quitter-espace,
 #ecran-espace[data-agenda="ouvert"] .pied-compte { display: none; }
@@ -3902,111 +3901,41 @@ h1 {
 
 /* --- L'étagère ------------------------------------------------------------ */
 
-.etagere {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: var(--e2);
-}
+/* La grille des matières, le menu qui l'a remplacée -----------------------
+ *
+ * L'étagère de tuiles vivait ici : douze pastilles colorées, une par matière
+ * commencée. Elle est devenue un menu natif — voir « dessinerChoixMatiere » —
+ * le jour où il a fallu que TOUTES les matières y soient, y compris celles où
+ * l'élève n'a rien fait. Douze tuiles font onze cents pixels sur un téléphone.
+ */
+.pan-choix { gap: var(--e2); }
 
-/* Une tuile de matière : sa couleur, son code, ce qu'elle contient, et
-   l'échéance si elle en a une. C'est l'objet qu'on collectionne au fil de
-   l'année, et celui qu'on ouvre pour travailler. */
-.tuile-matiere {
-  position: relative;
-  display: grid;
-  grid-template-columns: auto 1fr;
-  grid-template-areas:
-    "code echeance"
-    "nom  nom"
-    "chiffres chiffres"
-    "revoir revoir";
-  align-content: start;
-  gap: 6px var(--e2);
-  text-align: left;
-  padding: var(--e3);
-  min-height: 132px;
-  border: 0;
-  border-radius: var(--rayon-carte);
-  background: var(--t0);
-  color: var(--encre);
-  box-shadow: var(--ombre-carte);
-  transition: transform .16s cubic-bezier(.2, .7, .3, 1), box-shadow .2s ease;
-}
-
-.tuile-matiere[data-teinte="1"] { background: var(--t1); }
-.tuile-matiere[data-teinte="2"] { background: var(--t2); }
-.tuile-matiere[data-teinte="3"] { background: var(--t3); }
-.tuile-matiere[data-teinte="4"] { background: var(--t4); }
-.tuile-matiere[data-teinte="5"] { background: var(--t5); }
-
-.tuile-matiere:active { transform: scale(.975); }
-
-.tuile-code {
-  grid-area: code;
-  font-family: var(--mono);
-  font-size: .6rem;
-  letter-spacing: .1em;
-  padding: 4px 8px;
-  border-radius: 7px;
-  background: color-mix(in srgb, var(--carte) 68%, transparent);
-  color: color-mix(in srgb, var(--encre) 70%, transparent);
-  justify-self: start;
-}
-
-.tuile-nom {
-  grid-area: nom;
-  font-family: var(--titre);
+.choix-matiere {
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 40px 10px 16px;
+  font-family: var(--texte);
+  /* 16 px au moins : sous ce seuil, Safari iOS zoome la page dès qu'on touche
+     le champ — et n'en ressort pas tout seul. C'est la règle pour TOUS les
+     champs de saisie du produit, et elle coûte assez cher pour être écrite. */
+  font-size: 1rem;
   font-weight: 600;
-  font-size: 1.08rem;
-  line-height: 1.15;
-  letter-spacing: -.015em;
-  margin-top: 2px;
+  color: var(--encre);
+  background: var(--carte);
+  border: 1px solid var(--trait);
+  border-radius: var(--rayon);
+  box-shadow: var(--ombre-carte);
+  cursor: pointer;
+  /* Le chevron dessiné ici plutôt que laissé au système : celui de Chrome sous
+     Android est gris souris, et se perdait sur le papier. */
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5l5-5' fill='none' stroke='%23a86e14' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  background-size: 12px 8px;
 }
 
-.tuile-chiffres {
-  grid-area: chiffres;
-  font-size: .74rem;
-  color: color-mix(in srgb, var(--encre) 58%, transparent);
-}
-
-.tuile-echeance {
-  grid-area: echeance;
-  justify-self: end;
-  font-family: var(--mono);
-  font-size: .66rem;
-  font-variant-numeric: tabular-nums;
-  padding: 4px 8px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--carte) 68%, transparent);
-  color: var(--accent);
-}
-
-.tuile-echeance[data-urgence="moyenne"] { color: var(--partiel); }
-.tuile-echeance[data-urgence="haute"] { background: var(--rouge); color: var(--papier); }
-
-.tuile-revoir {
-  grid-area: revoir;
-  justify-self: start;
-  font-family: var(--mono);
-  font-size: .6rem;
-  letter-spacing: .06em;
-  text-transform: uppercase;
-  color: color-mix(in srgb, var(--encre) 55%, transparent);
-  margin-top: 2px;
-}
-
-/* Cinq tuiles rouges sur six, c'est du bruit : le compte reste en gris, et un
-   point rouge signale simplement qu'une notion y est déjà revenue. */
-.tuile-revoir { display: flex; align-items: center; gap: 5px; }
-.tuile-revoir i {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--rouge);
-  flex: 0 0 auto;
-}
-
-/* --- La vue d'une matière ------------------------------------------------ */
+.choix-matiere:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .ecran-matiere { display: flex; flex-direction: column; gap: var(--e4); }
 
@@ -4077,11 +4006,6 @@ h1 {
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .tuile-matiere:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 2px 4px color-mix(in srgb, var(--encre) 9%, transparent),
-                0 24px 46px -22px color-mix(in srgb, var(--encre) 40%, transparent);
-  }
   .pan-lien:hover, .retour:hover { color: var(--encre); }
 }
 
@@ -4528,10 +4452,13 @@ h1 {
 
 .recherche {
   width: 100%;
-  min-height: 42px;
-  padding: 9px 16px;
+  min-height: 46px;
+  padding: 11px 16px;
   font-family: var(--texte);
-  font-size: .9rem;
+  /* 16 px, comme tout champ de saisie : en dessous, iOS zoome à la mise au
+     point. Un élève qui tape trois lettres se retrouvait avec une page agrandie
+     qu'il devait repincer pour lire son résultat. */
+  font-size: 1rem;
   color: var(--encre);
   background: color-mix(in srgb, var(--encre) 4%, transparent);
   border: 0;
@@ -5009,15 +4936,18 @@ h1 {
      bouton « Réviser » de la page. La carte, elle, ne se touche pas — on la
      regarde. */
   .espace-haut #prochain { order: 1; }
-  .espace-haut .carte-annee { order: 2; }
+  /* Puis où aller : les deux commandes de navigation se suivent, avant le
+     tableau de bord. Sans rang assigné, le menu remontait devant l'échéance —
+     « display: contents » l'ayant hissé au même niveau qu'elle. */
+  .espace-haut .pan-choix { order: 2; }
+  .espace-haut .carte-annee { order: 3; }
   /* L'atelier s'ouvre depuis la carte : il reste sous elle. */
-  .espace-haut #atelier { order: 3; }
+  .espace-haut #atelier { order: 4; }
 
   /* Puis, dans l'ordre où l'on s'en sert : photographier un cours, relire une
      fiche, ouvrir une matière, fabriquer autre chose. */
   #bouton-espace-nouveau { order: 1; }
   #pan-fiches { order: 2; }
-  #pan-matieres { order: 3; }
   #pan-outils { order: 4; }
   .invite-app { order: 5; }
   #bouton-quitter-espace { order: 6; }
@@ -5047,7 +4977,6 @@ h1 {
   /* Trois colonnes fixes plutôt qu'un remplissage automatique : six matières
      font alors deux rangées pleines, là où quatre colonnes laissaient deux
      tuiles orphelines à côté d'un vide. */
-  .etagere { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 
   /* Dans une matière, les fiches et les contrôles se lisent côte à côte : ce
      sont deux listes courtes, les empiler laissait la moitié de l'écran vide. */

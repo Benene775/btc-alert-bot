@@ -42,7 +42,6 @@ def test_ses_fiches_sont_sur_sa_page():
 def test_les_fiches_passent_avant_ce_qui_en_fabrique():
     """On vient chercher la sienne bien plus souvent qu'on n'en crée une."""
     assert ESPACE.index('id="pan-fiches"') < ESPACE.index('id="pan-outils"')
-    assert ESPACE.index('id="pan-fiches"') < ESPACE.index('id="pan-matieres"')
 
 
 def test_la_page_les_dessine():

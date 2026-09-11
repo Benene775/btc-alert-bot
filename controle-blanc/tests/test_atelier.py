@@ -36,11 +36,14 @@ def test_les_deux_outils_sont_visibles_ensemble_sur_sa_page():
     assert "$('vide-outils').hidden" in bloc
 
 
-def test_ce_qu_on_fait_passe_avant_ce_qu_on_a():
-    """Sous six tuiles de matières, les deux outils se voyaient à peine.
-    L'étagère est le classeur, les outils sont le geste."""
+def test_les_outils_ne_sont_plus_ecrases_par_les_matieres():
+    """Ils vivaient sous six tuiles de matières et se voyaient à peine. Les
+    matières sont devenues un menu, dans le bloc du haut : les outils n'ont
+    plus rien au-dessus d'eux que les fiches, qu'on vient chercher plus souvent
+    qu'on ne fabrique."""
     espace = PAGE[PAGE.index('id="ecran-espace"') : PAGE.index('id="ecran-matiere"')]
-    assert espace.index('id="pan-outils"') < espace.index('id="pan-matieres"')
+    assert 'id="pan-matieres"' not in espace, "l'étagère est revenue sous les outils"
+    assert espace.index('id="choix-matiere"') < espace.index('id="pan-outils"')
 
 
 def test_les_outils_partagent_un_seul_ecran_de_choix():

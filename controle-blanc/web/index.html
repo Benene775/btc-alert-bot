@@ -555,6 +555,19 @@
     <!-- La prochaine échéance : un objet à part, pas une boîte dans une boîte. -->
     <div class="prochain" id="prochain"></div>
 
+    <!-- Où l'on choisit sa matière.
+         TOUTES les matières, pas seulement celles où l'élève a déjà travaillé :
+         on vient ici pour ALLER quelque part, et une liste qui change selon ce
+         qu'on a fait ne se parcourt pas, elle se devine.
+         Un menu natif plutôt que douze tuiles : douze tuiles font onze cents
+         pixels sur un téléphone, et le sélecteur du système est ce que l'élève
+         sait déjà manier — il s'ouvre en plein écran, au pouce. -->
+    <section class="pan pan-choix">
+      <h2 class="pan-titre">Tes matières</h2>
+      <label class="masque" for="choix-matiere">Ouvrir une matière</label>
+      <select id="choix-matiere" class="choix-matiere"></select>
+    </section>
+
   <!-- Choisir son emblème et la couleur de sa carte. C'est tout ce qu'il y a
        à personnaliser, et ça suffit : la carte devient la sienne. -->
   <div class="atelier" id="atelier" hidden>
@@ -614,16 +627,6 @@
   </section>
 
   <!-- L'étagère : une année en un coup d'oeil, une tuile par matière. -->
-  <section class="pan" id="pan-matieres">
-    <div class="pan-tete">
-      <h2 class="pan-titre">Tes matières</h2>
-      <button type="button" class="pan-lien" id="bouton-tout-voir">Tout voir</button>
-    </div>
-    <div class="etagere" id="etagere"></div>
-    <p class="pan-vide" id="vide-matieres" hidden>Photographie ton premier cours : il s’installera ici.</p>
-  </section>
-
-
   <button type="button" class="principal" id="bouton-espace-nouveau">Photographier un nouveau cours</button>
   <button type="button" class="discret" id="bouton-quitter-espace">Revenir</button>
 
@@ -652,7 +655,7 @@
 <!-- LA VUE D'UNE MATIÈRE — tout ce qu'elle contient, sans onglet à deviner.
      Sert aussi de vue « tout », quand aucune matière n'est choisie. -->
 <section id="ecran-matiere" class="ecran ecran-matiere" hidden>
-  <button type="button" class="retour" id="retour-etagere">← Tes matières</button>
+  <button type="button" class="retour" id="retour-etagere">← Ma page</button>
 
   <div class="matiere-tete" id="matiere-tete"></div>
 

@@ -608,7 +608,7 @@ function dessinerEspace() {
   const sessions = sessionsFaites();
   dessinerCarteEleve(sessions);
   dessinerFichesRecentes(sessions);
-  dessinerEtagere(sessions);
+  dessinerChoixMatiere(sessions);
   dessinerAccesOutils();
   dessinerApparence();
   const echeances = dessinerAgenda(sessions);
@@ -701,63 +701,71 @@ function dessinerFiltreFiches(comptes, total) {
     .forEach(([cle, nombre]) => boite.appendChild(puce(cle, codeMatiere(cle), nombre)));
 }
 
-function dessinerEtagere(sessions) {
-  const etagere = $('etagere');
-  etagere.innerHTML = '';
-  const toutes = matieres(sessions);
-  $('vide-matieres').hidden = toutes.length > 0;
-  $('bouton-tout-voir').hidden = toutes.length < 2;
+/* Où l'on choisit sa matière.
+ *
+ * L'étagère d'avant ne montrait que les matières COMMENCÉES. C'était juste
+ * pour un tableau de bord — on y voyait son travail — et faux pour aller
+ * quelque part : l'élève qui cherche l'espagnol ne le trouvait nulle part tant
+ * qu'il n'avait pas photographié un cours d'espagnol. Une liste qui change
+ * selon ce qu'on a fait ne se parcourt pas, elle se devine.
+ *
+ * Les douze y sont donc, et un menu natif les porte. Douze tuiles comme avant
+ * feraient onze cents pixels sur un téléphone ; le sélecteur du système, lui,
+ * s'ouvre en plein écran et se manie au pouce. Ce qu'on perd en couleur, on le
+ * regagne en libellés : chaque matière dit ce qu'elle contient, ce qu'une
+ * pastille de trois lettres ne disait pas.
+ *
+ * Les commencées d'abord, dans un groupe à part : c'est là qu'on va neuf fois
+ * sur dix, et le menu s'ouvre dessus.
+ */
+function dessinerChoixMatiere(sessions) {
+  const choix = $('choix-matiere');
+  choix.innerHTML = '';
 
-  toutes.forEach((m) => {
-    const tuile = document.createElement('button');
-    tuile.type = 'button';
-    tuile.className = 'tuile-matiere';
-    tuile.dataset.teinte = teinteMatiere(m.cle);
-
-    const code = document.createElement('span');
-    code.className = 'tuile-code';
-    code.textContent = codeMatiere(m.cle);
-
-    const nom = document.createElement('span');
-    nom.className = 'tuile-nom';
-    nom.textContent = nomMatiere(m.cle);
-
-    const chiffres = document.createElement('span');
-    chiffres.className = 'tuile-chiffres';
-    chiffres.textContent = [
-      m.fiches + (m.fiches > 1 ? ' fiches' : ' fiche'),
-      m.controles + (m.controles > 1 ? ' contrôles' : ' contrôle'),
-    ].join(' · ');
-
-    tuile.append(code, nom, chiffres);
-
-    // Une échéance proche passe devant tout : c'est ce qu'on cherche des yeux.
+  const faites = new Map(matieres(sessions).map((m) => [m.cle, m]));
+  const chiffres = (m) => {
+    const bouts = [];
+    if (m.fiches) bouts.push(m.fiches + (m.fiches > 1 ? ' fiches' : ' fiche'));
+    if (m.controles) bouts.push(m.controles + (m.controles > 1 ? ' contrôles' : ' contrôle'));
     if (m.prochaine) {
       const jours = joursAvant(m.prochaine.date);
-      const compte = document.createElement('span');
-      compte.className = 'tuile-echeance';
-      compte.dataset.urgence = urgence(jours);
-      compte.textContent = jours === 0 ? 'Jour J' : 'J−' + jours;
-      tuile.appendChild(compte);
+      bouts.unshift(jours === 0 ? 'jour J' : 'J−' + jours);
     }
+    return bouts.length ? ' — ' + bouts.join(' · ') : '';
+  };
 
-    if (m.aRevoir) {
-      const revoir = document.createElement('span');
-      revoir.className = 'tuile-revoir';
-      revoir.dataset.insistante = m.insistantes ? 'oui' : 'non';
-      revoir.textContent = m.aRevoir + ' à revoir';
-      if (m.insistantes) {
-        const point = document.createElement('i');
-        point.setAttribute('aria-hidden', 'true');
-        revoir.prepend(point);
-        revoir.title = m.insistantes + ' notion(s) déjà revenue(s) plusieurs fois';
-      }
-      tuile.appendChild(revoir);
-    }
+  const option = (valeur, texte) => {
+    const o = document.createElement('option');
+    o.value = valeur;
+    o.textContent = texte;
+    return o;
+  };
 
-    tuile.onclick = () => ouvrirMatiere(m.cle);
-    etagere.appendChild(tuile);
-  });
+  // L'invite reste sélectionnée : le menu n'est pas un état, c'est une porte.
+  choix.appendChild(option('', 'Ouvrir une matière…'));
+
+  const totalFiches = toutesLesFiches(sessions).length;
+  const totalControles = tousLesControles(sessions).length;
+  if (totalFiches + totalControles) {
+    choix.appendChild(option('*', 'Tout ton travail — '
+      + [totalFiches + (totalFiches > 1 ? ' fiches' : ' fiche'),
+         totalControles + (totalControles > 1 ? ' contrôles' : ' contrôle')].join(' · ')));
+  }
+
+  const ranger = (titre, cles) => {
+    if (!cles.length) return;
+    const groupe = document.createElement('optgroup');
+    groupe.label = titre;
+    cles.forEach((cle) => {
+      const m = faites.get(cle);
+      groupe.appendChild(option(cle, nomMatiere(cle) + (m ? chiffres(m) : '')));
+    });
+    choix.appendChild(groupe);
+  };
+
+  const toutes = (config.matieres || []).map((m) => m.cle);
+  ranger('Commencées', toutes.filter((cle) => faites.has(cle)));
+  ranger('Les autres', toutes.filter((cle) => !faites.has(cle)));
 }
 
 /* --- La vue d'une matière ------------------------------------------------ */
@@ -5488,7 +5496,13 @@ document.addEventListener('DOMContentLoaded', () => {
     montrer('ecran-accueil');
   };
   $('bouton-espace-nouveau').onclick = () => demarrerSession();
-  $('bouton-tout-voir').onclick = () => ouvrirMatiere(null);
+  $('choix-matiere').onchange = (evenement) => {
+    const cle = evenement.target.value;
+    // On repose l'invite : revenir sur sa page et retrouver « Français » écrit
+    // dans le menu ferait croire à un filtre posé, alors que rien n'est filtré.
+    evenement.target.value = '';
+    if (cle) ouvrirMatiere(cle === '*' ? null : cle);
+  };
   document.querySelectorAll('[data-apparence]').forEach((bouton) => {
     bouton.onclick = () => poserApparence(bouton.dataset.apparence);
   });

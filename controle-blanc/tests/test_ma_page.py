@@ -152,16 +152,27 @@ def test_la_matiere_est_la_structure_de_la_page():
     onglets — en arrivant, on voyait son prénom et une échéance, jamais son
     année. Une tuile par matière la montre d'un coup, et l'ouvre.
     """
-    assert 'id="etagere"' in PAGE, "pas d'étagère de matières"
+    assert 'id="choix-matiere"' in PAGE, "on ne choisit sa matière nulle part"
     assert 'id="ecran-matiere"' in PAGE, "une matière ne s'ouvre nulle part"
-    assert "function dessinerEtagere" in CODE_NU
+    assert "function dessinerChoixMatiere" in CODE_NU
     assert "function ouvrirMatiere" in CODE_NU
     assert "intercalaire" not in PAGE, "les onglets sont revenus"
-    # Une tuile dit ce qu'elle contient : sans compte ni échéance, elle n'est
-    # qu'un bouton de plus.
-    tuile = CODE_NU[CODE_NU.index("function dessinerEtagere") :][:2600]
-    for attendu in ("tuile-chiffres", "tuile-echeance", "tuile-revoir"):
-        assert attendu in tuile, f"la tuile ne montre pas « {attendu} »"
+
+
+def test_toutes_les_matieres_y_sont_pas_seulement_les_commencees():
+    """L'étagère de tuiles ne montrait que les matières où l'élève avait déjà
+    travaillé. C'était juste pour un tableau de bord et faux pour aller quelque
+    part : celui qui cherchait l'espagnol ne le trouvait nulle part tant qu'il
+    n'avait pas photographié un cours d'espagnol."""
+    bloc = CODE_NU[CODE_NU.index("function dessinerChoixMatiere") :]
+    bloc = bloc[: bloc.index("\n}\n")]
+    assert "config.matieres" in bloc, "la liste ne part pas des matières du programme"
+    assert "ranger('Commencées'" in bloc and "ranger('Les autres'" in bloc, (
+        "les commencées doivent venir en premier : c'est là qu'on va"
+    )
+    # Un libellé qui dit ce qu'il contient : sans ça, on ouvre pour savoir.
+    assert "fiches" in bloc and "contrôles" in bloc
+    assert "J−" in bloc, "l'échéance proche ne paraît pas dans le menu"
 
 
 def test_l_agenda_s_ouvre_depuis_la_frise():
@@ -284,7 +295,7 @@ def test_ouvert_l_agenda_est_seul():
     par le script : sans lui la page reste entière."""
     mode = '#ecran-espace[data-agenda="ouvert"]'
     autour = (".annee-haut", ".annee-chiffres", ".frise", ".frise-legende",
-              ".espace-haut-droite", "#pan-matieres", "#bouton-espace-nouveau",
+              ".espace-haut-droite", "#bouton-espace-nouveau",
               "#bouton-quitter-espace", ".pied-compte")
     for quoi in autour:
         assert f"{mode} {quoi}" in STYLE, f"« {quoi} » reste visible sous l'agenda"
