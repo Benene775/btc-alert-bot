@@ -36,16 +36,35 @@ Fly, le disque est éphémère, et la base SQLite — donc tous les comptes — 
 effacée à chaque redéploiement. Compte quelques euros par mois pour un disque.
 
 Render, Railway, Fly.io ou une petite machine virtuelle font l'affaire. La
-suite décrit Render, qui lit le `Procfile` tout seul ; l'idée est la même
-ailleurs.
+suite décrit Render ; l'idée est la même ailleurs.
 
 1. Nouveau **Web Service**, à partir du dépôt GitHub.
-2. Branche : `claude/new-session-s00nfb`.
-3. **Root directory : `controle-blanc`.** Le dépôt en contient d'autres choses ;
-   sans ça rien ne se construit.
-4. Build : `pip install -r requirements.txt`. Démarrage : laisse-le lire le
-   `Procfile`.
-5. **Ajoute un disque** (Disks), point de montage `/var/donnees`, 1 Go suffit.
+2. **Le nom devient l'adresse** (`https://<nom>.onrender.com`) : c'est lui que
+   tu enverras aux familles et qui restera dans le raccourci posé sur l'écran
+   d'accueil. `repere-revisions`, pas le nom du dépôt.
+3. **Région : Frankfurt.** Par défaut c'est l'Oregon, et chaque photo d'élève
+   traverse l'Atlantique deux fois. Une région ne se change pas après coup : il
+   faut recréer le service.
+4. Branche : `claude/new-session-s00nfb`. Render propose `main`, où il n'y a
+   rien.
+5. **Root directory : `controle-blanc`.** Le dépôt contient aussi un `_site` et
+   un `netlify.toml` à la racine ; sans ce champ, Render cherche
+   `requirements.txt` là où il n'y en a pas.
+6. Build : `pip install -r requirements.txt`.
+7. Démarrage : recopie la ligne du `Procfile`, plutôt que de compter sur Render
+   pour la lire :
+
+   ```
+   uvicorn app.main:app --host 0.0.0.0 --port $PORT --forwarded-allow-ips "${CB_IPS_PROXY:-127.0.0.1}"
+   ```
+
+8. **L'offre payante la moins chère**, pas la gratuite : c'est la première qui
+   accepte un disque.
+9. **Ajoute un disque** (Disks), point de montage `/var/donnees`, 1 Go suffit.
+
+Le premier déploiement peut se faire avant les réglages de l'étape 2 : sans
+`ANTHROPIC_API_KEY` le site démarre en mode démonstration, ce qui prouve déjà
+que la construction passe.
 
 ---
 
@@ -91,7 +110,7 @@ Dans l'ordre, sur ton téléphone :
    d'un coup. Coûte environ 0,25 $.
 4. **Redéploie** (n'importe quelle modification), puis reconnecte-toi. Si ton
    compte a disparu, `CB_DB_PATH` n'est pas dans le disque monté — reviens à
-   l'étape 1.5.
+   l'étape 1.9.
 5. **Regarde les journaux.** S'il y a une ligne `COOKIE SANS « Secure »`, c'est
    `CB_IPS_PROXY` qui manque.
 6. **Mot de passe oublié** : demande un code, vérifie qu'il arrive par mail.
