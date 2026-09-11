@@ -14,6 +14,15 @@
 /* --- Jetons ------------------------------------------------------------- */
 
 :root {
+  /* Ce que le navigateur doit savoir AVANT de regarder nos couleurs.
+     « color-scheme » ne change rien à la page — c'est ce qu'il peint AUTOUR :
+     la zone sûre d'un téléphone, le fond hors de la page, les cases à cocher,
+     les barres de défilement, et sur iOS la barre d'état d'une application
+     posée sur l'écran d'accueil. Sans elle, le système tenait la page pour
+     claire malgré un fond noir, et gardait un bandeau crème en haut de l'écran
+     — le défaut qui donnait l'impression « d'être revenu sur une page web ». */
+  color-scheme: light;
+
   /* Le papier de la fiche, partout. L'application entière se lit le soir sous
      une lampe, pas sous les néons d'une salle de classe. */
   --papier: #fbf7f2;
@@ -92,6 +101,7 @@
    ou « système », qui ne marque rien et ne laisse que prefers-color-scheme. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
+    color-scheme: dark;
     --papier: #17130e;
     --carte: #211b14;
     --encre: #f4ede3;
@@ -125,6 +135,7 @@
 }
 
 :root[data-theme="dark"] {
+  color-scheme: dark;
   --papier: #17130e;
   --carte: #211b14;
   --encre: #f4ede3;

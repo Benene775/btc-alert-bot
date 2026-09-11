@@ -62,14 +62,66 @@ def test_le_script_de_l_entete_survit_a_un_stockage_refuse():
 
 
 def test_la_barre_du_telephone_suit():
-    """Deux balises « theme-color » se relaient par media query. Sans les
-    reprendre, l'application installée garde une barre blanche autour d'un
-    écran noir."""
-    assert 'id="couleur-claire"' in PAGE and 'id="couleur-sombre"' in PAGE
+    """Une seule balise dont on écrit la couleur. Deux balises qui se relaient
+    par media query sont le réflexe, mais rien ne garantit qu'un navigateur
+    réévalue un « media » changé à chaud : l'élève bascule en sombre et garde
+    un liseré crème."""
+    assert 'id="couleur-barre"' in PAGE
+    assert PAGE.count('name="theme-color"') == 1, "une seule, sinon on ne sait plus qui gagne"
     bloc = SCRIPT[SCRIPT.index("function peindreLaBordure("):]
     bloc = bloc[: bloc.index("\n}\n")]
-    assert "'not all'" in bloc
-    assert "(prefers-color-scheme: dark)" in bloc
+    assert "getPropertyValue('--papier')" in bloc, (
+        "la couleur doit venir de la feuille de style, pas d'une constante recopiée"
+    )
+
+
+def test_le_mode_auto_suit_l_appareil_qui_change_d_avis():
+    """Beaucoup de téléphones basculent tout seuls le soir. La page suivrait
+    (la media query fait son travail), mais la barre garderait la couleur du
+    matin."""
+    bloc = SCRIPT[SCRIPT.index("function suivreLaLumiereDeLAppareil()"):]
+    bloc = bloc[: bloc.index("\n}\n")]
+    assert "'change'" in bloc
+    assert "apparenceChoisie() === 'auto'" in bloc, (
+        "un choix explicite ne doit pas être écrasé par l'appareil"
+    )
+
+
+def test_le_navigateur_sait_que_la_page_est_sombre():
+    """« color-scheme » ne change rien à la page : il décide de ce qui est peint
+    AUTOUR — la zone sûre d'un téléphone, les cases à cocher, les barres de
+    défilement, et sur iOS la barre d'état d'une application installée. Sans
+    elle, le système tenait la page pour claire malgré un fond noir et gardait
+    un bandeau crème en haut de l'écran."""
+    assert "color-scheme: light;" in STYLE
+    assert STYLE.count("color-scheme: dark;") == 2, (
+        "les deux chemins vers le sombre — le choix explicite et l'appareil"
+    )
+    # Et chacune au bon endroit : dans le bloc qui pose déjà la palette.
+    explicite = STYLE[STYLE.index(':root[data-theme="dark"] {'):]
+    assert "color-scheme: dark;" in explicite[: explicite.index("}")]
+
+
+def test_les_deux_couleurs_recopiees_dans_l_entete_sont_les_bonnes():
+    """L'en-tête ne peut pas lire la feuille de style, qui n'est pas encore
+    chargée : il recopie « --papier ». C'est le seul endroit du produit où ces
+    couleurs sont écrites deux fois."""
+    import re
+
+    tete = PAGE[: PAGE.index("</head>")]
+    bloc = tete[tete.index("<script>"):tete.index("</script>")]
+    recopiees = set(re.findall(r"#[0-9a-fA-F]{6}", bloc))
+    assert recopiees, "l'en-tête ne pose aucune couleur"
+
+    def papier(selecteur):
+        morceau = STYLE[STYLE.index(selecteur):]
+        morceau = morceau[: morceau.index("}")]
+        return re.search(r"--papier:\s*(#[0-9a-fA-F]{6})", morceau).group(1)
+
+    attendues = {papier(":root {"), papier(':root[data-theme="dark"] {')}
+    assert recopiees == attendues, (
+        f"l'en-tête dit {sorted(recopiees)}, la feuille de style {sorted(attendues)}"
+    )
 
 
 def test_le_reglage_ne_quitte_pas_l_appareil():

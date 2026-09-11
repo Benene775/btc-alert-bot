@@ -2111,21 +2111,36 @@ function poserApparence(choix) {
     if (propre === 'auto') localStorage.removeItem(CLE_APPARENCE);
     else localStorage.setItem(CLE_APPARENCE, propre);
   } catch (e) { /* stockage refusé : le choix vaut pour cette visite */ }
-  peindreLaBordure(propre);
+  peindreLaBordure();
   dessinerApparence();
 }
 
-/* La couleur de la barre du téléphone. Deux balises « theme-color » se
- * relaient par media query ; un choix explicite doit donc en éteindre une,
- * sinon l'application installée garde une barre blanche autour d'un écran noir.
+/* La couleur de la barre du téléphone.
+ *
+ * On écrit la couleur plutôt que de faire se relayer deux balises par media
+ * query : rien ne garantit qu'un navigateur réévalue un « media » changé à
+ * chaud, et l'élève basculait en sombre avec un liseré crème en haut.
+ *
+ * La couleur vient de la feuille de style, pas d'une constante recopiée ici :
+ * « --papier » se résout déjà selon le thème posé sur la racine.
  */
-function peindreLaBordure(choix) {
-  const claire = $('couleur-claire');
-  const sombre = $('couleur-sombre');
-  if (!claire || !sombre) return;
-  if (choix === 'dark') { claire.media = 'not all'; sombre.media = 'all'; }
-  else if (choix === 'light') { claire.media = 'all'; sombre.media = 'not all'; }
-  else { claire.removeAttribute('media'); sombre.media = '(prefers-color-scheme: dark)'; }
+function peindreLaBordure() {
+  const balise = $('couleur-barre');
+  if (!balise) return;
+  const papier = getComputedStyle(document.documentElement)
+    .getPropertyValue('--papier').trim();
+  if (papier) balise.content = papier;
+}
+
+/* En mode « auto », c'est l'appareil qui décide — et il peut changer d'avis
+ * pendant qu'on lit : beaucoup de téléphones basculent tout seuls le soir.
+ * Sans cette écoute, la page suivrait (la media query fait son travail) mais
+ * la barre du téléphone garderait la couleur du matin. */
+function suivreLaLumiereDeLAppareil() {
+  const nuit = window.matchMedia('(prefers-color-scheme: dark)');
+  const suivre = () => { if (apparenceChoisie() === 'auto') peindreLaBordure(); };
+  if (nuit.addEventListener) nuit.addEventListener('change', suivre);
+  else if (nuit.addListener) nuit.addListener(suivre);
 }
 
 function dessinerApparence() {
@@ -5438,9 +5453,10 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('[data-apparence]').forEach((bouton) => {
     bouton.onclick = () => poserApparence(bouton.dataset.apparence);
   });
-  // La barre du téléphone suit dès le départ : le petit script de l'en-tête a
-  // posé le thème, mais il ne touche pas aux balises « theme-color ».
-  peindreLaBordure(apparenceChoisie());
+  // Le script de l'en-tête a déjà posé une couleur, à partir de deux constantes
+  // recopiées. Ici la feuille de style est chargée : on repose la vraie.
+  peindreLaBordure();
+  suivreLaLumiereDeLAppareil();
 
   $('onglet-fiches').onclick = () => basculerArchive('fiches');
   $('onglet-controles').onclick = () => basculerArchive('controles');
