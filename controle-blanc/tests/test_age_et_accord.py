@@ -174,3 +174,24 @@ def test_une_adresse_courte_ne_bloque_pas_tous_les_mots_de_passe():
             assert refus.genre == "mdp"
         else:
             raise AssertionError(f"« {mdp} » aurait dû être refusé pour {email}")
+
+
+def test_ce_qui_est_temporaire_est_ecrit_quelque_part():
+    """Une décision prise « le temps du test » ne casse pas toute seule quand le
+    test finit : elle continue de fonctionner en mentant. La case de l'accord
+    parental, la ligne « c'est gratuit », l'expéditeur personnel — rien de tout
+    ça ne lèvera d'erreur le jour où un inconnu s'inscrira.
+
+    D'où une liste, et ce test qui vérifie qu'elle existe et qu'on la trouve
+    depuis la marche à suivre du déploiement.
+    """
+    liste = RACINE / "AVANT-L-OUVERTURE.md"
+    assert liste.exists(), "la liste de ce qu'il faut reprendre a disparu"
+    texte = liste.read_text(encoding="utf-8")
+    for sujet in ("consentement parental", "gratuit", "domaine", "expéditeur",
+                  "politique de confidentialité", "branche"):
+        assert sujet in texte.lower(), f"la liste ne parle pas de : {sujet}"
+
+    # Et on doit tomber dessus sans la chercher.
+    marche = (RACINE / "DEPLOIEMENT.md").read_text(encoding="utf-8")
+    assert "AVANT-L-OUVERTURE.md" in marche

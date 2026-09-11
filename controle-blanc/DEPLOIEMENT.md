@@ -111,6 +111,15 @@ Note la date du premier compte : le compteur du mois repart le 1er.
 
 ---
 
+## Quand le test sera fini
+
+Tout ce qui a été posé pour ce test et qui devient faux en s'ouvrant au public
+est listé dans **AVANT-L-OUVERTURE.md** — le consentement parental qui n'est pas
+vérifié, la ligne « c'est gratuit » écrite dans le produit, l'expéditeur
+personnel, le domaine, la branche. Aucune de ces choses ne casse toute seule :
+elles continuent de fonctionner en mentant. Relis ce fichier avant d'envoyer le
+lien à quelqu'un que tu ne connais pas.
+
 ## Pendant le mois
 
 `/admin/metriques?token=…` montre ce qui se passe. Regarde surtout **qui revient
