@@ -23,6 +23,7 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 from fastapi import Cookie, Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -105,6 +106,30 @@ def gerer_quota(_: Request, exc: store.QuotaDepasse) -> JSONResponse:
     return JSONResponse(
         status_code=429,
         content={"erreur": "quota", "action": exc.action, "portee": exc.portee, "message": exc.message},
+    )
+
+
+@app.exception_handler(RequestValidationError)
+def gerer_validation(requete: Request, exc: RequestValidationError) -> JSONResponse:
+    """Une requête que le serveur refuse de lire.
+
+    Ce n'est jamais la faute de l'élève : le navigateur envoie ce que le produit
+    lui a fait ranger. C'est donc un défaut de notre côté, et il doit laisser
+    une trace ICI — la réponse de FastAPI, elle, est une liste d'objets qui
+    s'affichait « [object Object] » sur le téléphone d'un élève, devant le seul
+    bouton qui l'intéressait.
+    """
+    ou = "; ".join(
+        ".".join(str(morceau) for morceau in erreur.get("loc", ()))
+        + " — " + str(erreur.get("msg", ""))
+        for erreur in exc.errors()
+    )
+    logger.error("REQUÊTE REFUSÉE sur %s : %s", requete.url.path, ou[:600])
+    return JSONResponse(
+        status_code=422,
+        content={"erreur": "requete",
+                 "message": "On n'a pas réussi à envoyer ta demande. Réessaie — "
+                            "si ça recommence, préviens ton professeur."},
     )
 
 

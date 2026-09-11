@@ -2741,7 +2741,16 @@ async function api(chemin, options = {}) {
     erreur.reessayable = corps.reessayable !== false;
     throw erreur;
   }
-  throw new ErreurApi(corps.detail || corps.message || "Ça n’a pas marché. Réessaie.", 'autre');
+  // « detail » n'est une phrase que la moitié du temps : quand la validation
+  // échoue, FastAPI y met une LISTE d'objets, un par champ fautif. Passée telle
+  // quelle à Error(), elle s'affiche « [object Object] » — ce que l'élève a vu.
+  //
+  // Une erreur de validation est de toute façon un défaut de notre côté, pas
+  // une consigne qu'il pourrait suivre : on lui dit ce qu'on sait lui dire, et
+  // on garde le détail pour la console, où il sert à quelqu'un.
+  const dit = [corps.detail, corps.message].find((m) => typeof m === 'string' && m);
+  if (!dit) console.error('réponse inattendue du serveur', reponse.status, corps);
+  throw new ErreurApi(dit || "Ça n’a pas marché. Réessaie.", 'autre');
 }
 
 class ErreurApi extends Error {

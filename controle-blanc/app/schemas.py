@@ -6,7 +6,12 @@ Le navigateur est propriétaire de l'état (cours, réponses, fiches) : il le re
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field, model_validator
+import logging
+from typing import Any
+
+from pydantic import BaseModel, Field, field_validator, model_validator
+
+logger = logging.getLogger("controle-blanc.schemas")
 
 
 class Inscription(BaseModel):
@@ -97,9 +102,35 @@ class DemandeFiche(AvecCours):
 
 
 class NotionFragile(BaseModel):
-    notion: str = Field(max_length=300)
-    chapitre: str = Field(default="", max_length=300)
-    pourquoi: str = Field(default="", max_length=1_000)
+    """Une notion ratée, telle que la correction l'a nommée.
+
+    Les trois champs sont écrits par le modèle, pas saisis par l'élève : le
+    schéma de la correction ne leur impose aucune longueur. Un « pourquoi »
+    bavard suffisait donc à faire refuser la demande de fiche ciblée — avec un
+    422 que le navigateur affichait « [object Object] », et un élève bloqué
+    devant le seul bouton qui l'intéressait.
+
+    On coupe plutôt que de refuser. Ces champs repartent au modèle comme
+    rappel de l'erreur : trois cents caractères de rappel suffisent, et perdre
+    la fin d'une phrase vaut mieux que perdre la fiche.
+    """
+
+    notion: str
+    chapitre: str = ""
+    pourquoi: str = ""
+
+    @field_validator("notion", "chapitre", "pourquoi", mode="before")
+    @classmethod
+    def _couper(cls, valeur: Any, info: Any) -> Any:
+        if not isinstance(valeur, str):
+            return valeur
+        plafond = 1_000 if info.field_name == "pourquoi" else 300
+        if len(valeur) <= plafond:
+            return valeur
+        logger.warning(
+            "notion fragile tronquée (%s : %s caractères) — le modèle n'est "
+            "borné par rien sur ce champ", info.field_name, len(valeur))
+        return valeur[:plafond]
 
 
 class DemandeFicheCiblee(DemandeFiche):
