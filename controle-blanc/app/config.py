@@ -134,9 +134,16 @@ def doit_cacher_le_cours(action: str) -> bool:
     modele = modele_pour(action)
     return sum(1 for a in ACTIONS_AVEC_COURS if modele_pour(a) == modele) >= 3
 
+# La clé du fournisseur. Le .strip() n'est pas une coquetterie : une clé se pose
+# en collant 108 caractères dans le formulaire d'un hébergeur, et un espace ou
+# un retour à la ligne invisible suffit à la rendre invalide. La panne est alors
+# parfaitement silencieuse — le site démarre, sert ses pages, et rate seulement
+# l'analyse, avec un « Réessaie » que l'élève voit à l'infini.
+CLE_API = os.environ.get("ANTHROPIC_API_KEY", "").strip()
+
 # Mode démonstration : aucun appel API, contenus factices en français.
 # Sert à faire cliquer le prof / les élèves dans tout le parcours sans dépenser.
-DEMO_MODE = _flag("CB_DEMO_MODE", default=not bool(os.environ.get("ANTHROPIC_API_KEY")))
+DEMO_MODE = _flag("CB_DEMO_MODE", default=not bool(CLE_API))
 
 DB_PATH = Path(os.environ.get("CB_DB_PATH", BASE_DIR / "donnees" / "controle-blanc.sqlite3"))
 

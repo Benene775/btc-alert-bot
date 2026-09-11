@@ -76,6 +76,18 @@ async def cycle_de_vie(_: FastAPI):
     # de plus dans les journaux n'aurait servi à rien : personne ne les lit au
     # moment où ça compte.
     fautes = config.fautes_de_configuration()
+
+    # Et la clé, qu'on ne peut pas juger sans demander au fournisseur. Elle peut
+    # être présente, non vide, et refusée : c'est arrivé au premier déploiement,
+    # où un copier-coller de 108 caractères a suffi. Rien ne le signalait —
+    # seuls les élèves l'auraient découvert, un par un, derrière un « Réessaie »
+    # qui ne marchait jamais. La vérification est gratuite et on ne la fait
+    # qu'en ligne, pour ne pas exiger le réseau à chaque lancement local.
+    if config.PUBLIC_BASE_URL:
+        refus = llm.verifier_la_cle()
+        if refus:
+            fautes.append(refus)
+
     if fautes:
         for faute in fautes:
             logger.error("CONFIGURATION REFUSÉE : %s", faute)

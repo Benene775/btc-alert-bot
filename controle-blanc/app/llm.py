@@ -58,8 +58,56 @@ def client() -> Any:
     if _client is None:
         import anthropic  # importé tard : inutile en mode démonstration
 
-        _client = anthropic.Anthropic()
+        # On passe la clé explicitement plutôt que de laisser le SDK relire
+        # l'environnement : c'est la version nettoyée de config qui doit servir.
+        _client = anthropic.Anthropic(api_key=config.CLE_API)
     return _client
+
+
+def verifier_la_cle() -> str | None:
+    """La clé ouvre-t-elle vraiment la porte ? Rend None si oui, la raison sinon.
+
+    Une clé peut être présente et refusée — recopiée de travers, révoquée,
+    ou sans accès au modèle demandé. Le site démarre quand même, sert ses pages,
+    et ne rate QUE les appels au modèle : chaque élève reçoit « Réessaie » sans
+    que rien ne dise pourquoi. C'est exactement la panne qu'on veut voir au
+    déploiement plutôt que dans le téléphone d'un élève.
+
+    L'appel est gratuit : count_tokens ne facture rien et exige quand même une
+    clé valide.
+
+    On ne retient que le refus d'authentification. Une panne de réseau au
+    démarrage n'est pas une faute de configuration, et refuser de démarrer pour
+    ça couperait le site à chaque hoquet du fournisseur.
+    """
+    if config.DEMO_MODE:
+        return None
+
+    import anthropic
+
+    try:
+        client().messages.count_tokens(
+            model=config.modele_pour("analyse"),
+            messages=[{"role": "user", "content": "."}],
+        )
+    except anthropic.AuthenticationError as exc:
+        return (
+            "ANTHROPIC_API_KEY refusée par le fournisseur (" + str(exc)[:200] + "). "
+            "Aucune analyse ne passera. Vérifier la valeur posée sur l'hébergeur : "
+            "une clé se recopie mal, un espace invisible suffit."
+        )
+    except anthropic.PermissionDeniedError as exc:
+        return (
+            "ANTHROPIC_API_KEY sans accès au modèle " + config.modele_pour("analyse")
+            + " (" + str(exc)[:200] + ")."
+        )
+    except Exception as exc:  # réseau, surcharge, indisponibilité passagère
+        logger.warning(
+            "vérification de la clé impossible au démarrage (%s) : %s — on démarre "
+            "quand même, ce n'est pas une faute de configuration",
+            type(exc).__name__, exc,
+        )
+    return None
 
 
 def _usage(reponse: Any) -> dict[str, Any]:

@@ -119,6 +119,14 @@ Dans l'ordre, sur ton téléphone :
 
 1. **La page s'ouvre.** Pas de bandeau « Mode démonstration » sur l'accueil : s'il
    est là, `ANTHROPIC_API_KEY` n'est pas lue et rien ne sera analysé pour de vrai.
+
+   L'absence du bandeau ne suffisait pas : au premier déploiement, la clé était
+   posée, non vide, et refusée — le bandeau avait bien disparu, et seule
+   l'analyse échouait. Le démarrage vérifie donc maintenant que la clé ouvre
+   vraiment la porte (un appel gratuit) et **refuse de démarrer** sinon. Si le
+   déploiement échoue sur `ANTHROPIC_API_KEY refusée par le fournisseur`, c'est
+   un copier-coller à reprendre : retape la valeur à la main dans *Environment*
+   plutôt que de réimporter un `.env`.
 2. **Crée-toi un compte**, réponds à la question de l'âge.
 3. **Photographie deux pages d'un vrai cours** et va jusqu'à la fiche. C'est le
    seul test qui compte : il vérifie la clé, le modèle, les quotas et le disque
