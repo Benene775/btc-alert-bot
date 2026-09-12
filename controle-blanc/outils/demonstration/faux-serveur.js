@@ -288,7 +288,7 @@ async function api(chemin, options = {}) {
     return {
       controle_id: identifiant,
       titre: (cible || dejaPose ? 'Contrôle blanc n°2 — ' : 'Contrôle blanc — ') + CHAPITRES[0].titre,
-      consigne_generale: "Réponds dans l’ordre, en rédigeant. Tu ne peux pas revenir en arrière, comme le jour du contrôle.",
+      consigne_generale: "Réponds dans l’ordre, en rédigeant. Tu peux revenir sur une question pour la relire ou la corriger tant que tu n’as pas rendu.",
       matiere: MATIERE_DETECTEE,
       duree_minutes: questions.reduce((total, q) => total + q.duree_minutes, 0),
       // Comme sur le serveur, les réponses attendues ne partent pas avec les énoncés.

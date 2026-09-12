@@ -150,7 +150,6 @@ class ReponseEleve(BaseModel):
     # La copie de l'élève repart au modèle pour la correction : elle est bornée
     # comme le reste. Une réponse de contrôle tient largement là-dedans.
     texte: str = Field(default="", max_length=5_000)
-    secondes: int = 0
 
 
 class DemandeCorrection(AvecCours):

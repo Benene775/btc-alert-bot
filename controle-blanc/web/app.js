@@ -5215,12 +5215,76 @@ async function lancerControle(notionsCiblees = [], chapitres = null) {
   } catch (e) { gererErreur(e); }
 }
 
+/* --- Circuler dans le contrôle ------------------------------------------
+ *
+ * On ne pouvait pas revenir. C'était un choix — « comme le jour J » — et il
+ * était mauvais. Le jour J, justement, on revient : la copie est sous les yeux,
+ * on relit la 2 en traitant la 5, on corrige une date qu'on a écrite trop vite.
+ * Ce qu'on ne peut pas faire le jour J, c'est recommencer ; l'interdiction
+ * imitait le mauvais détail.
+ *
+ * Et surtout, ici, l'élève RÉVISE. Se rappeler à la question 5 qu'on a mal
+ * répondu à la 2, ne pas pouvoir y retourner et devoir attendre la correction
+ * pour le vérifier, c'est transformer une révision en punition.
+ *
+ * La réponse en cours est mémorisée à CHAQUE sortie de question, dans les deux
+ * sens. Sans ça, revenir en arrière effacerait ce qu'on venait d'écrire — ce
+ * qui serait pire que de ne pas pouvoir revenir du tout.
+ */
+function memoriserReponse() {
+  const question = controleEnCours.questions[controleEnCours.index];
+  if (question) controleEnCours.reponses[question.numero] = $('champ-reponse').value;
+}
+
+function allerAQuestion(rang) {
+  memoriserReponse();
+  const dernier = controleEnCours.questions.length - 1;
+  controleEnCours.index = Math.max(0, Math.min(rang, dernier));
+  dessinerQuestion();
+}
+
+function questionSuivante() {
+  memoriserReponse();
+  if (controleEnCours.index >= controleEnCours.questions.length - 1) {
+    terminerControle();
+    return;
+  }
+  controleEnCours.index += 1;
+  dessinerQuestion();
+}
+
+function questionPrecedente() {
+  allerAQuestion(controleEnCours.index - 1);
+}
+
+/* Le fil : une pastille par question, dans l'ordre du sujet.
+ *
+ * Elle dit trois choses d'un coup d'oeil — où l'on est, combien il y en a,
+ * lesquelles sont déjà répondues — et c'est aussi la commande pour y aller. La
+ * jauge qu'elle remplace n'en disait qu'une, et ne commandait rien. */
+function dessinerFilDesQuestions() {
+  const fil = $('fil-questions');
+  fil.innerHTML = '';
+  controleEnCours.questions.forEach((question, rang) => {
+    const pastille = document.createElement('button');
+    pastille.type = 'button';
+    pastille.className = 'fil-pas';
+    pastille.textContent = String(rang + 1);
+    const repondue = Boolean((controleEnCours.reponses[question.numero] || '').trim());
+    if (repondue) pastille.dataset.repondue = 'oui';
+    if (rang === controleEnCours.index) pastille.setAttribute('aria-current', 'true');
+    pastille.setAttribute('aria-label', 'Question ' + (rang + 1)
+      + (repondue ? ', répondue' : ', sans réponse'));
+    pastille.onclick = () => allerAQuestion(rang);
+    fil.appendChild(pastille);
+  });
+}
+
 function dessinerQuestion() {
   const question = controleEnCours.questions[controleEnCours.index];
   const total = controleEnCours.questions.length;
 
   $('progression-controle').textContent = 'Question ' + (controleEnCours.index + 1) + ' sur ' + total;
-  $('jauge-remplie').style.width = ((controleEnCours.index) / total * 100) + '%';
   $('partie-question').textContent = question.partie || '';
 
   const doc = $('document-question');
@@ -5228,7 +5292,9 @@ function dessinerQuestion() {
   doc.hidden = !question.document;
 
   $('enonce-question').textContent = question.enonce;
-  $('champ-reponse').value = '';
+  // Ce qu'on avait écrit est rendu tel quel : une question déjà passée s'ouvre
+  // sur sa réponse, pas sur une page blanche.
+  $('champ-reponse').value = controleEnCours.reponses[question.numero] || '';
   $('champ-reponse').focus({ preventScroll: true });
 
   const signaler = $('bouton-signaler');
@@ -5240,28 +5306,40 @@ function dessinerQuestion() {
   soignerTypographie($('enonce-question'));
   soignerTypographie($('document-question'));
 
-  $('bouton-question-suivante').textContent = controleEnCours.index === total - 1
-    ? 'Terminer le contrôle'
-    : 'Valider et continuer';
-}
+  $('bouton-question-precedente').hidden = controleEnCours.index === 0;
+  const derniere = controleEnCours.index === total - 1;
+  // « Valider et continuer » promettait une validation qui n'existe plus : on ne
+  // valide rien, on se déplace, et on peut revenir. « Suivante → » répond à
+  // « ← Précédente » et dit exactement ce que fait le bouton. « Rendre ma
+  // copie » est le geste de l'école, et reprend le mot de la phrase d'aide :
+  // on peut revenir tant qu'on n'a pas RENDU. Les deux tiennent sur une ligne,
+  // là où les anciens libellés passaient à deux et doublaient la hauteur.
+  $('bouton-question-suivante').textContent = derniere ? 'Rendre ma copie' : 'Suivante →';
 
-function questionSuivante() {
-  const question = controleEnCours.questions[controleEnCours.index];
-  controleEnCours.reponses[question.numero] = $('champ-reponse').value;
-  controleEnCours.index += 1;
-  if (controleEnCours.index >= controleEnCours.questions.length) {
-    terminerControle();
-    return;
+  // Pouvoir sauter d'une question à l'autre, c'est pouvoir en oublier une. On
+  // le dit là où ça se répare encore : sur la question d'où l'on rend. Dire
+  // plutôt qu'empêcher — laisser une question blanche est un choix légitime,
+  // et la correction sait quoi en faire.
+  // On compte les AUTRES : celle qu'on a sous les yeux, l'élève la voit, et sa
+  // réponse en cours de frappe n'est pas encore mémorisée — la compter ferait
+  // dire « il reste 1 question sans réponse » à quelqu'un en train de l'écrire.
+  const sans = controleEnCours.questions.filter(
+    (q, rang) => rang !== controleEnCours.index
+      && !(controleEnCours.reponses[q.numero] || '').trim()).length;
+  const note = $('reste-sans-reponse');
+  note.hidden = !(derniere && sans > 0);
+  if (!note.hidden) {
+    note.textContent = 'Il reste ' + sans + ' question' + (sans > 1 ? 's' : '')
+      + ' sans réponse — les cases vides du fil te disent lesquelles.';
   }
-  dessinerQuestion();
+
+  dessinerFilDesQuestions();
 }
 
 async function terminerControle() {
-  // La question affichée compte, même si l’élève n’a pas eu le temps de valider.
-  const courante = controleEnCours.questions[controleEnCours.index];
-  if (courante && controleEnCours.reponses[courante.numero] === undefined) {
-    controleEnCours.reponses[courante.numero] = $('champ-reponse').value;
-  }
+  // Ce qui est à l'écran compte, y compris une correction de dernière seconde
+  // sur une question déjà répondue : on écrase, on ne complète pas.
+  memoriserReponse();
 
   attendre('On corrige ta copie…', 'Question par question, avec le renvoi à ton cours.');
   try {
@@ -5271,7 +5349,7 @@ async function terminerControle() {
       niveau: etat.niveau,
       chapitres: chapitresRetenus(),
       reponses: Object.entries(controleEnCours.reponses).map(([numero, texte]) => ({
-        numero: Number(numero), texte, secondes: 0,
+        numero: Number(numero), texte,
       })),
       numeros_signales: Array.from(controleEnCours.signalees),
     });
@@ -5807,6 +5885,7 @@ document.addEventListener('DOMContentLoaded', () => {
   armerClavierPaquet();
 
   $('bouton-question-suivante').onclick = questionSuivante;
+  $('bouton-question-precedente').onclick = questionPrecedente;
   $('bouton-signaler').onclick = () => {
     const question = controleEnCours.questions[controleEnCours.index];
     ouvrirSignalement(question.numero, question.enonce, null);

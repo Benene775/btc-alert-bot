@@ -1857,8 +1857,92 @@ select {
 
 .progression { color: var(--encre-douce); }
 
-.jauge { height: 3px; background: var(--trait); border-radius: 999px; overflow: hidden; margin-bottom: 24px; }
-#jauge-remplie { height: 100%; width: 0; background: var(--accent); transition: width .3s ease; }
+/* --- Le fil des questions ------------------------------------------------
+ *
+ * Une jauge de 3 px vivait ici. Elle disait à quelle fraction du contrôle on en
+ * était, et rien d'autre. Le fil dit la même chose, plus lesquelles sont déjà
+ * répondues, et c'est en plus la commande pour y retourner : trois informations
+ * et un geste dans l'objet qui n'en portait qu'un.
+ *
+ * Il défile horizontalement plutôt que de passer à la ligne : douze pastilles
+ * sur deux rangées font perdre la lecture « où j'en suis sur la longueur du
+ * sujet », qui est tout ce qu'on lui demande.
+ */
+.fil {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 24px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+}
+
+.fil::-webkit-scrollbar { display: none; }
+
+.fil-pas {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  border: 1.5px solid var(--trait);
+  background: var(--carte);
+  color: var(--encre-douce);
+  font-family: var(--mono);
+  font-size: .72rem;
+  cursor: pointer;
+  padding: 0;
+  transition: transform .15s cubic-bezier(.2, .7, .3, 1), border-color .15s ease;
+}
+
+.fil-pas:hover { transform: translateY(-2px); border-color: var(--trait-fort); }
+
+/* Répondue : un aplat doux. On voit d'un coup ce qu'il reste à faire, sans
+   avoir à se souvenir. */
+.fil-pas[data-repondue="oui"] {
+  background: var(--accent-doux);
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  color: var(--accent);
+}
+
+/* Celle qu'on a sous les yeux. */
+.fil-pas[aria-current="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--sur-accent);
+  font-weight: 700;
+}
+
+/* Ce qui reste en blanc, dit sur la question d'où l'on rend. */
+.aide-alerte { color: var(--partiel); }
+
+/* Précédente et suivante sur la même ligne : le retour est une commande de
+   même rang que l'avance, pas un lien de repentir en petit au-dessous.
+
+   « width: auto » n'est pas un détail : la règle générale des boutons dit
+   « width: 100% », juste pour un bouton qui tient seul sa ligne. En rangée,
+   « Précédente » prenait toute la largeur et « Valider et continuer » sortait
+   de l'écran par la droite. */
+.pas-de-controle { display: flex; gap: var(--e2); align-items: stretch; }
+
+.pas-de-controle > .principal {
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
+}
+
+.pas-de-controle > .secondaire {
+  flex: 0 1 auto;
+  width: auto;
+  min-width: 0;
+  padding-inline: var(--e3);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fil-pas { transition: none; }
+  .fil-pas:hover { transform: none; }
+}
 
 .partie { color: var(--accent); margin: 0 0 12px; }
 

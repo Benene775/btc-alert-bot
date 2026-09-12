@@ -344,8 +344,8 @@ def controle(
         "titre": ("Contrôle blanc n°2 — " if deuxieme or notions_ciblees else "Contrôle blanc — ")
         + (chapitres[0].get("titre", CHAPITRE["titre"]) if chapitres else CHAPITRE["titre"]),
         "consigne_generale": (
-            "Réponds dans l’ordre, en rédigeant. Tu ne peux pas revenir en arrière, "
-            "comme le jour du contrôle."
+            "Réponds dans l’ordre, en rédigeant. Tu peux revenir sur une question "
+            "pour la relire ou la corriger tant que tu n’as pas rendu."
         ),
         "questions": [dict(q) for q in questions],
     }

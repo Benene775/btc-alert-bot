@@ -117,7 +117,7 @@ def test_etape_5_correction_renvoie_au_cours_de_l_eleve(client, session, photo_f
         json={"session_id": session, "niveau": "3e", "matiere": "histoire-geographie",
               "chapitres": chapitres},
     ).json()
-    reponses = [{"numero": q["numero"], "texte": "", "secondes": 30} for q in controle["questions"]]
+    reponses = [{"numero": q["numero"], "texte": ""} for q in controle["questions"]]
 
     correction = client.post(
         "/api/correction",

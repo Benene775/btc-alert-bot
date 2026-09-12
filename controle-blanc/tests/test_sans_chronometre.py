@@ -54,6 +54,20 @@ def test_aucune_duree_ne_quitte_le_serveur():
         "les questions repartent avec leur durée"
 
 
+def test_aucune_seconde_ne_part_avec_la_copie():
+    """Chaque réponse envoyée au serveur portait un « secondes », vestige du
+    compte à rebours : le client l'envoyait toujours à zéro et personne ne le
+    lisait — ni la correction, ni le modèle, ni la base. Un champ mort qu'un
+    jour quelqu'un aurait rempli, et le chronomètre serait revenu par là."""
+    schemas = (RACINE / "app" / "schemas.py").read_text(encoding="utf-8")
+    reponse = schemas[schemas.index("class ReponseEleve"):]
+    reponse = reponse[: reponse.index("class ")]
+    assert "secondes" not in reponse
+    envoi = SCRIPT[SCRIPT.index("envoyerJson('/api/correction'"):]
+    envoi = envoi[: envoi.index("});")]
+    assert "secondes" not in envoi
+
+
 def test_aucun_mot_ne_dit_que_c_est_chronometre():
     for quoi, source in zip(("la page", "le script"), (PAGE, SCRIPT)):
         bas = source.lower()

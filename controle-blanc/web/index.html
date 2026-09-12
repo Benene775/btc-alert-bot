@@ -252,7 +252,7 @@
         <span class="deroule-numero">2</span>
         <div>
           <h3>Tu passes le contrôle blanc</h3>
-          <p>Au format réel de la matière, sans retour en arrière. Ce n’est pas du travail en plus : c’est la révision que tu allais faire, en te testant au lieu de relire.</p>
+          <p>Au format réel de la matière. Tu réponds dans l’ordre, et tu peux revenir sur une question pour la relire ou la corriger tant que tu n’as pas rendu. Ce n’est pas du travail en plus : c’est la révision que tu allais faire, en te testant au lieu de relire.</p>
         </div>
       </li>
       <li>
@@ -869,7 +869,12 @@
   <div class="barre-controle">
     <span id="progression-controle" class="progression">Question 1 sur 5</span>
   </div>
-  <div class="jauge"><div id="jauge-remplie"></div></div>
+
+  <!-- Le fil des questions. Il remplace la jauge, qui disait seulement à quelle
+       fraction on en était : celui-ci dit la même chose, plus lesquelles sont
+       déjà répondues, ET sert à s'y déplacer. Trois informations et une
+       commande dans l'objet qui n'en portait qu'une. -->
+  <nav class="fil" id="fil-questions" aria-label="Les questions du contrôle"></nav>
 
   <p class="partie" id="partie-question"></p>
   <blockquote id="document-question" class="document" hidden></blockquote>
@@ -878,9 +883,13 @@
   <label for="champ-reponse" class="masque">Ta réponse</label>
   <textarea id="champ-reponse" rows="8" placeholder="Réponds comme au contrôle : rédige."></textarea>
 
-  <button type="button" class="principal" id="bouton-question-suivante">Valider et continuer</button>
+  <p class="aide aide-alerte" id="reste-sans-reponse" hidden></p>
+  <div class="pas-de-controle">
+    <button type="button" class="secondaire" id="bouton-question-precedente" hidden>← Précédente</button>
+    <button type="button" class="principal" id="bouton-question-suivante">Suivante →</button>
+  </div>
   <button type="button" class="signalement" id="bouton-signaler">Cette question me semble fausse</button>
-  <p class="aide">Pas de retour en arrière, comme le jour J.</p>
+  <p class="aide">Tu peux revenir sur une question et la corriger tant que tu n’as pas rendu.</p>
 </section>
 
 <!-- ÉTAPE 5 — la correction -->

@@ -66,7 +66,7 @@ Fly.io, Scaleway, ou une petite machine virtuelle. Et, avant d'ouvrir à de vrai
 | 1 | Photographier le cours (plusieurs pages, écriture manuscrite, ajout ultérieur possible) | `POST /api/analyse` |
 | 2 | Confirmer le périmètre : « j'ai repéré N chapitres, c'est bien tout ? » | écran `ecran-perimetre` |
 | 3 | Deux boutons de poids strictement égal : **je révise d'abord** / **je me teste tout de suite** | écran `ecran-carrefour` |
-| 4 | Le contrôle blanc : format réel, pas de retour en arrière | `POST /api/controle` |
+| 4 | Le contrôle blanc : format réel, une question à l'écran, libre d'y revenir | `POST /api/controle` |
 | 5 | La correction commentée : ce qui manquait, et **où c'est dans son cours à lui** | `POST /api/correction` |
 | 6 | La fiche ciblée, uniquement sur les notions ratées | `POST /api/fiche/ciblee` |
 | 7 | Second contrôle, questions différentes, mêmes notions | `POST /api/controle` avec `notions_ciblees` |
