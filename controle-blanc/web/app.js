@@ -606,99 +606,67 @@ let revoirDeplie = false;
 
 function dessinerEspace() {
   const sessions = sessionsFaites();
-  dessinerCarteEleve(sessions);
-  dessinerFichesRecentes(sessions);
+  dessinerMoi(sessions);
   dessinerChoixMatiere();
-  dessinerAccesOutils();
   dessinerApparence();
   const echeances = dessinerAgenda(sessions);
-  $('compte-agenda').textContent = echeances ? String(echeances) : '';
+  dessinerLesPortes(sessions, echeances);
   soignerTypographie($('ecran-espace'));
   // Sans await : la page est déjà dessinée, le compteur se posera dessus.
   rafraichirQuotas();
 }
 
-/* --- Les fiches, sur sa page ---------------------------------------------
+/* --- Les six portes ------------------------------------------------------
  *
- * Une fiche se relit ; un contrôle se passe une fois. C'est donc la fiche qu'on
- * revient chercher, et elle était à trois gestes d'ici : ouvrir une matière,
- * descendre jusqu'à la liste, la parcourir. Trois sont posées sur la page, avec
- * le filtre par matière sur place — chercher « celle de SVT » ne doit pas
- * obliger à changer d'écran — et un bouton qui dit combien il y en a derrière.
+ * Une porte par destination, et rien derrière qui ne soit une destination. Ce
+ * que chacune contient s'écrit sous son nom, en une ligne : l'échéance qui
+ * vient, le temps que prend une fabrication, le nombre de choses déjà faites.
+ * Une page d'où l'on part n'a pas à montrer ce qu'on trouvera en arrivant.
  */
-const FICHES_SUR_LA_PAGE = 3;
-let fichesMatiere = '';
+function dessinerLesPortes(sessions, echeances) {
+  // L'agenda : ce qui vient, et combien.
+  const prochains = prochainesEcheances(sessions);
+  const porteAgenda = $('bouton-agenda');
+  const pastille = $('compte-agenda');
+  pastille.hidden = !echeances;
+  pastille.textContent = echeances ? String(echeances) : '';
+  if (prochains.length) {
+    const jours = joursAvant(prochains[0].date);
+    porteAgenda.dataset.urgence = urgence(jours);
+    // Le quand, en français, et rien d'autre. « J−7 · Histoire-Géographie /
+    // EMC » prenait trois lignes sur un carré de 169 px, et « J−7 · H-G » —
+    // même chose en code — se lit comme une plaque d'immatriculation. Quelle
+    // matière, c'est écrit dans l'agenda, à un doigt d'ici ; combien il y en a,
+    // c'est la pastille qui le dit.
+    const quand = ligneJours(jours);
+    $('agenda-mot').textContent = 'Contrôle ' + quand;
+  } else {
+    porteAgenda.dataset.urgence = 'aucune';
+    $('agenda-mot').textContent = 'Pose ta prochaine date';
+  }
 
-function dessinerFichesRecentes(sessions) {
-  const toutes = toutesLesFiches(sessions).map((f) => ({ ...f, titre: titreCourt(f.titre) }));
-  $('pan-fiches').hidden = toutes.length === 0;
-  if (!toutes.length) return;
-
-  const comptes = new Map();
-  toutes.forEach((f) => {
-    const cle = f.session.matiere || '';
-    comptes.set(cle, (comptes.get(cle) || 0) + 1);
+  // Les deux fabrications n'ouvrent rien tant qu'aucun cours n'est photographié :
+  // elles partent des pages de l'élève, pas d'ailleurs. Éteintes plutôt que
+  // cachées — une porte qui disparaît ne s'explique pas, une porte grise si.
+  const cours = coursRepassables().size;
+  [['outil-controle', 'mot-controle', 'Au format réel · 40 min'],
+   ['outil-fiche', 'mot-fiche', 'Ton cours resserré · 9 min']].forEach(([id, mot, dit]) => {
+    $(id).disabled = cours === 0;
+    $(mot).textContent = cours ? dit : 'Photographie un cours d’abord';
   });
-  // Une matière dont la dernière fiche a été effacée ne doit pas rester
-  // sélectionnée : la liste paraîtrait vide sans qu'on voie pourquoi.
-  if (fichesMatiere && !comptes.has(fichesMatiere)) fichesMatiere = '';
 
-  dessinerFiltreFiches(comptes, toutes.length);
+  // Tout le travail, toutes matières confondues.
+  const fiches = toutesLesFiches(sessions).length;
+  const controles = tousLesControles(sessions).length;
+  const porteTravail = $('porte-travail');
+  porteTravail.disabled = !(fiches || controles);
+  $('mot-travail').textContent = (fiches || controles)
+    ? [fiches && fiches + (fiches > 1 ? ' fiches' : ' fiche'),
+       controles && controles + (controles > 1 ? ' contrôles' : ' contrôle')]
+      .filter(Boolean).join(' · ')
+    : 'Rien encore';
 
-  const retenues = fichesMatiere
-    ? toutes.filter((f) => (f.session.matiere || '') === fichesMatiere)
-    : toutes;
-
-  const liste = $('liste-fiches-recentes');
-  liste.innerHTML = '';
-  retenues.slice(0, FICHES_SUR_LA_PAGE).forEach((fiche) => {
-    const li = ligneArchive(fiche, (f) => (f.type === 'ciblee' ? 'ciblée' : ''), true);
-    li.querySelector('.ligne-archive').onclick =
-      () => ouvrirFicheGardee(fiche.session.sessionId, fiche.rang);
-    liste.appendChild(li);
-  });
-
-  // Le bouton dit le nombre plutôt que « voir tout » : savoir qu'il y en a
-  // quinze est la moitié de l'information.
-  const bouton = $('bouton-toutes-fiches');
-  bouton.hidden = retenues.length <= FICHES_SUR_LA_PAGE;
-  bouton.textContent = 'Voir les ' + retenues.length;
-  bouton.onclick = () => ouvrirMatiere(fichesMatiere || null);
-}
-
-/* Les mêmes puces que dans l'archive, et pour la même raison : la couleur d'une
- * matière est la même partout. Une seule matière n'a rien à filtrer. */
-function dessinerFiltreFiches(comptes, total) {
-  const boite = $('fiches-par-matiere');
-  boite.innerHTML = '';
-  boite.hidden = comptes.size < 2;
-  if (boite.hidden) { fichesMatiere = ''; return; }
-
-  const puce = (cle, libelle, nombre) => {
-    const bouton = document.createElement('button');
-    bouton.type = 'button';
-    bouton.className = 'puce';
-    bouton.dataset.teinte = cle ? teinteMatiere(cle) : '';
-    bouton.setAttribute('aria-pressed', fichesMatiere === cle ? 'true' : 'false');
-    bouton.textContent = libelle;
-    if (cle) bouton.setAttribute('aria-label', nomMatiere(cle) + ' — ' + nombre + ' fiches');
-    const compte = document.createElement('span');
-    compte.className = 'puce-compte';
-    compte.textContent = String(nombre);
-    bouton.appendChild(compte);
-    // Retaper sur la matière déjà choisie revient à toutes : sans ça, il n'y a
-    // pas de retour en arrière une fois qu'on a filtré.
-    bouton.onclick = () => {
-      fichesMatiere = fichesMatiere === cle ? '' : cle;
-      dessinerFichesRecentes(sessionsFaites());
-    };
-    return bouton;
-  };
-
-  boite.appendChild(puce('', 'Toutes', total));
-  [...comptes.entries()]
-    .sort((a, b) => b[1] - a[1] || nomMatiere(a[0]).localeCompare(nomMatiere(b[0])))
-    .forEach(([cle, nombre]) => boite.appendChild(puce(cle, codeMatiere(cle), nombre)));
+  peindreQuotas();
 }
 
 /* Où l'on choisit sa matière.
@@ -888,11 +856,13 @@ function dessinerRonds() {
 
 /* --- La carte, deux faces ------------------------------------------------ */
 
-function dessinerCarteEleve(sessions) {
+function dessinerMoi(sessions) {
   const mienne = carte();
   $('embleme').textContent = mienne.embleme || EMBLEMES[0];
   $('champ-prenom').value = mienne.prenom || '';
-  $('carte-annee').dataset.teinte = String(mienne.teinte || 0);
+  // La teinte choisie dans l'atelier habille la ligne d'identité : c'est tout
+  // ce qui reste de la carte en papier, et c'est ce qui rend la page sienne.
+  $('moi').dataset.teinte = String(mienne.teinte || 0);
   if (!$('atelier').hidden) dessinerAtelier();
 
   const niveaux = [...new Set(sessions.map((s) => s.niveau).filter(Boolean))];
@@ -901,69 +871,9 @@ function dessinerCarteEleve(sessions) {
     ? niveaux.join(' · ') + ' — ' + matieres.length + (matieres.length > 1 ? ' matières' : ' matière')
     : 'Ta première séance t’attend';
 
-  dessinerProchain(sessions);
-
-  const chiffres = [
-    ['Cours', sessions.length],
-    ['Fiches', toutesLesFiches(sessions).length],
-    ['Contrôles blancs', tousLesControles(sessions).length],
-  ];
-  const boite = $('carte-chiffres');
-  boite.innerHTML = '';
-  chiffres.forEach(([libelle, valeur]) => {
-    const groupe = document.createElement('div');
-    groupe.className = 'carte-eleve-chiffre';
-    const dd = document.createElement('dd');
-    dd.textContent = String(valeur);
-    const dt = document.createElement('dt');
-    dt.textContent = libelle;
-    groupe.append(dd, dt);
-    boite.appendChild(groupe);
-  });
-
   dessinerRegularite(sessions);
 }
 
-/* Le prochain contrôle ne se cache derrière aucun onglet : c'est la question
- * qu'un élève se pose en ouvrant la page. Il vit sur la carte. */
-function dessinerProchain(sessions) {
-  const prochains = prochainesEcheances(sessions);
-  const boite = $('prochain');
-  boite.innerHTML = '';
-  if (!prochains.length) {
-    boite.dataset.urgence = 'aucune';
-    boite.textContent = 'Pose la date de ton prochain contrôle dans l’agenda.';
-    return;
-  }
-  const session = prochains[0];
-  const jours = joursAvant(session.date);
-  boite.dataset.urgence = urgence(jours);
-
-  const compte = document.createElement('span');
-  compte.className = 'prochain-compte';
-  compte.textContent = jours === 0 ? 'Jour J' : 'J−' + jours;
-
-  const texte = document.createElement('div');
-  const matiere = document.createElement('p');
-  matiere.className = 'prochain-matiere';
-  matiere.textContent = nomMatiere(session.matiere);
-  const quand = document.createElement('p');
-  quand.className = 'prochain-quand';
-  quand.textContent = dateCourte(session.date) + ' · ' + ligneJours(jours);
-  texte.append(matiere, quand);
-
-  const aller = document.createElement('button');
-  aller.type = 'button';
-  aller.className = 'prochain-aller';
-  // Une date posée sans cours photographié n'a rien à réviser : elle mène à
-  // l'appareil photo, pas à une séance qui n'existe pas.
-  aller.textContent = session.sessionId ? 'Réviser' : 'Photographier';
-  aller.onclick = () => (session.sessionId
-    ? ouvrirSession(session.sessionId)
-    : demarrerSession({ matiere: session.matiere, date: session.date, versPhotos: true }));
-
-  boite.append(compte, texte, aller);
-}
 
 /* --- L'agenda ------------------------------------------------------------
  *
@@ -1348,7 +1258,7 @@ function basculerAgenda(ouvre) {
   if (typeof ouvre !== 'boolean') ouvre = bloc.dataset.ouvert !== 'oui';
 
   porte.setAttribute('aria-expanded', ouvre ? 'true' : 'false');
-  $('frise-invite-mot').textContent = ouvre ? 'Replier l’agenda' : 'Ouvrir l’agenda';
+  $('agenda-nom').textContent = ouvre ? 'Replier l’agenda' : 'Ton agenda';
   // Ouvert, l'agenda est seul : la feuille de style efface tout le reste de la
   // page tant que cet attribut est là. On est venu poser une date.
   if (ouvre) $('ecran-espace').dataset.agenda = 'ouvert';
@@ -1359,6 +1269,11 @@ function basculerAgenda(ouvre) {
 
   if (ouvre) {
     bloc.hidden = false;
+    // La frise vit maintenant DANS l'agenda. Dessinée pendant que le bloc était
+    // caché, elle mesurait zéro pixel de large et se repliait sur son minimum —
+    // dix semaines au lieu de vingt-six, avec une légende qui promettait
+    // novembre. On la redessine une fois le bloc dans le flux.
+    dessinerRegularite(sessionsFaites());
     animerAgenda();
     requestAnimationFrame(() => requestAnimationFrame(() => {
       bloc.dataset.ouvert = 'oui';
@@ -1913,7 +1828,7 @@ function jourPlus(date, jours) {
 const LARGE_JOURS = 15;   // la colonne des initiales, plus sa gouttière
 
 function semainesFrise() {
-  const cadre = document.querySelector('.frise-cadre');
+  const cadre = $('frise-cadre');
   const large = (cadre ? cadre.clientWidth : 0) - LARGE_JOURS;
   if (large <= 0) return SEMAINES_MIN;
   const colonne = 13;  // 10 px de carré + 3 px de gouttière
@@ -1947,7 +1862,7 @@ function dessinerMoisFrise(colonnes) {
 function dessinerRegularite(sessions) {
   const jours = joursTravailles(sessions);
   const frise = $('frise-regularite');
-  const cadre = document.querySelector('.frise-cadre');
+  const cadre = $('frise-cadre');
   frise.innerHTML = '';
 
   const aujourdhui = new Date();
@@ -5088,13 +5003,6 @@ function coursRepassables() {
   return par;
 }
 
-function dessinerAccesOutils() {
-  const cours = coursRepassables();
-  $('vide-outils').hidden = cours.size > 0;
-  $('pan-outils').querySelector('.trio').hidden = cours.size === 0;
-  peindreQuotas();
-}
-
 /* Les plafonds du mois.
  *
  * Ils sont tenus par le serveur, qui seul peut les compter honnêtement (voir
@@ -5122,10 +5030,13 @@ function peindreQuotas() {
     const cible = $('reste-' + outil);
     if (!cible) return;
     const etat = quotasMois && quotasMois[action];
-    if (!etat) { cible.hidden = true; return; }
+    const porte = $('outil-' + outil);
+    // Éteinte, la porte n'ouvre rien : annoncer « il t'en reste douze » sous
+    // elle promet ce qu'on ne tient pas tant qu'aucun cours n'est photographié.
+    if (!etat || (porte && porte.disabled)) { cible.hidden = true; return; }
     cible.hidden = false;
     if (etat.restant > 0) {
-      cible.textContent = 'Il t\u2019en reste ' + etat.restant + ' sur ' + etat.plafond + ' ce mois-ci';
+      cible.textContent = etat.restant + ' sur ' + etat.plafond + ' ce mois-ci';
       delete cible.dataset.epuise;
     } else {
       // Court exprès : sur un écran de téléphone la version longue passait à
@@ -5813,7 +5724,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (etat) return reprendre();
     montrer('ecran-accueil');
   };
-  $('bouton-espace-nouveau').onclick = () => demarrerSession();
+  $('porte-photo').onclick = () => demarrerSession();
+  $('porte-travail').onclick = () => ouvrirMatiere(null);
   $('choix-matiere').onchange = (evenement) => {
     const cle = evenement.target.value;
     // On repose l'invite : revenir sur sa page et retrouver « Français » écrit

@@ -81,8 +81,13 @@ def test_la_page_perso_vide_n_est_pas_un_cul_de_sac():
     # Le grand bouton dit quoi faire, et il est au-dessus du pli depuis qu'on a
     # remis la page dans l'ordre. Le menu des matières est là aussi : il liste
     # les douze, y compris quand on n'a encore rien fait.
-    assert 'id="bouton-espace-nouveau"' in espace
-    assert "Photographier un nouveau cours" in espace
+    # La porte pleine dit quoi faire, et c'est la première des six : sur un
+    # téléphone de 390 px, les six carrés tiennent sous le pli.
+    assert 'id="porte-photo"' in espace
+    assert "Photographie tes pages" in espace
+    assert espace.index('id="porte-photo"') < espace.index('id="bouton-agenda"')
+    # Le menu des matières est là aussi : il liste les douze, y compris quand
+    # on n'a encore rien fait.
     assert 'id="choix-matiere"' in espace
 
 

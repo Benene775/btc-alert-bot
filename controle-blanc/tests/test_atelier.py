@@ -25,25 +25,25 @@ SCRIPT = (RACINE / "web" / "app.js").read_text(encoding="utf-8")
 
 
 def test_les_deux_outils_sont_visibles_ensemble_sur_sa_page():
+    """Chacun sa porte, côte à côte : ils ne font pas la même chose — le
+    contrôle fait rédiger, la fiche fait relire — et c'est le choix qui est le
+    geste."""
     espace = PAGE[PAGE.index('id="ecran-espace"') : PAGE.index('id="ecran-matiere"')]
-    assert 'id="pan-outils"' in espace
     for outil in ("outil-controle", "outil-fiche"):
         assert f'id="{outil}"' in espace, f"« {outil} » manque sur la page perso"
-    # Sans cours photographié, on le dit au lieu d'offrir des boutons morts.
-    assert 'id="vide-outils"' in espace
-    bloc = SCRIPT[SCRIPT.index("function dessinerAccesOutils"):]
+        porte = espace[espace.index(f'id="{outil}"') - 120 : espace.index(f'id="{outil}"')]
+        assert "tuile-porte" in porte, f"« {outil} » n'est pas une des six portes"
+
+
+def test_sans_cours_les_deux_portes_sont_eteintes_pas_cachees():
+    """Elles partent des pages de l'élève, pas d'ailleurs : sans cours
+    photographié, elles n'ouvrent rien. Éteintes plutôt que cachées — une porte
+    qui disparaît ne s'explique pas, une porte grise dit ce qui lui manque."""
+    bloc = SCRIPT[SCRIPT.index("function dessinerLesPortes"):]
     bloc = bloc[: bloc.index("\n}\n")]
-    assert "$('vide-outils').hidden" in bloc
-
-
-def test_les_outils_ne_sont_plus_ecrases_par_les_matieres():
-    """Ils vivaient sous six tuiles de matières et se voyaient à peine. Les
-    matières sont devenues un menu, dans le bloc du haut : les outils n'ont
-    plus rien au-dessus d'eux que les fiches, qu'on vient chercher plus souvent
-    qu'on ne fabrique."""
-    espace = PAGE[PAGE.index('id="ecran-espace"') : PAGE.index('id="ecran-matiere"')]
-    assert 'id="pan-matieres"' not in espace, "l'étagère est revenue sous les outils"
-    assert espace.index('id="choix-matiere"') < espace.index('id="pan-outils"')
+    assert "$(id).disabled = cours === 0;" in bloc
+    assert "Photographie un cours d’abord" in bloc
+    assert ".tuile-porte:disabled" in (RACINE / "web" / "styles.css").read_text(encoding="utf-8")
 
 
 def test_les_outils_partagent_un_seul_ecran_de_choix():

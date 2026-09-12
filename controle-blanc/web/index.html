@@ -60,6 +60,47 @@
     <path d="M20.3 14.8A8.7 8.7 0 0 1 9.2 3.7 8.7 8.7 0 1 0 20.3 14.8Z"
           fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
   </symbol>
+  <!-- Les six portes de la page perso. Même trait que le soleil et la lune :
+       24 × 24, ligne de 1,7, bouts ronds, « currentColor ». Une famille, pas
+       une collection — c'est ce qui fait que six tuiles côte à côte se lisent
+       comme un seul objet. -->
+  <symbol id="glyphe-appareil" viewBox="0 0 24 24">
+    <g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3.2 8.8a2.1 2.1 0 0 1 2.1-2.1h2L8.6 4.5h6.8l1.3 2.2h2a2.1 2.1 0 0 1 2.1 2.1v8.4a2.1 2.1 0 0 1-2.1 2.1H5.3a2.1 2.1 0 0 1-2.1-2.1Z"/>
+      <circle cx="12" cy="12.8" r="3.4"/>
+    </g>
+  </symbol>
+  <symbol id="glyphe-agenda" viewBox="0 0 24 24">
+    <g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3.3" y="5.3" width="17.4" height="15.4" rx="2.4"/>
+      <path d="M3.3 10h17.4M8.2 3.4v3.6M15.8 3.4v3.6"/>
+      <path d="M7.7 13.9h.01M12 13.9h.01M16.3 13.9h.01M7.7 17.3h.01M12 17.3h.01" stroke-width="2.1"/>
+    </g>
+  </symbol>
+  <symbol id="glyphe-matieres" viewBox="0 0 24 24">
+    <g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 5.8A1.7 1.7 0 0 1 5.7 4.1h4A2.3 2.3 0 0 1 12 6.4v12.1a2 2 0 0 0-2-2H5.7A1.7 1.7 0 0 1 4 14.8Z"/>
+      <path d="M20 5.8a1.7 1.7 0 0 0-1.7-1.7h-4A2.3 2.3 0 0 0 12 6.4v12.1a2 2 0 0 1 2-2h4.3a1.7 1.7 0 0 0 1.7-1.7Z"/>
+    </g>
+  </symbol>
+  <symbol id="glyphe-controle" viewBox="0 0 24 24">
+    <g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M16.4 3.8a2.1 2.1 0 0 1 2.9 2.9L9.5 16.5l-3.8 1 1-3.8Z"/>
+      <path d="M4 20.7h16"/>
+    </g>
+  </symbol>
+  <symbol id="glyphe-fiche" viewBox="0 0 24 24">
+    <g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="4.7" y="3.3" width="14.6" height="17.4" rx="2.3"/>
+      <path d="M8.1 8.3h7.8M8.1 12h7.8M8.1 15.7h4.9"/>
+    </g>
+  </symbol>
+  <symbol id="glyphe-travail" viewBox="0 0 24 24">
+    <g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3.4 7.5a2.1 2.1 0 0 1 2.1-2.1h3.3l2 2.3h7.7a2.1 2.1 0 0 1 2.1 2.1v8.7a2.1 2.1 0 0 1-2.1 2.1H5.5a2.1 2.1 0 0 1-2.1-2.1Z"/>
+      <path d="M3.4 11.7h17.2"/>
+    </g>
+  </symbol>
   <symbol id="glyphe-repere" viewBox="0 0 32 32">
     <rect width="32" height="32" rx="8.5" fill="var(--accent)"/>
     <rect x="13.6" y="12.9" width="12.6" height="6.2" rx="3.1" fill="var(--sur-accent)" fill-opacity=".26"/>
@@ -467,167 +508,138 @@
 <!-- MA PAGE — tout ce que l’élève a déjà fait, relu depuis son téléphone -->
 <section id="ecran-espace" class="ecran ecran-espace" hidden>
 
-  <!-- L'apparence, en haut et sans un mot : deux dessins disent tout, et le
-       bouton allumé est celui qu'on a sous les yeux. Pas de « Auto » : celui
-       qui n'y touche jamais suit son téléphone, et c'est le cas de départ. -->
-  <div class="apparence" role="radiogroup" aria-label="Apparence">
-    <button type="button" class="apparence-cote" id="apparence-claire" role="radio"
-            aria-checked="false" data-apparence="light" aria-label="Mode jour">
-      <svg class="apparence-signe" aria-hidden="true" focusable="false"><use href="#glyphe-soleil"/></svg>
-    </button>
-    <button type="button" class="apparence-cote" id="apparence-sombre" role="radio"
-            aria-checked="false" data-apparence="dark" aria-label="Mode nuit">
-      <svg class="apparence-signe" aria-hidden="true" focusable="false"><use href="#glyphe-lune"/></svg>
-    </button>
-  </div>
+  <!-- SA PAGE, EN SIX PORTES.
+       =======================
+       Elle a longtemps empilé cinq sortes d'objets : une carte d'identité en
+       papier seyès, trois compteurs, une frise de l'année, la prochaine
+       échéance, un menu de matières, une liste de fiches, deux outils. Chacun
+       se justifiait seul ; ensemble ils faisaient une page qu'on parcourt au
+       lieu d'une page d'où l'on part.
+       Une porte par destination, six carrés de même taille, même trait, même
+       famille de couleurs. Ce qu'une porte contient se lit derrière elle. -->
 
-  <!-- Une seule carte, rien de caché. Le retournement était un mécanisme en
-       quête de contenu : la frise, qu'il fallait aller chercher au dos, est
-       la plus belle chose de cette page — elle vit maintenant devant. -->
-  <div class="espace-haut">
-  <div class="carte-annee seyes" id="carte-annee">
-    <div class="annee-haut">
-      <button type="button" id="embleme" class="embleme" aria-label="Changer d’emblème et de couleur"
-              aria-expanded="false" aria-controls="atelier">✏️</button>
-      <div class="annee-identite">
-        <label for="champ-prenom" class="masque">Ton prénom</label>
-        <input type="text" id="champ-prenom" class="champ-prenom" maxlength="24"
-               placeholder="Ton prénom" autocomplete="off" spellcheck="false">
-        <p class="annee-classe" id="carte-classe"></p>
-      </div>
+  <!-- Qui je suis, et la lumière que je veux. Une ligne, pas une carte. -->
+  <div class="moi" id="moi">
+    <button type="button" id="embleme" class="embleme" aria-label="Changer d’emblème et de couleur"
+            aria-expanded="false" aria-controls="atelier">✏️</button>
+    <div class="moi-identite">
+      <label for="champ-prenom" class="masque">Ton prénom</label>
+      <input type="text" id="champ-prenom" class="champ-prenom" maxlength="24"
+             placeholder="Ton prénom" autocomplete="off" spellcheck="false">
+      <p class="moi-classe" id="carte-classe"></p>
     </div>
-
-    <dl class="annee-chiffres" id="carte-chiffres"></dl>
-
-    <!-- La frise EST la porte de l'agenda. Les deux disent la même chose sous
-         deux échelles : une grille de semaines, une grille de jours. On clique
-         sur l'année, le mois se déplie dessous. L'invite reste écrite en clair
-         sous la frise — au doigt il n'y a pas de survol pour la découvrir. -->
-    <div class="annee-agenda" id="bloc-frise">
-      <button type="button" class="frise-porte" id="bouton-agenda"
-              aria-expanded="false" aria-controls="agenda-deplie">
-        <!-- Un vrai calendrier, tourné vers l'avant : les mois en tête, les
-             jours de la semaine sur le côté, un carré par jour. Sans ces deux
-             repères, la grille reste un dessin abstrait ; avec, elle se lit
-             comme un agenda qu'on survole. -->
-        <span class="frise-cadre" aria-hidden="true">
-          <span class="frise-mois" id="frise-mois"></span>
-          <span class="frise-corps">
-            <span class="frise-semaine">
-              <i>L</i><i>M</i><i>M</i><i>J</i><i>V</i><i>S</i><i>D</i>
-            </span>
-            <span class="frise" id="frise-regularite"></span>
-          </span>
-        </span>
-        <span class="frise-pied">
-          <span class="frise-legende" id="frise-legende"></span>
-          <!-- Une fois ouvert, la frise s'efface et sa légende n'a plus rien à
-               légender : ce titre prend sa place, pour que la barre garde un
-               nom à gauche et le repli à droite. -->
-          <span class="frise-titre">Ton agenda</span>
-          <span class="frise-invite">
-            <span class="frise-invite-mot" id="frise-invite-mot">Ouvrir l’agenda</span>
-            <span class="pan-compte" id="compte-agenda"></span>
-            <span class="frise-chevron" aria-hidden="true">⌄</span>
-          </span>
-        </span>
+    <!-- Deux dessins disent tout, et le bouton allumé est celui qu'on a sous
+         les yeux. Pas de « Auto » : qui n'y touche jamais suit son téléphone. -->
+    <div class="apparence" role="radiogroup" aria-label="Apparence">
+      <button type="button" class="apparence-cote" id="apparence-claire" role="radio"
+              aria-checked="false" data-apparence="light" aria-label="Mode jour">
+        <svg class="apparence-signe" aria-hidden="true" focusable="false"><use href="#glyphe-soleil"/></svg>
       </button>
-      <p class="masque" id="texte-regularite"></p>
-
-      <div class="agenda-deplie" id="agenda-deplie" hidden>
-        <div class="agenda-dedans">
-          <div class="mois-barre">
-            <button type="button" id="mois-precedent" class="mois-fleche" aria-label="Mois précédent">‹</button>
-            <p class="mois-titre" id="mois-titre" aria-live="polite"></p>
-            <button type="button" id="mois-suivant" class="mois-fleche" aria-label="Mois suivant">›</button>
-          </div>
-          <div class="jours-semaine" aria-hidden="true">
-            <span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span>
-          </div>
-          <div class="mois" id="mois-grille"></div>
-          <p class="agenda-invite" id="agenda-invite"></p>
-        </div>
-      </div>
+      <button type="button" class="apparence-cote" id="apparence-sombre" role="radio"
+              aria-checked="false" data-apparence="dark" aria-label="Mode nuit">
+        <svg class="apparence-signe" aria-hidden="true" focusable="false"><use href="#glyphe-lune"/></svg>
+      </button>
     </div>
   </div>
 
-  <div class="espace-haut-droite">
-    <!-- La prochaine échéance : un objet à part, pas une boîte dans une boîte. -->
-    <div class="prochain" id="prochain"></div>
-
-    <!-- Où l'on choisit sa matière.
-         TOUTES les matières, pas seulement celles où l'élève a déjà travaillé :
-         on vient ici pour ALLER quelque part, et une liste qui change selon ce
-         qu'on a fait ne se parcourt pas, elle se devine.
-         Un menu natif plutôt que douze tuiles : douze tuiles font onze cents
-         pixels sur un téléphone, et le sélecteur du système est ce que l'élève
-         sait déjà manier — il s'ouvre en plein écran, au pouce. -->
-    <section class="pan pan-choix">
-      <h2 class="pan-titre">Tes matières</h2>
-      <label class="masque" for="choix-matiere">Ouvrir une matière</label>
-      <select id="choix-matiere" class="choix-matiere"></select>
-    </section>
-
-  <!-- Choisir son emblème et la couleur de sa carte. C'est tout ce qu'il y a
-       à personnaliser, et ça suffit : la carte devient la sienne. -->
+  <!-- Choisir son emblème et la couleur de sa page. C'est tout ce qu'il y a à
+       personnaliser, et ça suffit : la page devient la sienne. -->
   <div class="atelier" id="atelier" hidden>
     <p class="atelier-titre">Ton emblème</p>
     <div class="atelier-choix" id="choix-emblemes"></div>
-    <p class="atelier-titre">La couleur de ta carte</p>
+    <p class="atelier-titre">Ta couleur</p>
     <div class="atelier-choix" id="choix-teintes"></div>
   </div>
 
+  <div class="tuiles" id="tuiles">
+
+    <!-- La seule porte pleine : sans un cours photographié, les autres n'ont
+         rien à ouvrir. Sa couleur le dit avant qu'on ait lu son nom. -->
+    <button type="button" class="tuile-porte tuile-phare" id="porte-photo">
+      <span class="tuile-signe" aria-hidden="true"><svg><use href="#glyphe-appareil"/></svg></span>
+      <span class="tuile-nom">Un nouveau cours</span>
+      <span class="tuile-mot">Photographie tes pages</span>
+    </button>
+
+    <!-- L'agenda garde son identifiant : c'est la même porte qu'avant, et tout
+         le script du calendrier s'appuie dessus. -->
+    <button type="button" class="tuile-porte" id="bouton-agenda" data-teinte="4"
+            aria-expanded="false" aria-controls="agenda-deplie">
+      <span class="tuile-signe" aria-hidden="true"><svg><use href="#glyphe-agenda"/></svg></span>
+      <span class="tuile-nom" id="agenda-nom">Ton agenda</span>
+      <span class="tuile-mot" id="agenda-mot"></span>
+      <span class="tuile-pastille" id="compte-agenda" hidden></span>
+    </button>
+
+    <!-- Le menu natif du système, étendu sur toute la tuile et rendu invisible.
+         Douze tuiles de matières feraient onze cents pixels sur un téléphone ;
+         le sélecteur, lui, s'ouvre en plein écran, au pouce, et l'élève sait
+         déjà s'en servir. La tuile n'est donc pas une imitation de menu : c'est
+         le menu, habillé. -->
+    <label class="tuile-porte tuile-matieres" data-teinte="3">
+      <span class="tuile-signe" aria-hidden="true"><svg><use href="#glyphe-matieres"/></svg></span>
+      <span class="tuile-nom">Tes matières</span>
+      <span class="tuile-mot">Fiches et contrôles</span>
+      <select id="choix-matiere" class="choix-matiere" aria-label="Ouvrir une matière"></select>
+    </label>
+
+    <!-- Les deux fabrications. Elles ne font pas la même chose : le contrôle
+         fait rédiger, la fiche fait relire. -->
+    <button type="button" class="tuile-porte" id="outil-controle" data-teinte="1">
+      <span class="tuile-signe" aria-hidden="true"><svg><use href="#glyphe-controle"/></svg></span>
+      <span class="tuile-nom">Un contrôle blanc</span>
+      <span class="tuile-mot" id="mot-controle">Au format réel · 40 min</span>
+      <span class="tuile-reste" id="reste-controle" hidden></span>
+    </button>
+
+    <button type="button" class="tuile-porte" id="outil-fiche" data-teinte="0">
+      <span class="tuile-signe" aria-hidden="true"><svg><use href="#glyphe-fiche"/></svg></span>
+      <span class="tuile-nom">Une fiche</span>
+      <span class="tuile-mot" id="mot-fiche">Ton cours resserré · 9 min</span>
+      <span class="tuile-reste" id="reste-fiche" hidden></span>
+    </button>
+
+    <!-- Tout ce qui a déjà été fait, toutes matières confondues. C'était une
+         liste de trois fiches posée sur la page ; derrière une porte, elle ne
+         coûte plus rien à qui vient pour autre chose. -->
+    <button type="button" class="tuile-porte" id="porte-travail" data-teinte="5">
+      <span class="tuile-signe" aria-hidden="true"><svg><use href="#glyphe-travail"/></svg></span>
+      <span class="tuile-nom">Tout ton travail</span>
+      <span class="tuile-mot" id="mot-travail"></span>
+    </button>
+
   </div>
+
+  <!-- L'agenda. Ouvert, il est seul sur la page : on est venu poser une date.
+       La frise de l'année vit dedans — elle disait la même chose que le mois,
+       à une autre échelle, et elle occupait la moitié de l'accueil pour ça. -->
+  <div class="agenda-deplie" id="agenda-deplie" hidden>
+    <div class="agenda-dedans">
+      <div class="frise-cadre" id="frise-cadre" hidden>
+        <span class="frise-mois" id="frise-mois"></span>
+        <span class="frise-corps">
+          <span class="frise-semaine" aria-hidden="true">
+            <i>L</i><i>M</i><i>M</i><i>J</i><i>V</i><i>S</i><i>D</i>
+          </span>
+          <span class="frise" id="frise-regularite"></span>
+        </span>
+        <span class="frise-legende" id="frise-legende" hidden></span>
+      </div>
+      <p class="masque" id="texte-regularite"></p>
+
+      <div class="mois-barre">
+        <button type="button" id="mois-precedent" class="mois-fleche" aria-label="Mois précédent">‹</button>
+        <p class="mois-titre" id="mois-titre" aria-live="polite"></p>
+        <button type="button" id="mois-suivant" class="mois-fleche" aria-label="Mois suivant">›</button>
+      </div>
+      <div class="jours-semaine" aria-hidden="true">
+        <span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span>
+      </div>
+      <div class="mois" id="mois-grille"></div>
+      <p class="agenda-invite" id="agenda-invite"></p>
+    </div>
   </div>
 
-  <!-- Ses fiches, posées là. Elles étaient à trois gestes d'ici — ouvrir une
-       matière, descendre jusqu'à la liste, la parcourir — alors que c'est
-       l'objet qu'on revient chercher le plus souvent : une fiche se relit, un
-       contrôle se passe une fois. Les trois dernières sont sur la page, le
-       reste est derrière un bouton qui dit combien il y en a. -->
-  <section class="pan" id="pan-fiches" hidden>
-    <div class="pan-tete">
-      <h2 class="pan-titre">Tes fiches de révision</h2>
-      <button type="button" class="pan-lien" id="bouton-toutes-fiches" hidden></button>
-    </div>
-    <div class="filtres" id="fiches-par-matiere" role="group"
-         aria-label="Filtrer tes fiches par matière" hidden></div>
-    <ul class="archive-liste" id="liste-fiches-recentes"></ul>
-  </section>
-
-  <!-- Les deux façons de fabriquer quelque chose à partir d'un cours déjà
-       photographié. Elles ne font pas la même chose : le contrôle fait rédiger,
-       la fiche fait relire. Les deux méritent donc d'être visibles ensemble —
-       et chacune ouvre sa page, où l'on choisit le cours. Leurs noms commencent
-       par un verbe : au-dessus il y a une liste de fiches, et « Fiche de
-       révision » tout court se lisait comme la porte de cette liste. -->
-  <section class="pan" id="pan-outils">
-    <div class="pan-tete">
-      <h2 class="pan-titre">Fabriquer autre chose</h2>
-    </div>
-    <div class="trio">
-      <button type="button" class="outil" id="outil-controle">
-        <span class="outil-signe" aria-hidden="true">✎</span>
-        <span class="outil-nom">Passer un contrôle blanc</span>
-        <span class="outil-mot">Au format réel de la matière, chronométré, à rédiger.</span>
-        <span class="outil-duree">40 min</span>
-        <span class="outil-reste" id="reste-controle" hidden></span>
-      </button>
-      <button type="button" class="outil" id="outil-fiche">
-        <span class="outil-signe" aria-hidden="true">▤</span>
-        <span class="outil-nom">Créer une fiche</span>
-        <span class="outil-mot">Ton cours resserré, dans ton ordre à toi.</span>
-        <span class="outil-duree">9 min</span>
-        <span class="outil-reste" id="reste-fiche" hidden></span>
-      </button>
-    </div>
-    <p class="pan-vide" id="vide-outils" hidden>
-      Photographie un cours d’abord : tout ça sort de tes pages, pas d’ailleurs.
-    </p>
-  </section>
-
-  <!-- L'étagère : une année en un coup d'oeil, une tuile par matière. -->
-  <button type="button" class="principal" id="bouton-espace-nouveau">Photographier un nouveau cours</button>
   <button type="button" class="discret" id="bouton-quitter-espace">Revenir</button>
 
   <!-- L'invitation à installer. Elle ne paraît que si l'application ne tourne

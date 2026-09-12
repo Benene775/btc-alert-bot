@@ -145,13 +145,22 @@ def test_chaque_outil_a_sa_ligne_de_reste():
 
 
 def test_la_ligne_de_reste_a_sa_place_dans_la_tuile():
-    """La tuile est une grille nommée. Une zone déclarée dans .outil-reste mais
-    absente de grid-template-areas fait tomber la ligne n'importe où, sans
-    erreur — le genre de casse qu'on ne voit qu'à l'œil."""
-    zones = STYLE[STYLE.index(".outil {"):].split("}")[0]
-    assert "reste reste" in zones, "grid-template-areas n'a pas de zone « reste »"
-    bloc = STYLE[STYLE.index(".outil-reste {"):].split("}")[0]
-    assert "grid-area: reste" in bloc
+    """Elle vient après le nom et la phrase, en bas du carré, dans la chasse
+    fixe des étiquettes — comme partout ailleurs dans le produit."""
+    assert 'id="reste-controle"' in PAGE and 'id="reste-fiche"' in PAGE
+    for quoi in ("reste-controle", "reste-fiche"):
+        porte = PAGE[PAGE.index(f'id="{quoi}"') - 400 : PAGE.index(f'id="{quoi}"')]
+        assert "tuile-mot" in porte, f"« {quoi} » ne suit pas la phrase de sa porte"
+    bloc = STYLE[STYLE.index(".tuile-reste {"):].split("}")[0]
+    assert "var(--mono)" in bloc
+
+
+def test_le_reste_ne_parait_pas_sous_une_porte_eteinte():
+    """« Il t'en reste douze » sous une porte grise promet ce qu'on ne tient
+    pas : sans cours photographié, elle n'ouvre rien."""
+    bloc = SCRIPT[SCRIPT.index("function peindreQuotas()"):]
+    bloc = bloc[: bloc.index("\n}\n")]
+    assert "porte.disabled" in bloc
 
 
 def test_la_page_perso_redemande_le_compteur_a_chaque_passage():
@@ -168,7 +177,9 @@ def test_le_compteur_affiche_ne_bloque_pas_la_tuile():
     reste cliquable, sinon un compteur périmé enfermerait dehors."""
     bloc = SCRIPT[SCRIPT.index("function peindreQuotas()"):]
     bloc = bloc[: bloc.index("\n}\n")]
-    assert "disabled" not in bloc
+    # « disabled » y paraît, mais en LECTURE seule : le compteur consulte l'état
+    # de la porte, il ne l'éteint jamais lui-même.
+    assert "porte.disabled = " not in bloc and "cible.disabled" not in bloc
     assert "hidden = true" in bloc, "sans quota connu, il faut n'afficher rien"
 
 

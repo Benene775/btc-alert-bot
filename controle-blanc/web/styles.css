@@ -1800,98 +1800,6 @@ select {
  * photographié : deux tuiles, puis un écran de choix commun.
  */
 
-/* Les deux façons de repasser un cours, côte à côte. Elles ne font pas la même
-   chose — rédiger, relire — et c'est justement pour ça qu'elles se présentent
-   ensemble : le choix est le geste. */
-.trio { display: grid; gap: var(--e2); grid-template-columns: 1fr; }
-
-.outil {
-  display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) auto;
-  grid-template-areas: "signe nom duree" "signe mot mot" "signe reste reste";
-  align-items: center;
-  gap: 2px var(--e2);
-  text-align: left;
-  padding: var(--e3);
-  border: 1.5px solid var(--trait);
-  border-radius: var(--rayon-carte);
-  background: var(--carte);
-  font: inherit;
-  color: inherit;
-  cursor: pointer;
-  min-height: 84px;
-  transition: border-color .18s ease, transform .18s cubic-bezier(.2, .7, .3, 1);
-}
-
-.outil:hover { border-color: var(--accent); transform: translateY(-2px); }
-.outil:active { transform: scale(.99); }
-
-/* Le signe, dans la fonte de titrage : c'est la marque de l'outil, pas une
-   icône empruntée à un jeu de pictogrammes qui ne ressemble à rien d'ici. */
-.outil-signe {
-  grid-area: signe;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  background: var(--accent-doux);
-  color: var(--accent);
-  font-family: var(--titre);
-  font-size: 1.3rem;
-  line-height: 1;
-}
-
-.outil-nom { grid-area: nom; font-family: var(--titre); font-weight: 600; font-size: 1.08rem; }
-
-.outil-mot {
-  grid-area: mot;
-  font-size: .85rem;
-  line-height: 1.4;
-  color: var(--encre-douce);
-}
-
-/* Ce qu'il reste ce mois-ci. Voir la limite venir vaut mieux que la découvrir
-   après avoir choisi ses chapitres et attendu. La tuile reste cliquable même à
-   zéro : ce compteur peut être en retard (l'élève a pu générer ailleurs), et
-   c'est le serveur qui dit non, avec la vraie raison. */
-.outil-reste {
-  grid-area: reste;
-  margin-top: 4px;
-  font-family: var(--mono);
-  font-size: .66rem;
-  letter-spacing: .04em;
-  color: var(--encre-douce);
-}
-
-.outil-reste[data-epuise] { color: var(--accent); }
-
-.outil-duree {
-  grid-area: duree;
-  font-family: var(--mono);
-  font-size: .62rem;
-  letter-spacing: .08em;
-  padding: 3px 8px;
-  border-radius: 999px;
-  background: var(--papier);
-  color: var(--encre-douce);
-}
-
-/* À partir de 700 px elles tiennent de front, et chacune se lit en colonne :
-   le signe au-dessus du nom, comme des cartes posées. */
-@media (min-width: 700px) {
-  .trio { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
-  .outil {
-    grid-template-columns: 1fr;
-    grid-template-areas: "signe" "nom" "mot" "duree";
-    align-items: start;
-    gap: var(--e1);
-    min-height: 190px;
-  }
-  .outil-duree { justify-self: start; margin-top: auto; }
-}
-
 .ecran-atelier { display: flex; flex-direction: column; }
 
 .atelier-chapeau { color: var(--encre-douce); font-size: .93rem; margin: 0 0 var(--e3); }
@@ -3129,46 +3037,45 @@ h1 {
 .bandeau-droite { display: flex; align-items: center; gap: var(--e2); }
 
 
-/* --- La carte de l'année -------------------------------------------------
+/* --- Qui je suis ---------------------------------------------------------
  *
- * Une seule carte, rien de caché derrière. Elle empilait trois styles de
- * conteneurs dans un petit rectangle — une boîte pour l'échéance, une autre
- * pour les chiffres, le tout dans un troisième. Elle ne porte plus que
- * l'identité, les trois chiffres et la frise : le reste est sorti à côté.
+ * Il y avait là une carte d'élève en papier seyès : l'emblème, le prénom, la
+ * classe, trois compteurs, la frise de l'année et la porte de l'agenda, le tout
+ * dans un rectangle. Chaque morceau se défendait ; empilés, ils faisaient une
+ * page qu'on parcourt. Il ne reste que ce qui dit QUI : l'emblème, le prénom,
+ * la classe. Les compteurs sont passés sur la porte qui les concerne, la frise
+ * dans l'agenda.
+ *
+ * La teinte choisie dans l'atelier habille cette ligne : c'est ce qui reste de
+ * la carte, et c'est ce qui fait que la page est la sienne.
  */
-.carte-annee {
-  position: relative;
-  background-color: var(--carte);
-  border-radius: var(--rayon-carte);
-  box-shadow: var(--ombre-carte);
-  padding: var(--e4);
-  padding-left: calc(var(--e4) + 12px);
-  overflow: hidden;
+.moi {
   display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: var(--e3);
+  padding: var(--e2) var(--e3);
+  border-radius: var(--rayon-carte);
+  background-color: color-mix(in srgb, var(--t0) 48%, var(--carte));
+  box-shadow: var(--ombre-carte);
 }
 
-/* La teinte choisie dans l'atelier. */
-.carte-annee[data-teinte="0"] { background-color: color-mix(in srgb, var(--t0) 55%, var(--carte)); }
-.carte-annee[data-teinte="1"] { background-color: color-mix(in srgb, var(--t1) 55%, var(--carte)); }
-.carte-annee[data-teinte="2"] { background-color: color-mix(in srgb, var(--t2) 55%, var(--carte)); }
-.carte-annee[data-teinte="3"] { background-color: color-mix(in srgb, var(--t3) 55%, var(--carte)); }
-.carte-annee[data-teinte="4"] { background-color: color-mix(in srgb, var(--t4) 55%, var(--carte)); }
-.carte-annee[data-teinte="5"] { background-color: color-mix(in srgb, var(--t5) 55%, var(--carte)); }
+.moi[data-teinte="1"] { background-color: color-mix(in srgb, var(--t1) 48%, var(--carte)); }
+.moi[data-teinte="2"] { background-color: color-mix(in srgb, var(--t2) 48%, var(--carte)); }
+.moi[data-teinte="3"] { background-color: color-mix(in srgb, var(--t3) 48%, var(--carte)); }
+.moi[data-teinte="4"] { background-color: color-mix(in srgb, var(--t4) 48%, var(--carte)); }
+.moi[data-teinte="5"] { background-color: color-mix(in srgb, var(--t5) 48%, var(--carte)); }
 
-/* Le filet de marge, comme sur une copie double. */
-.carte-annee::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 16px;
-  width: 2px;
-  background: var(--marge);
-}
+.moi-identite { min-width: 0; flex: 1; }
 
-.annee-haut { display: flex; align-items: center; gap: var(--e3); }
+/* Le soleil et la lune vivent sur cette ligne : ils règlent l'apparence de
+   l'élève, pas celle d'une porte. La règle générale les colle en bas à droite
+   d'une carte ; ici ils sont au bout d'une rangée. */
+.moi .apparence { margin: 0; flex: 0 0 auto; }
+
+/* Un champ de saisie large de neuf cents pixels pour « Benjamin » : la règle
+   générale des champs dit « width: 100% », ce qui est juste dans un formulaire
+   et absurde ici. */
+.moi .champ-prenom { max-width: 18ch; }
 
 .embleme {
   flex: 0 0 auto;
@@ -3186,10 +3093,6 @@ h1 {
 
 .embleme:active { transform: scale(.94) rotate(-8deg); }
 
-.annee-identite { min-width: 0; flex: 1; }
-
-/* Le prénom est écrit en grand : c'est la page de quelqu'un. Sans cadre non
-   plus — un champ encadré au milieu d'une carte fait formulaire. */
 .champ-prenom {
   width: 100%;
   min-height: 0;
@@ -3208,159 +3111,294 @@ h1 {
 .champ-prenom::placeholder { color: color-mix(in srgb, var(--encre) 26%, transparent); }
 .champ-prenom:focus-visible { outline-offset: 5px; border-radius: 4px; }
 
-.annee-classe {
+/* Deux lignes plutôt qu'une coupée : « Ta première séance t'attend » est ce
+   que lit l'élève le tout premier jour, et « TA PREMIÈRE SÉANCE T… » est une
+   phrase qui s'excuse. La bande a la place. */
+.moi-classe {
   font-family: var(--mono);
-  font-size: .64rem;
-  letter-spacing: .11em;
+  font-size: .62rem;
+  line-height: 1.35;
+  letter-spacing: .08em;
   text-transform: uppercase;
-  color: color-mix(in srgb, var(--encre) 58%, transparent);
-  margin: 5px 0 0;
+  color: var(--encre-douce);
+  margin: 3px 0 0;
 }
 
-/* Les trois chiffres racontent l'année : ils ont droit à la taille. */
-/* Trois colonnes, jamais un retour à la ligne : en « flex » avec une gouttière
-   fixe, « Contrôles blancs » passait à la ligne sur un écran de 360 px et la
-   carte gagnait 90 px. */
-.annee-chiffres {
-  display: grid;
-  grid-template-columns: repeat(3, auto);
-  justify-content: start;
-  gap: var(--e4);
-  margin: 0;
-  padding-top: var(--e2);
-  border-top: 1px solid color-mix(in srgb, var(--encre) 10%, transparent);
-}
-
-.annee-chiffre { display: flex; flex-direction: column; }
-
-.annee-chiffres dd {
-  margin: 0;
-  font-family: var(--titre);
-  font-weight: 600;
-  font-size: 1.9rem;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-}
-
-.annee-chiffres dt {
-  font-family: var(--mono);
-  font-size: .56rem;
-  letter-spacing: .1em;
-  text-transform: uppercase;
-  color: color-mix(in srgb, var(--encre) 55%, transparent);
-  margin-top: 5px;
-}
-
-/* La frise vit devant, pas au dos : c'est la forme de l'année, la seule chose
-   de cette page qui se regarde plutôt qu'elle ne se lit.
-
-   Elle est aussi la porte de l'agenda. Les deux objets disent la même chose à
-   deux échelles — une grille de semaines, une grille de jours — et l'un se
-   déplie depuis l'autre. L'agenda n'a donc plus de panneau à lui en bas de
-   page : il est là où l'on regarde déjà. */
-.annee-agenda { display: flex; flex-direction: column; }
-
-.frise-porte {
+/* --- L'atelier : son emblème et sa couleur -------------------------------
+ *
+ * C'est tout ce qu'il y a à personnaliser, et ça suffit : la page devient la
+ * sienne. Les pastilles de couleur n'avaient jamais eu de style — six capsules
+ * grises identiques, où l'on choisissait sa teinte à l'aveugle. Une pastille
+ * de couleur doit ÊTRE sa couleur.
+ */
+.atelier {
   display: flex;
   flex-direction: column;
-  gap: 7px;
-  width: 100%;
-  padding: 8px;
-  margin: -8px;
-  border: 0;
-  background: none;
-  border-radius: 12px;
-  text-align: left;
-  font: inherit;
-  color: inherit;
-  cursor: pointer;
-  transition: background .22s ease, transform .22s cubic-bezier(.2, .7, .3, 1);
-}
-
-/* Le signal : au survol, la porte se soulève et l'invite prend l'ambre. Sans
-   ça, une frise reste un dessin et personne ne pense à cliquer dessus. */
-.frise-porte:hover { background: color-mix(in srgb, var(--accent) 7%, transparent); }
-.frise-porte:hover .frise-invite { color: var(--accent); }
-.frise-porte:hover .frise-chevron { transform: translateY(2px); }
-
-/* Et les carrés s'allument de gauche à droite, comme si l'année se rembobinait
-   sous le doigt. Le retard par carré est posé au dessin (« --i »). */
-.frise-porte:hover .case-frise[data-travaille="oui"] {
-  background: var(--accent);
-  transition-delay: calc(var(--i, 0) * 3ms);
-}
-
-/* Sur 390 px, la légende et l'invite ne tiennent pas toujours côte à côte. On
-   laisse alors l'invite passer à la ligne — mais jamais la légende se briser en
-   trois morceaux à côté d'elle, ce qui donnait un tas de mots illisible. */
-.frise-pied {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 4px var(--e2);
-}
-
-.frise-legende { white-space: nowrap; }
-
-.frise-invite {
-  display: flex;
-  align-items: center;
   gap: 6px;
-  margin-left: auto;
+  padding: var(--e3);
+  border-radius: var(--rayon-carte);
+  background: var(--carte);
+  box-shadow: var(--ombre-carte);
+}
+
+.atelier-titre {
   font-family: var(--mono);
-  font-size: .58rem;
+  font-size: .6rem;
   letter-spacing: .09em;
   text-transform: uppercase;
-  color: color-mix(in srgb, var(--encre) 52%, transparent);
-  transition: color .22s ease;
-  white-space: nowrap;
+  color: var(--encre-douce);
+  margin: 0;
 }
 
-.frise-chevron {
-  font-size: .85rem;
+.atelier-choix { display: flex; flex-wrap: wrap; gap: 8px; }
+.atelier-choix + .atelier-titre { margin-top: var(--e2); }
+
+.choix-embleme, .choix-teinte {
+  width: 42px;
+  height: 42px;
+  border: 1.5px solid color-mix(in srgb, var(--encre) 12%, transparent);
+  border-radius: 13px;
+  cursor: pointer;
+  padding: 0;
+  transition: transform .16s cubic-bezier(.2, .7, .3, 1), border-color .16s ease;
+}
+
+.choix-embleme {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
   line-height: 1;
-  transition: transform .28s cubic-bezier(.2, .7, .3, 1);
+  background: var(--papier);
 }
 
-.frise-porte[aria-expanded="true"] .frise-chevron { transform: rotate(180deg); }
-.frise-porte[aria-expanded="true"] .frise-invite { color: var(--accent); }
+.choix-embleme:hover, .choix-teinte:hover { transform: scale(1.08); }
 
-/* Ouvert, l'agenda est seul. Tout ce qui l'entoure sur la page — la carte
-   d'identité, les chiffres, la prochaine échéance, l'étagère, les boutons du
-   bas — s'efface : on est venu poser une date, pas relire son année. C'est
-   l'attribut posé par le script qui commande, jamais la feuille de style
-   seule : sans lui, la page reste entière. */
-#ecran-espace[data-agenda="ouvert"] .annee-haut,
-#ecran-espace[data-agenda="ouvert"] .annee-chiffres,
-#ecran-espace[data-agenda="ouvert"] .frise,
-#ecran-espace[data-agenda="ouvert"] .frise-legende,
-#ecran-espace[data-agenda="ouvert"] .espace-haut-droite,
-#ecran-espace[data-agenda="ouvert"] #bouton-espace-nouveau,
+.choix-embleme[aria-pressed="true"] {
+  border-color: var(--accent);
+  border-width: 2.5px;
+  background: var(--accent-doux);
+}
+
+.choix-teinte { background-color: var(--t0); }
+.choix-teinte[data-teinte="1"] { background-color: var(--t1); }
+.choix-teinte[data-teinte="2"] { background-color: var(--t2); }
+.choix-teinte[data-teinte="3"] { background-color: var(--t3); }
+.choix-teinte[data-teinte="4"] { background-color: var(--t4); }
+.choix-teinte[data-teinte="5"] { background-color: var(--t5); }
+
+/* Choisie, elle porte l'accent sur deux plans : le cerne et la coche. Le cerne
+   seul se confondait avec le survol sur un écran de téléphone, où il n'y a pas
+   de survol pour comparer. */
+.choix-teinte[aria-pressed="true"] {
+  border-color: var(--accent);
+  border-width: 2.5px;
+  box-shadow: inset 0 0 0 2px var(--carte);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .choix-embleme, .choix-teinte { transition: none; }
+  .choix-embleme:hover, .choix-teinte:hover { transform: none; }
+}
+
+/* --- Les six portes ------------------------------------------------------
+ *
+ * Six carrés de même taille, même trait, même famille de couleurs — les six
+ * teintes des cartes de l'application, dans leur ordre. L'harmonie ne vient pas
+ * d'un dégradé ni d'une ombre : elle vient de ce que les six objets sont le
+ * même objet, et que rien d'autre ne leur dispute la page.
+ *
+ * Le carré n'est pas décoratif. Une rangée de deux carrés fait exactement la
+ * largeur d'un pouce de chaque côté sur un téléphone de 390 px, et six carrés
+ * tiennent sous le pli — la page entière se voit sans défiler, ce qui était
+ * impossible avec la pile d'avant.
+ */
+.tuiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--e2);
+}
+
+.tuile-porte {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  aspect-ratio: 1;
+  padding: var(--e3);
+  /* La porte des matières est un « label » — la règle générale des champs lui
+     pose 20 px de marge haute, et elle tombait vingt pixels sous ses voisines
+     de rangée. Une grille de carrés ne pardonne pas ce genre d'écart. */
+  margin: 0;
+  border: 0;
+  border-radius: var(--rayon-carte);
+  background-color: color-mix(in srgb, var(--t0) 62%, var(--carte));
+  color: var(--encre);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform .2s cubic-bezier(.2, .7, .3, 1), box-shadow .2s ease;
+}
+
+.tuile-porte[data-teinte="1"] { background-color: color-mix(in srgb, var(--t1) 62%, var(--carte)); }
+.tuile-porte[data-teinte="2"] { background-color: color-mix(in srgb, var(--t2) 62%, var(--carte)); }
+.tuile-porte[data-teinte="3"] { background-color: color-mix(in srgb, var(--t3) 62%, var(--carte)); }
+.tuile-porte[data-teinte="4"] { background-color: color-mix(in srgb, var(--t4) 62%, var(--carte)); }
+.tuile-porte[data-teinte="5"] { background-color: color-mix(in srgb, var(--t5) 62%, var(--carte)); }
+
+/* La seule porte pleine. Sans cours photographié, les cinq autres n'ont rien à
+   ouvrir : sa couleur dit par où commencer avant qu'on ait lu son nom. */
+.tuile-phare { background-color: var(--accent); color: var(--sur-accent); }
+.tuile-phare .tuile-signe {
+  background: color-mix(in srgb, var(--sur-accent) 22%, transparent);
+  color: var(--sur-accent);
+}
+.tuile-phare .tuile-mot { color: color-mix(in srgb, var(--sur-accent) 80%, transparent); }
+
+.tuile-porte:hover { transform: translateY(-3px); box-shadow: var(--ombre-carte); }
+.tuile-porte:active { transform: scale(.98); }
+
+/* Éteinte plutôt que cachée : une porte qui disparaît ne s'explique pas, une
+   porte grise dit ce qui lui manque, sous son nom. */
+.tuile-porte:disabled {
+  opacity: .5;
+  cursor: default;
+  transform: none;
+  box-shadow: none;
+}
+
+.tuile-signe {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--carte) 72%, transparent);
+  color: var(--accent);
+}
+
+.tuile-signe svg { width: 22px; height: 22px; }
+
+/* Le nom se colle en bas : le signe en haut, le texte au sol, et l'air au
+   milieu. C'est ce vide qui fait qu'un carré se lit d'un coup d'œil. */
+.tuile-nom {
+  margin-top: auto;
+  font-family: var(--titre);
+  font-weight: 600;
+  font-size: 1.02rem;
+  line-height: 1.15;
+}
+
+.tuile-mot {
+  font-size: .76rem;
+  line-height: 1.32;
+  color: var(--encre-douce);
+}
+
+/* Ce qu'il reste ce mois-ci. Voir la limite venir vaut mieux que la découvrir
+   après avoir choisi ses chapitres et attendu. La porte reste cliquable même à
+   zéro : ce compteur peut être en retard, et c'est le serveur qui dit non. */
+.tuile-reste {
+  margin-top: 2px;
+  font-family: var(--mono);
+  font-size: .6rem;
+  letter-spacing: .03em;
+  color: var(--encre-douce);
+}
+
+.tuile-reste[data-epuise] { color: var(--accent); }
+
+/* Le nombre d'échéances, sur la porte de l'agenda. Il prend la couleur de
+   l'urgence : trois contrôles la semaine prochaine et un demain ne se lisent
+   pas pareil. */
+.tuile-pastille {
+  position: absolute;
+  top: var(--e3);
+  right: var(--e3);
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--sur-accent);
+  font-family: var(--mono);
+  font-size: .68rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#bouton-agenda[data-urgence="moyenne"] .tuile-pastille { background: var(--partiel); }
+#bouton-agenda[data-urgence="haute"] .tuile-pastille { background: var(--rouge); }
+
+/* LE MENU DES MATIÈRES EST LA TUILE.
+ *
+ * Douze tuiles de matières feraient onze cents pixels sur un téléphone. Le
+ * sélecteur du système, lui, s'ouvre en plein écran, au pouce, et l'élève sait
+ * déjà s'en servir. On ne l'imite donc pas : on l'étend sur toute la porte et
+ * on le rend invisible. Ce qu'on touche est un vrai « select », ce qu'on voit
+ * est un carré comme les cinq autres.
+ *
+ * 16 px n'est pas un caprice : en dessous, Safari sur iPhone zoome la page
+ * entière quand un champ prend le focus. */
+.tuile-matieres { position: relative; }
+
+.choix-matiere {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  font-family: inherit;
+  font-size: 16px;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.choix-matiere:focus-visible + .tuile-signe,
+.tuile-matieres:focus-within { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: var(--rayon-carte); }
+
+@media (prefers-reduced-motion: reduce) {
+  .tuile-porte { transition: none; }
+  .tuile-porte:hover, .tuile-porte:active { transform: none; }
+}
+
+/* Ouvert, l'agenda est seul : on est venu poser une date, pas relire son
+   année. Sa porte reste — il faut pouvoir refermer — mais elle s'allonge en
+   barre : un carré posé au-dessus d'un calendrier pleine largeur ne va nulle
+   part. C'est l'attribut posé par le script qui commande, jamais la feuille de
+   style seule : sans lui, la page reste entière. */
+#ecran-espace[data-agenda="ouvert"] .moi,
+#ecran-espace[data-agenda="ouvert"] #atelier,
+#ecran-espace[data-agenda="ouvert"] .tuile-porte:not(#bouton-agenda),
 #ecran-espace[data-agenda="ouvert"] #bouton-quitter-espace,
+#ecran-espace[data-agenda="ouvert"] .invite-app,
 #ecran-espace[data-agenda="ouvert"] .pied-compte { display: none; }
 
-/* Le titre ne paraît qu'ouvert : fermé, c'est la légende de la frise qui
-   occupe cette place. */
-.frise-titre {
-  font-family: var(--mono);
-  font-size: .58rem;
-  letter-spacing: .09em;
-  text-transform: uppercase;
-  color: var(--accent);
-  display: none;
+#ecran-espace[data-agenda="ouvert"] .tuiles { grid-template-columns: 1fr; }
+
+#ecran-espace[data-agenda="ouvert"] #bouton-agenda {
+  aspect-ratio: auto;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--e2);
+  padding: var(--e2) var(--e3);
 }
 
-#ecran-espace[data-agenda="ouvert"] .frise-titre { display: inline; }
-
-/* Seul, l'agenda quitte la moitié gauche — mais il ne prend pas toute la page
-   pour autant : à 1120 px les cases du mois faisaient 200 px de côté et le
-   calendrier se lisait comme un mur. */
-#ecran-espace[data-agenda="ouvert"] .espace-haut { display: block; }
-#ecran-espace[data-agenda="ouvert"] .carte-annee { max-width: 720px; }
-
-/* La porte n'a plus de frise à survoler : plus de fond au survol non plus,
-   sinon un grand rectangle ambré s'allume sous le titre. */
-#ecran-espace[data-agenda="ouvert"] .frise-porte:hover { background: none; }
+#ecran-espace[data-agenda="ouvert"] #bouton-agenda .tuile-signe { width: 32px; height: 32px; border-radius: 10px; }
+#ecran-espace[data-agenda="ouvert"] #bouton-agenda .tuile-signe svg { width: 18px; height: 18px; }
+#ecran-espace[data-agenda="ouvert"] #bouton-agenda .tuile-nom { margin: 0; white-space: nowrap; }
+/* Le calendrier est sous la barre : redire « contrôle dans 7 jours » au-dessus
+   de la case du 19 entourée, c'est deux fois la même phrase. */
+#ecran-espace[data-agenda="ouvert"] #bouton-agenda .tuile-mot { display: none; }
+#ecran-espace[data-agenda="ouvert"] .tuile-pastille { position: static; margin-left: auto; }
 
 /* L'invite sous le calendrier, quand aucun jour n'est choisi. */
 .agenda-invite {
@@ -3632,7 +3670,6 @@ h1 {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .frise-porte, .frise-chevron, .frise-invite,
   .agenda-deplie, .agenda-dedans { transition: none; }
   .agenda-dedans { transform: none; }
   .agenda-dedans::after { display: none; }
@@ -3640,7 +3677,6 @@ h1 {
   .agenda-deplie[data-anime="oui"] .jour[data-occupe="oui"]:not([data-passe="oui"]) {
     animation: none;
   }
-  .frise-porte:hover .case-frise[data-travaille="oui"] { transition-delay: 0s; }
 }
 
 /* Le cadre : les mois en tête, les jours de la semaine sur le côté, la grille
@@ -3774,57 +3810,6 @@ h1 {
   cursor: pointer;
 }
 
-/* --- La prochaine échéance ----------------------------------------------
- *
- * Un objet à part, et pas une boîte dans la carte : c'est la question qu'on
- * se pose en ouvrant la page, elle mérite sa place.
- */
-.prochain {
-  display: flex;
-  align-items: center;
-  gap: var(--e3);
-  padding: var(--e3) var(--e4);
-  border-radius: var(--rayon-carte);
-  background: var(--carte);
-  box-shadow: var(--ombre-carte);
-  border-left: 5px solid var(--accent);
-  font-size: .92rem;
-  color: var(--encre-douce);
-}
-
-.prochain[data-urgence="moyenne"] { border-left-color: var(--partiel); }
-.prochain[data-urgence="haute"] { border-left-color: var(--rouge); }
-.prochain[data-urgence="aucune"] { border-left-color: var(--trait-fort); }
-
-.prochain-compte {
-  flex: 0 0 auto;
-  font-family: var(--titre);
-  font-weight: 600;
-  font-size: 1.9rem;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-  color: var(--accent);
-}
-
-.prochain[data-urgence="moyenne"] .prochain-compte { color: var(--partiel); }
-.prochain[data-urgence="haute"] .prochain-compte { color: var(--rouge); }
-
-.prochain > div { flex: 1; min-width: 0; }
-.prochain-matiere { font-weight: 700; color: var(--encre); margin: 0; font-size: 1rem; }
-.prochain-quand { font-size: .8rem; margin: 2px 0 0; }
-
-.prochain-aller {
-  flex: 0 0 auto;
-  border: 0;
-  background: var(--accent);
-  color: var(--sur-accent);
-  border-radius: 999px;
-  padding: 9px 16px;
-  min-height: 40px;
-  font-size: .84rem;
-  font-weight: 700;
-}
-
 /* --- Le tableau de bord --------------------------------------------------
  *
  * Tout était derrière quatre onglets : en arrivant, l'élève voyait son prénom
@@ -3905,42 +3890,6 @@ h1 {
 .pan-corps { padding: 0 var(--e3) var(--e3); display: flex; flex-direction: column; gap: var(--e2); }
 
 /* --- L'étagère ------------------------------------------------------------ */
-
-/* La grille des matières, le menu qui l'a remplacée -----------------------
- *
- * L'étagère de tuiles vivait ici : douze pastilles colorées, une par matière
- * commencée. Elle est devenue un menu natif — voir « dessinerChoixMatiere » —
- * le jour où il a fallu que TOUTES les matières y soient, y compris celles où
- * l'élève n'a rien fait. Douze tuiles font onze cents pixels sur un téléphone.
- */
-.pan-choix { gap: var(--e2); }
-
-.choix-matiere {
-  width: 100%;
-  min-height: 48px;
-  padding: 10px 40px 10px 16px;
-  font-family: var(--texte);
-  /* 16 px au moins : sous ce seuil, Safari iOS zoome la page dès qu'on touche
-     le champ — et n'en ressort pas tout seul. C'est la règle pour TOUS les
-     champs de saisie du produit, et elle coûte assez cher pour être écrite. */
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--encre);
-  background: var(--carte);
-  border: 1px solid var(--trait);
-  border-radius: var(--rayon);
-  box-shadow: var(--ombre-carte);
-  cursor: pointer;
-  /* Le chevron dessiné ici plutôt que laissé au système : celui de Chrome sous
-     Android est gris souris, et se perdait sur le papier. */
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5l5-5' fill='none' stroke='%23a86e14' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 16px center;
-  background-size: 12px 8px;
-}
-
-.choix-matiere:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .ecran-matiere { display: flex; flex-direction: column; gap: var(--e4); }
 
@@ -4915,50 +4864,6 @@ h1 {
   }
 }
 
-/* --- L'ordre de sa page sur un téléphone ---------------------------------
- *
- * Mesuré sur 390×844, avec trois matières : la page fait 2,4 écrans, et
- * « Photographier un nouveau cours » — l'action première du produit — arrivait
- * à 1681 px, soit un écran entier SOUS le pli. Il fallait passer devant tout ce
- * qu'on avait déjà fait pour atteindre ce pour quoi on était venu. Ses
- * matières, elles, étaient à un demi-écran.
- *
- * Rien n'est supprimé ni redessiné : c'est l'ordre qui change. Ce qui agit
- * monte, ce qui raconte descend.
- *
- * « display: contents » sur le conteneur de droite est ce qui rend ça possible
- * sans toucher au HTML : il porte le prochain contrôle ET l'atelier d'emblème,
- * qui ne vont pas au même endroit. Remonter le conteneur entier ouvrirait
- * l'atelier au-dessus de la carte qu'il modifie.
- */
-@media (max-width: 859px) {
-  /* Serré : les deux cartes se touchaient et se lisaient comme un seul objet.
-     Un espacement de section entre elles les aurait séparées pour rien. */
-  .espace-haut { display: flex; flex-direction: column; gap: var(--e2); }
-  .espace-haut > .espace-haut-droite { display: contents; }
-
-  /* Ce qui presse avant ce qui raconte : la prochaine échéance porte le seul
-     bouton « Réviser » de la page. La carte, elle, ne se touche pas — on la
-     regarde. */
-  .espace-haut #prochain { order: 1; }
-  /* Puis où aller : les deux commandes de navigation se suivent, avant le
-     tableau de bord. Sans rang assigné, le menu remontait devant l'échéance —
-     « display: contents » l'ayant hissé au même niveau qu'elle. */
-  .espace-haut .pan-choix { order: 2; }
-  .espace-haut .carte-annee { order: 3; }
-  /* L'atelier s'ouvre depuis la carte : il reste sous elle. */
-  .espace-haut #atelier { order: 4; }
-
-  /* Puis, dans l'ordre où l'on s'en sert : photographier un cours, relire une
-     fiche, ouvrir une matière, fabriquer autre chose. */
-  #bouton-espace-nouveau { order: 1; }
-  #pan-fiches { order: 2; }
-  #pan-outils { order: 4; }
-  .invite-app { order: 5; }
-  #bouton-quitter-espace { order: 6; }
-  .pied-compte { order: 7; }
-}
-
 /* --- L'espace personnel sur grand écran ---------------------------------
  *
  * En colonne de 620 px au milieu de 1280, la page paraissait vide sur les
@@ -4967,21 +4872,14 @@ h1 {
  * gauche, l'étagère en dessous sur toute la largeur.
  */
 @media (min-width: 860px) {
-  .espace-haut {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
-    gap: var(--e4);
-    align-items: start;
-  }
-
-  .espace-haut-droite { display: flex; flex-direction: column; gap: var(--e4); }
-
-  /* La carte remplit sa colonne : sa frise a enfin la place de s'étaler. */
-  .carte-annee { height: 100%; }
-
-  /* Trois colonnes fixes plutôt qu'un remplissage automatique : six matières
-     font alors deux rangées pleines, là où quatre colonnes laissaient deux
-     tuiles orphelines à côté d'un vide. */
+  /* Trois colonnes : six portes font alors deux rangées pleines. Sans plafond,
+     les carrés atteignaient 272 px de côté sur 1 280 px et la page se lisait
+     comme une planche d'icônes, avec un grand vide au milieu de chaque tuile.
+     La bande d'identité prend la même largeur : deux objets qui ne s'alignent
+     pas sur leur bord gauche ET droit se lisent comme deux pages. */
+  .moi, .tuiles { max-width: 720px; }
+  .tuiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  #ecran-espace[data-agenda="ouvert"] .tuiles { max-width: none; }
 
   /* Dans une matière, les fiches et les contrôles se lisent côte à côte : ce
      sont deux listes courtes, les empiler laissait la moitié de l'écran vide. */

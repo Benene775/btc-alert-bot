@@ -45,9 +45,9 @@ def test_le_calendrier_ne_decale_pas_les_jours():
 
 
 def test_l_ecran_existe_avec_ses_sections():
-    for identifiant in ("ecran-espace", "mois-grille", "jour-detail", "liste-fiches-recentes",
+    for identifiant in ("ecran-espace", "tuiles", "mois-grille", "jour-detail",
                         "liste-mes-fiches", "liste-mes-controles", "frise-regularite",
-                        "champ-prenom", "embleme", "carte-chiffres"):
+                        "champ-prenom", "embleme", "porte-photo", "porte-travail"):
         assert f'id="{identifiant}"' in PAGE, f"« {identifiant} » manque dans la page"
 
 
@@ -100,18 +100,21 @@ def test_une_notion_qui_revient_est_comptee_et_signalee():
 
 
 def test_rien_n_est_cache_derriere_un_mecanisme():
-    """La carte se retournait pour montrer la frise.
+    """La carte d'élève se retournait pour montrer la frise.
 
     Un retournement, c'est une face que les lecteurs d'écran lisent quand même,
     une tabulation qui entre dans ce qui est derrière, et surtout la plus belle
-    chose de la page rendue invisible par défaut. Tout tient sur une face.
+    chose de la page rendue invisible par défaut — sans qu'aucun mot ne dise
+    qu'elle est là.
+
+    Ce qui est derrière une porte NOMMÉE, en revanche, n'est pas caché : la
+    frise vit dans l'agenda, et la porte de l'agenda s'appelle « Ton agenda ».
     """
     assert "function retournerCarte" not in SCRIPT, "le retournement est revenu"
-    assert 'id="carte-annee"' in PAGE
-    # La frise est devant, dans la carte elle-même.
-    carte = PAGE[PAGE.index('id="carte-annee"') : PAGE.index('id="prochain"')]
-    assert 'id="frise-regularite"' in carte, "la frise n'est pas sur la carte"
-    assert 'id="carte-chiffres"' in carte, "les chiffres ne sont pas sur la carte"
+    agenda = PAGE[PAGE.index('id="agenda-deplie"') : PAGE.index('id="bouton-quitter-espace"')]
+    assert 'id="frise-regularite"' in agenda, "la frise n'est pas dans l'agenda"
+    assert 'id="mois-grille"' in agenda
+    assert ">Ton agenda<" in PAGE, "la porte de l'agenda ne dit pas son nom"
 
 
 def test_l_archive_est_faite_pour_une_annee_entiere():
@@ -184,39 +187,43 @@ def test_le_menu_ne_porte_que_des_matieres():
     assert "m.nom" in bloc, "le libellé doit être le nom de la matière, rien de plus"
 
 
-def test_l_agenda_s_ouvre_depuis_la_frise():
-    """L'agenda avait son panneau pliant en bas de page, après l'étagère. Il
-    vit maintenant dans la carte : la frise EST sa porte. Les deux objets
-    disent la même chose à deux échelles — une grille de semaines, une grille
-    de jours — et l'un se déplie depuis l'autre."""
-    assert 'id="pan-agenda"' not in PAGE, "le panneau pliant du bas est revenu"
+def test_l_agenda_s_ouvre_depuis_sa_porte():
+    """L'agenda a eu un panneau pliant en bas de page, puis une frise qui lui
+    servait de porte. Il a maintenant un carré parmi les six, qui dit son nom.
 
-    # La porte est un vrai bouton : au clavier comme au doigt.
-    porte = PAGE[PAGE.index('id="bouton-agenda"') - 80 : PAGE.index('id="agenda-deplie"')]
-    assert "<button" in porte, "la frise n'est pas un bouton"
+    La porte reste un vrai bouton : au clavier comme au doigt."""
+    assert 'id="pan-agenda"' not in PAGE, "le panneau pliant du bas est revenu"
+    porte = PAGE[PAGE.index('id="bouton-agenda"') - 120 : PAGE.index('id="agenda-mot"')]
+    assert "<button" in porte, "la porte n'est pas un bouton"
     assert 'aria-expanded="false"' in porte
     assert 'aria-controls="agenda-deplie"' in porte
-    assert 'id="frise-regularite"' in porte, "la frise n'est pas dans la porte"
-
-    # L'agenda est bien dans la carte, pas ailleurs sur la page.
-    carte = PAGE[PAGE.index('id="carte-annee"') : PAGE.index('espace-haut-droite')]
-    assert 'id="agenda-deplie"' in carte
-    assert 'id="mois-grille"' in carte
+    assert "tuile-porte" in porte, "la porte de l'agenda n'est pas une des six"
 
 
-def test_l_invite_de_l_agenda_se_lit_sans_survol():
-    """Une frise reste un dessin : personne ne pense à cliquer dessus. Le
-    survol le dit — mais au doigt il n'y a pas de survol, donc l'invite est
-    écrite en clair sous la frise, à tout moment."""
-    porte = PAGE[PAGE.index('id="bouton-agenda"') : PAGE.index('id="agenda-deplie"')]
-    assert 'id="frise-invite-mot"' in porte
-    assert "Ouvrir l’agenda" in porte, "l'invite n'est pas écrite dans la page"
+def test_la_frise_est_redessinee_quand_l_agenda_s_ouvre():
+    """Elle se mesure pour savoir combien de semaines tiennent en largeur.
+    Dessinée pendant que l'agenda était replié, elle mesurait zéro pixel et se
+    repliait sur son minimum : dix semaines au lieu de vingt-six, sous une
+    légende qui promettait novembre."""
+    bascule = SCRIPT[SCRIPT.index("function basculerAgenda"):]
+    bascule = bascule[: bascule.index("\n}\n")]
+    assert "bloc.hidden = false;" in bascule
+    assert bascule.index("bloc.hidden = false;") < bascule.index("dessinerRegularite("), \
+        "la frise est redessinée avant que son cadre ait une largeur"
 
-    # Et le survol ajoute son signal, sur trois plans à la fois.
-    for regle in (".frise-porte:hover",
-                  ".frise-porte:hover .frise-invite",
-                  '.frise-porte:hover .case-frise[data-travaille="oui"]'):
-        assert regle in STYLE, f"« {regle} » manque : le survol ne dit rien"
+
+def test_la_porte_de_l_agenda_se_lit_sans_survol():
+    """Une frise reste un dessin : personne ne pense à cliquer dessus, et au
+    doigt il n'y a pas de survol pour le découvrir. Un carré nommé, lui, se lit
+    sans rien survoler — et il dit en plus ce qu'il y a derrière : la prochaine
+    échéance sous son nom, le nombre d'échéances sur sa pastille."""
+    porte = PAGE[PAGE.index('id="bouton-agenda"') : PAGE.index('id="choix-matiere"')]
+    assert ">Ton agenda<" in porte
+    assert 'id="agenda-mot"' in porte, "la porte ne dit pas ce qui vient"
+    assert 'id="compte-agenda"' in porte, "la porte ne dit pas combien"
+    portes = SCRIPT[SCRIPT.index("function dessinerLesPortes"):]
+    portes = portes[: portes.index("\n}\n")]
+    assert "Pose ta prochaine date" in portes, "rien n'est dit quand l'agenda est vide"
 
 
 def test_le_calendrier_s_affiche_meme_vide():
@@ -303,16 +310,18 @@ def test_ouvert_l_agenda_est_seul():
     la prochaine échéance, l'étagère, les boutons du bas. L'attribut est posé
     par le script : sans lui la page reste entière."""
     mode = '#ecran-espace[data-agenda="ouvert"]'
-    autour = (".annee-haut", ".annee-chiffres", ".frise", ".frise-legende",
-              ".espace-haut-droite", "#bouton-espace-nouveau",
-              "#bouton-quitter-espace", ".pied-compte")
+    autour = (".moi", "#atelier", '.tuile-porte:not(#bouton-agenda)',
+              "#bouton-quitter-espace", ".invite-app", ".pied-compte")
     for quoi in autour:
         assert f"{mode} {quoi}" in STYLE, f"« {quoi} » reste visible sous l'agenda"
     assert "dataset.agenda = 'ouvert'" in SCRIPT, "le script ne pose jamais le mode"
 
-    # Seul, le calendrier ne prend pas les 1120 px de la page : à cette largeur
-    # les cases faisaient 200 px de côté et le mois se lisait comme un mur.
-    assert f"{mode} .carte-annee {{ max-width:" in STYLE
+    # Sa propre porte reste : il faut pouvoir refermer. Elle s'allonge en barre,
+    # parce qu'un carré posé au-dessus d'un calendrier pleine largeur ne va
+    # nulle part — et son nom change pour dire ce que le clic fera.
+    assert f"{mode} #bouton-agenda" in STYLE
+    assert "aspect-ratio: auto" in STYLE[STYLE.index(f"{mode} #bouton-agenda {{"):][:400]
+    assert "Replier l’agenda" in SCRIPT
 
 
 def test_un_jour_cliqué_ouvre_sa_fiche_sur_le_cote():
@@ -395,8 +404,13 @@ def test_venir_de_l_agenda_mene_droit_aux_photos():
     assert "depuisAgenda.versPhotos" in demarrer
     assert demarrer.index("versPhotos") < demarrer.index("montrer('ecran-contexte')"), \
         "le raccourci arrive après l'écran de contexte : il ne sert à rien"
-    assert SCRIPT.count("versPhotos: true") == 3, \
-        "les trois chemins vers l'appareil photo ne sont pas alignés"
+    # Deux chemins depuis l'agenda : le lien de la fiche du jour et le bouton
+    # d'un rendez-vous. Il y en avait un troisième, sur le bloc « prochaine
+    # échéance » qui occupait le haut de la page perso ; ce bloc est devenu la
+    # ligne de la porte d'agenda, et le geste vit maintenant DANS l'agenda, à
+    # un doigt de là. Deux routes vers le même geste, un seul écran d'arrivée.
+    assert SCRIPT.count("versPhotos: true") == 2, \
+        "les chemins vers l'appareil photo ne sont pas alignés"
 
 
 def test_quitter_sa_page_referme_l_agenda():

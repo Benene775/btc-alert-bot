@@ -30,7 +30,10 @@ def test_le_choix_est_en_haut_de_la_page_perso():
     espace = _espace()
     for identifiant in ("apparence-claire", "apparence-sombre"):
         assert f'id="{identifiant}"' in espace, identifiant
-    assert espace.index('class="apparence"') < espace.index('class="espace-haut"')
+    # Sur la ligne d'identité, tout en haut : c'est un réglage de l'élève, pas
+    # une destination — il n'a rien à faire parmi les six portes.
+    assert espace.index('class="apparence"') < espace.index('class="tuiles"')
+    assert espace.index('class="moi"') < espace.index('class="apparence"')
 
 
 def test_deux_dessins_plutot_que_deux_mots():
