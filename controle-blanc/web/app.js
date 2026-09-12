@@ -868,7 +868,7 @@ function dessinerMoi(sessions) {
   const niveaux = [...new Set(sessions.map((s) => s.niveau).filter(Boolean))];
   const matieres = [...new Set(sessions.map((s) => s.matiere).filter(Boolean))];
   $('carte-classe').textContent = niveaux.length
-    ? niveaux.join(' · ') + ' — ' + matieres.length + (matieres.length > 1 ? ' matières' : ' matière')
+    ? niveaux.join(' · ') + ' · ' + matieres.length + (matieres.length > 1 ? ' matières' : ' matière')
     : 'Ta première séance t’attend';
 
   dessinerRegularite(sessions);

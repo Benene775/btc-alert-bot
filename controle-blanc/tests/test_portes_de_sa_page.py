@@ -156,9 +156,34 @@ def test_la_pastille_de_couleur_est_sa_couleur():
     assert "var(--accent)" in choisie and "box-shadow" in choisie
 
 
-def test_la_teinte_choisie_habille_la_page():
-    """C'est tout ce qui reste de la carte d'élève en papier : la bande
-    d'identité prend la couleur qu'on lui donne, et la page devient la sienne."""
+def test_la_teinte_choisie_habille_l_embleme():
+    """C'est tout ce qui reste de la carte d'élève en papier. Elle habillait un
+    bandeau teinté ; ce bandeau était laid et il a disparu, alors la couleur se
+    pose sur le seul objet qui soit vraiment à l'élève — et un aplat de 56 px
+    dit une couleur mieux qu'une bande pâle sur toute la largeur."""
     assert "$('moi').dataset.teinte" in SCRIPT
     for rang in range(1, 6):
-        assert f'.moi[data-teinte="{rang}"]' in STYLE
+        assert f'.moi[data-teinte="{rang}"] .embleme' in STYLE
+
+
+def test_le_prenom_n_est_pas_un_champ_de_formulaire():
+    """Il était écrit sans cadre et dans la fonte des titres depuis le premier
+    jour — et il sortait quand même encadré, en 16 px, dans la fonte du texte
+    courant. La règle générale des champs le visait par « input[type="text"] »,
+    qui pèse (0,1,1) là où une classe seule pèse (0,1,0) : un sélecteur
+    d'attribut compte comme une classe et s'ajoute à l'élément. Elle gagnait en
+    silence contre l'intention écrite juste en dessous.
+
+    Le test garde la spécificité, pas seulement l'intention : c'est elle qui
+    avait cédé."""
+    assert ".moi .champ-prenom {" in STYLE, \
+        "la règle du prénom est retombée à une seule classe : le formulaire regagne"
+    regle = STYLE[STYLE.index(".moi .champ-prenom {"):].split("}")[0]
+    assert "var(--titre)" in regle, "le prénom n'est pas dans la fonte des titres"
+    assert "border: 0" in regle and "background: none" in regle
+
+    # Le cadre revient au survol et au focus : au repos, c'est un nom. Et tant
+    # que le champ est vide, un trait dit qu'il y a là un blanc à remplir.
+    for etat in (".moi .champ-prenom:hover", ".moi .champ-prenom:focus",
+                 ".moi .champ-prenom:placeholder-shown"):
+        assert etat in STYLE, f"« {etat} » manque : le champ ne dit plus qu'il s'écrit"

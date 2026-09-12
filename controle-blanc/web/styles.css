@@ -3041,29 +3041,22 @@ h1 {
  *
  * Il y avait là une carte d'élève en papier seyès : l'emblème, le prénom, la
  * classe, trois compteurs, la frise de l'année et la porte de l'agenda, le tout
- * dans un rectangle. Chaque morceau se défendait ; empilés, ils faisaient une
- * page qu'on parcourt. Il ne reste que ce qui dit QUI : l'emblème, le prénom,
- * la classe. Les compteurs sont passés sur la porte qui les concerne, la frise
- * dans l'agenda.
+ * dans un rectangle. Les compteurs sont passés sur la porte qui les concerne,
+ * la frise dans l'agenda. Ne restait qu'un bandeau teinté portant l'emblème,
+ * le prénom et la classe — et ce bandeau était laid : un champ de formulaire
+ * encadré, posé au milieu d'une bande de couleur, sous une ligne de capitales
+ * en chasse fixe qui faisait fiche d'état civil.
  *
- * La teinte choisie dans l'atelier habille cette ligne : c'est ce qui reste de
- * la carte, et c'est ce qui fait que la page est la sienne.
+ * Plus de bandeau. Une ligne : un emblème de la couleur qu'on a choisie, son
+ * prénom écrit comme un titre, sa classe dite à voix basse en dessous. C'est
+ * la seule chose de la page qui ne soit pas une porte, et elle doit donc être
+ * la plus discrète.
  */
 .moi {
   display: flex;
   align-items: center;
   gap: var(--e3);
-  padding: var(--e2) var(--e3);
-  border-radius: var(--rayon-carte);
-  background-color: color-mix(in srgb, var(--t0) 48%, var(--carte));
-  box-shadow: var(--ombre-carte);
 }
-
-.moi[data-teinte="1"] { background-color: color-mix(in srgb, var(--t1) 48%, var(--carte)); }
-.moi[data-teinte="2"] { background-color: color-mix(in srgb, var(--t2) 48%, var(--carte)); }
-.moi[data-teinte="3"] { background-color: color-mix(in srgb, var(--t3) 48%, var(--carte)); }
-.moi[data-teinte="4"] { background-color: color-mix(in srgb, var(--t4) 48%, var(--carte)); }
-.moi[data-teinte="5"] { background-color: color-mix(in srgb, var(--t5) 48%, var(--carte)); }
 
 .moi-identite { min-width: 0; flex: 1; }
 
@@ -3072,18 +3065,16 @@ h1 {
    d'une carte ; ici ils sont au bout d'une rangée. */
 .moi .apparence { margin: 0; flex: 0 0 auto; }
 
-/* Un champ de saisie large de neuf cents pixels pour « Benjamin » : la règle
-   générale des champs dit « width: 100% », ce qui est juste dans un formulaire
-   et absurde ici. */
-.moi .champ-prenom { max-width: 18ch; }
-
+/* La teinte choisie dans l'atelier habille l'emblème. Elle habillait le
+   bandeau ; sans bandeau, elle se pose sur le seul objet qui est vraiment à
+   l'élève — et un aplat de 56 px dit une couleur mieux qu'une bande pâle. */
 .embleme {
   flex: 0 0 auto;
   width: 56px;
   height: 56px;
   border-radius: 18px;
   border: 1px solid color-mix(in srgb, var(--encre) 10%, transparent);
-  background: color-mix(in srgb, var(--carte) 75%, transparent);
+  background-color: color-mix(in srgb, var(--t0) 70%, var(--carte));
   font-size: 1.6rem;
   line-height: 1;
   display: grid;
@@ -3091,37 +3082,68 @@ h1 {
   transition: transform .2s cubic-bezier(.2, .7, .3, 1);
 }
 
+.moi[data-teinte="1"] .embleme { background-color: color-mix(in srgb, var(--t1) 70%, var(--carte)); }
+.moi[data-teinte="2"] .embleme { background-color: color-mix(in srgb, var(--t2) 70%, var(--carte)); }
+.moi[data-teinte="3"] .embleme { background-color: color-mix(in srgb, var(--t3) 70%, var(--carte)); }
+.moi[data-teinte="4"] .embleme { background-color: color-mix(in srgb, var(--t4) 70%, var(--carte)); }
+.moi[data-teinte="5"] .embleme { background-color: color-mix(in srgb, var(--t5) 70%, var(--carte)); }
+
 .embleme:active { transform: scale(.94) rotate(-8deg); }
 
-.champ-prenom {
+/* LE PRÉNOM N'EST PAS UN CHAMP DE FORMULAIRE.
+ *
+ * Il était écrit « .champ-prenom », sans cadre et dans la fonte des titres,
+ * depuis le premier jour — et il sortait quand même encadré, en 16 px, dans la
+ * fonte du texte courant. La règle générale des champs le visait par
+ * « input[type="text"] », qui pèse (0,1,1) en spécificité là où une classe seule
+ * pèse (0,1,0) : un sélecteur d'attribut compte comme une classe, et s'ajoute à
+ * l'élément. Elle gagnait donc, en silence, contre l'intention écrite juste en
+ * dessous. « .moi .champ-prenom » pèse (0,2,0) et reprend la main.
+ *
+ * Le cadre revient au survol et au focus, jamais au repos : au repos, c'est un
+ * nom. Et tant que le champ est vide, un trait sous le texte de substitution
+ * dit qu'il y a là un blanc à remplir — comme sur un cahier. */
+.moi .champ-prenom {
   width: 100%;
   min-height: 0;
-  padding: 0;
+  padding: 2px 7px;
+  margin-left: -7px;
   border: 0;
+  border-radius: 9px;
   background: none;
   box-shadow: none;
   font-family: var(--titre);
   font-weight: 600;
-  font-size: clamp(1.7rem, 7vw, 2.1rem);
-  line-height: 1.1;
-  letter-spacing: -.025em;
+  font-size: clamp(1.5rem, 6.4vw, 1.85rem);
+  line-height: 1.15;
+  letter-spacing: -.02em;
   color: var(--encre);
+  text-overflow: ellipsis;
+  transition: background-color .16s ease;
 }
 
-.champ-prenom::placeholder { color: color-mix(in srgb, var(--encre) 26%, transparent); }
-.champ-prenom:focus-visible { outline-offset: 5px; border-radius: 4px; }
+.moi .champ-prenom::placeholder { color: color-mix(in srgb, var(--encre) 30%, transparent); }
+.moi .champ-prenom:hover { background-color: color-mix(in srgb, var(--encre) 5%, transparent); }
+.moi .champ-prenom:focus { background-color: color-mix(in srgb, var(--encre) 7%, transparent); }
+.moi .champ-prenom:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
-/* Deux lignes plutôt qu'une coupée : « Ta première séance t'attend » est ce
-   que lit l'élève le tout premier jour, et « TA PREMIÈRE SÉANCE T… » est une
-   phrase qui s'excuse. La bande a la place. */
+/* Le blanc à remplir, tant qu'il l'est. */
+.moi .champ-prenom:placeholder-shown {
+  box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+/* À voix basse. En capitales et en chasse fixe, « 3E — 1 MATIÈRE » sous un
+   prénom se lisait comme une ligne de registre. */
 .moi-classe {
-  font-family: var(--mono);
-  font-size: .62rem;
-  line-height: 1.35;
-  letter-spacing: .08em;
-  text-transform: uppercase;
+  font-size: .82rem;
+  line-height: 1.3;
   color: var(--encre-douce);
-  margin: 3px 0 0;
+  margin: 2px 0 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .embleme, .moi .champ-prenom { transition: none; }
+  .embleme:active { transform: none; }
 }
 
 /* --- L'atelier : son emblème et sa couleur -------------------------------
