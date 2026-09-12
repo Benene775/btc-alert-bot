@@ -5091,140 +5091,208 @@ h1 {
 
 /* --- La fiche sur papier --------------------------------------------------
  *
- * Deux A4, soit le recto-verso d'une feuille. La contrainte vient du classeur
- * de l'élève : au-delà, une fiche cesse d'être une fiche.
+ * Deux A4, soit le recto-verso d'une feuille — la contrainte vient du classeur
+ * de l'élève. Elle porte l'habit de l'application : les teintes des parties,
+ * l'ambre, le serif des titres, la chasse fixe des étiquettes, le surligneur
+ * sous la phrase à retenir. Une fiche imprimée doit se reconnaître dans un
+ * classeur au milieu des photocopies, et l'élève doit retrouver sur le papier
+ * ce qu'il a lu sur l'écran.
  *
- * Deux colonnes, parce qu'une ligne de texte sur 186 mm se lit mal et gâche la
- * place — une fiche est faite de listes courtes, pas de paragraphes. Le corps
- * reste à 10 pt : c'est le plancher sous lequel un élève de troisième renonce à
- * relire, et tenir dans deux pages ne sert à rien si personne ne les lit.
+ * Ce qu'on ne fait PAS : le fond crème de la page. Un aplat sur 210 × 297 mm,
+ * c'est une cartouche pour quelques fiches — plus cher que le mois d'abonnement
+ * qu'on vise, et beaucoup de familles impriment au collège. Les teintes des
+ * parties couvrent le dixième de la page et restent pâles. Et rien ne dépend de
+ * la couleur : sortie en noir et blanc, la feuille ne perd rien — les filets,
+ * les cadres et les numéros portent seuls la structure.
  *
- * Tout est en noir sur blanc, sans aplat : une cartouche d'encre couleur coûte
- * plus cher que le mois d'abonnement qu'on vise, et la moitié des familles
- * impriment au collège.
+ * LA MISE EN PAGES EST FAITE PAR LE SCRIPT, pas par le navigateur. Voir
+ * « rangerEnPages » : sur l'iPhone d'un testeur, « column-count » plus les
+ * sauts automatiques coupaient les lignes en deux d'une page à l'autre et
+ * débordaient à droite. On ne demande donc plus au moteur de fragmenter quoi
+ * que ce soit — seulement de sauter une page là où on le lui dit.
+ *
+ * Deux pièges, tous deux payés par un PDF illisible, tous deux gardés par
+ * « tests/test_impression.py » :
+ *
+ *   — la largeur imprimée doit être celle à laquelle on a mesuré. « width: auto »
+ *     donnait à la feuille la largeur de la fenêtre du téléphone, 390 px au lieu
+ *     des 711 px de 188 mm : colonnes moitié trop étroites, blocs 60 % trop
+ *     hauts, débordement garanti ;
+ *   — la règle qui convertit les millimètres en pixels doit se poser DANS la
+ *     feuille. Posée dans le corps de page, elle y mesurait zéro à l'impression,
+ *     puisque tout le corps y est masqué sauf la feuille.
+ *
+ * La feuille reste dans le document hors écran plutôt que « display: none » :
+ * il faut qu'elle soit mise en page pour qu'on puisse la mesurer.
  */
-#fiche-papier { display: none; }
+#fiche-papier {
+  position: absolute;
+  left: -99999px;
+  top: 0;
+  width: 188mm;
+  box-sizing: border-box;
+  color: #241e17;
+  background: #fff;
+  font-family: var(--texte);
+  font-size: 10pt;
+  line-height: 1.27;
+  overflow-wrap: anywhere;
+}
+
+#fiche-papier[data-corps="9.5"] { font-size: 9.5pt; }
+#fiche-papier[data-corps="9"] { font-size: 9pt; }
+
+.papier-colonnes { display: flex; gap: 6mm; align-items: flex-start; }
+.papier-colonne { flex: 1 1 0; min-width: 0; }
+
+.papier-tete {
+  border-bottom: 1.4pt solid #241e17;
+  padding-bottom: 2mm;
+  margin-bottom: 3mm;
+}
+
+.papier-titre {
+  font-family: var(--titre);
+  font-size: 16pt;
+  line-height: 1.12;
+  margin: 0;
+}
+
+.papier-dessous {
+  font-family: var(--mono);
+  font-size: 7.5pt;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #9a6410;
+  margin: 1mm 0 0;
+}
+
+/* Une partie est une carte, comme à l'écran, avec sa teinte. */
+.papier-partie {
+  margin: 0 0 2.6mm;
+  padding: 2.2mm 2.6mm 2.4mm;
+  border-radius: 2.4mm;
+  background: #fbeed2;
+}
+
+/* Les six teintes de l'application, dans le même ordre : une partie garde sa
+   couleur du téléphone au papier. */
+.papier-partie[data-teinte="1"] { background: #fbe3d2; }
+.papier-partie[data-teinte="2"] { background: #fadee0; }
+.papier-partie[data-teinte="3"] { background: #e3ecde; }
+.papier-partie[data-teinte="4"] { background: #dde8f1; }
+.papier-partie[data-teinte="5"] { background: #e7e1f0; }
+
+.papier-partie-titre {
+  font-family: var(--titre);
+  font-size: 11pt;
+  line-height: 1.2;
+  margin: 0 0 1.2mm;
+  display: flex;
+  gap: 1.8mm;
+  align-items: baseline;
+}
+
+.papier-numero {
+  font-family: var(--mono);
+  font-size: 8pt;
+  color: #9a6410;
+  border: .8pt solid #9a6410;
+  border-radius: 1.6mm;
+  padding: 0 1.2mm;
+  flex: 0 0 auto;
+}
+
+.papier-points { margin: 0; padding-left: 4mm; list-style: none; }
+.papier-points li { margin: 0 0 .6mm; position: relative; }
+.papier-points li::before {
+  content: "·";
+  position: absolute;
+  left: -3mm;
+  font-weight: 700;
+  color: #9a6410;
+}
+
+/* La phrase à retenir est ce qu'on relit dans le bus : elle porte le même
+   surligneur qu'à l'écran, qui est sa signature. */
+.papier-retenir {
+  margin: 1.4mm 0 0;
+  padding-top: 1.2mm;
+  border-top: .6pt solid rgba(36, 30, 23, .22);
+}
+
+.papier-retenir-mot {
+  font-family: var(--mono);
+  font-size: 7pt;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: rgba(36, 30, 23, .58);
+  display: block;
+  margin-bottom: .6mm;
+}
+
+.papier-retenir-texte {
+  font-weight: 500;
+  background: linear-gradient(to bottom, transparent 58%, rgba(255, 196, 60, .55) 58%);
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+.papier-definitions { margin: 0; }
+.papier-definitions dt { font-weight: 700; }
+.papier-definitions dd { margin: 0 0 .9mm; }
+
+/* Les mots et les pièges ne sont pas des parties du cours : pas de teinte, un
+   simple filet, pour qu'on les distingue au premier regard. */
+.papier-mots, .papier-pieges {
+  background: none;
+  padding: 2mm 0 0;
+  border-top: 1pt solid #241e17;
+  border-radius: 0;
+}
+
+.papier-pied {
+  font-family: var(--mono);
+  font-size: 7pt;
+  text-align: center;
+  color: rgba(36, 30, 23, .55);
+  margin-top: 2mm;
+  padding-top: 1.2mm;
+  border-top: .6pt solid rgba(36, 30, 23, .25);
+}
 
 @media print {
-  /* Rien d'autre que la feuille. « visibility » plutôt que « display » sur la
-     racine garderait les ancêtres ; on cache franchement. */
+  /* Rien d'autre que la feuille. */
   body > *:not(#fiche-papier) { display: none !important; }
 
+  /* Sans ça, les navigateurs suppriment les fonds à l'impression : la fiche
+     sortirait en noir et blanc alors qu'on a choisi ses couleurs. */
+  #fiche-papier, #fiche-papier * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* La largeur reste celle de la mesure. « width: auto » paraît plus souple,
+     mais à l'impression la feuille prenait alors la largeur de la fenêtre du
+     téléphone (390 px au lieu des 711 px de 188 mm) : chaque colonne se
+     retrouvait deux fois trop étroite, chaque bloc 60 % trop haut, et le
+     contenu débordait la page. C'est précisément ce que le testeur voyait —
+     des lignes coupées à droite et tranchées d'une page à l'autre.
+     188 mm, c'est la boîte de contenu d'une A4 avec les marges ci-dessous :
+     210 − 2 × 11. Mesurer à une largeur et imprimer à une autre ne peut pas
+     marcher, donc on impose la même. */
   #fiche-papier {
-    display: block;
-    color: #000;
-    background: #fff;
-    font-family: var(--texte);
-    font-size: 10pt;
-    line-height: 1.27;
+    position: static;
+    left: auto;
+    top: auto;
+    width: 188mm;
+    max-width: 188mm;
+    margin: 0 auto;
   }
 
-  @page {
-    size: A4;
-    margin: 10mm 11mm 9mm;
-  }
+  @page { size: A4; margin: 10mm 11mm; }
 
-  .papier-tete {
-    border-bottom: 1.6pt solid #000;
-    padding-bottom: 2mm;
-    margin-bottom: 3mm;
-  }
-
-  .papier-titre {
-    font-family: var(--titre);
-    font-size: 16pt;
-    line-height: 1.12;
-    margin: 0;
-  }
-
-  .papier-dessous {
-    font-family: var(--mono);
-    font-size: 7.5pt;
-    letter-spacing: .08em;
-    text-transform: uppercase;
-    margin: 1mm 0 0;
-  }
-
-  /* Deux colonnes, équilibrées. « column-fill: auto » paraissait plus juste —
-     remplir la première colonne avant la seconde, comme on lit — mais il fait
-     occuper TOUTE la hauteur de page au bloc, même quand la fiche est courte :
-     le pied n'avait plus de place et partait seul sur une seconde page. */
-  .papier-corps {
-    column-count: 2;
-    column-gap: 7mm;
-  }
-
-  /* Une partie coupée entre deux colonnes perd son titre de vue. Les listes
-     longues, elles, ont le droit de couler : les interdire ferait des trous. */
-  .papier-partie { margin: 0 0 2.6mm; break-inside: auto; }
-  .papier-partie-titre { break-after: avoid; }
-
-  .papier-partie-titre {
-    font-family: var(--titre);
-    font-size: 11pt;
-    line-height: 1.2;
-    margin: 0 0 1.2mm;
-    display: flex;
-    gap: 1.8mm;
-    align-items: baseline;
-  }
-
-  .papier-numero {
-    font-family: var(--mono);
-    font-size: 8pt;
-    border: .8pt solid #000;
-    border-radius: 2pt;
-    padding: 0 1.2mm;
-    flex: 0 0 auto;
-  }
-
-  .papier-points {
-    margin: 0;
-    padding-left: 4.2mm;
-    list-style: none;
-  }
-
-  .papier-points li {
-    margin: 0 0 .6mm;
-    position: relative;
-    break-inside: avoid;
-  }
-
-  .papier-points li::before {
-    content: "·";
-    position: absolute;
-    left: -3.2mm;
-    font-weight: 700;
-  }
-
-  /* La phrase à retenir est ce qu'on relit dans le bus : elle doit se trouver
-     sans lire le reste. */
-  .papier-retenir {
-    margin: 1.1mm 0 0;
-    padding: 1mm 1.8mm;
-    border-left: 2pt solid #000;
-    background: #f0f0f0;
-    break-inside: avoid;
-  }
-
-  .papier-retenir-mot {
-    font-family: var(--mono);
-    font-size: 7pt;
-    letter-spacing: .08em;
-    text-transform: uppercase;
-    display: block;
-  }
-
-  .papier-definitions { margin: 0; }
-  .papier-definitions dt { font-weight: 700; break-after: avoid; }
-  .papier-definitions dd { margin: 0 0 .9mm; break-inside: avoid; }
-
-  .papier-pied {
-    font-family: var(--mono);
-    font-size: 7pt;
-    text-align: center;
-    margin-top: 2mm;
-    padding-top: 1.2mm;
-    border-top: .6pt solid #999;
-  }
+  /* Le seul saut de page du document, et il est explicite. */
+  .papier-page { break-after: page; break-inside: avoid; }
+  .papier-page:last-child { break-after: auto; }
 }

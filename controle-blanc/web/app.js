@@ -4414,24 +4414,61 @@ function majCarteFin() {
 
 /* --- La fiche sur papier --------------------------------------------------
  *
- * Deux A4, soit le recto-verso d'une seule feuille : c'est la contrainte, et
- * elle vient du classeur de l'élève, pas d'une préférence. Au-delà, une fiche
- * cesse d'être une fiche.
+ * Deux A4, soit le recto-verso d'une feuille. La contrainte vient du classeur
+ * de l'élève : au-delà, une fiche cesse d'être une fiche.
  *
  * On rebâtit une feuille plutôt que d'habiller le paquet de cartes. Les cartes
  * coupent une partie en deux quand la liste est longue, répètent leur titre à
  * chaque morceau, cachent la phrase à retenir derrière un « Tu te souviens ? »
- * et finissent par une carte de bilan. Aucune de ces quatre choses ne veut dire
- * quoi que ce soit sur du papier.
+ * et finissent par une carte de bilan. Rien de tout ça ne veut dire quoi que ce
+ * soit sur du papier.
  *
- * Le second tour n'imprime pas moins : on imprime la fiche entière, parce
- * qu'une feuille qui ne porterait que deux notions ne se range pas.
+ * LES PAGES ET LES COLONNES SONT CONSTRUITES ICI, pas laissées au navigateur.
+ * La première version s'en remettait à « column-count: 2 » et aux sauts de page
+ * automatiques. Sur l'iPhone d'un testeur, le résultat coupait les lignes en
+ * deux d'une page à l'autre et débordait à droite : fragmenter un bloc en
+ * colonnes d'une page sur l'autre est ce que les moteurs font le plus mal, et
+ * c'est précisément ce qu'on leur demandait.
+ *
+ * Ici chaque page est une boîte, chaque colonne est une boîte, et on y range
+ * des blocs qu'on a MESURÉS. Le navigateur n'a plus qu'à poser un saut de page
+ * là où on le lui dit — la seule chose qu'ils sachent tous faire.
  */
-function dessinerFichePapier(fiche, type) {
-  const feuille = $('fiche-papier');
-  feuille.innerHTML = '';
-  if (!fiche) return;
+const PAPIER = {
+  // Hauteur utile d'une A4, moins les marges d'impression ET de quoi loger les
+  // en-têtes que certains navigateurs ajoutent d'autorité (l'adresse du site,
+  // la date, le numéro de page). Sans cette réserve, leur bandeau mange la
+  // dernière ligne — qui se retrouve tranchée au ras de la page.
+  hauteurColonne: 246,   // en millimètres
+  pagesVoulues: 2,
+  // Les tailles essayées, de la plus lisible à la plus serrée. 9 pt est le
+  // plancher : en dessous, un élève de troisième renonce à relire, et tenir en
+  // deux pages ne sert à rien si personne ne les lit.
+  corps: [10, 9.5, 9],
+};
 
+/* La règle se pose DANS la feuille, jamais dans le corps de page.
+ *
+ * À l'impression, la feuille est le seul enfant du corps qui reste affiché :
+ * tout le reste est masqué. Une règle posée dans le corps y mesurait donc zéro,
+ * la colonne se voyait accorder une hauteur nulle, plus aucun bloc ne changeait
+ * jamais de colonne, et la fiche entière s'empilait sur une seule colonne de
+ * 3 673 pixels que l'imprimante découpait ensuite où elle pouvait. C'est
+ * exactement ce que le testeur voyait : des lignes tranchées d'une page à
+ * l'autre. Dans la feuille, la règle est mesurable dans les deux médias. */
+function mmEnPixels(mm) {
+  const feuille = $('fiche-papier');
+  const regle = document.createElement('div');
+  regle.style.cssText = 'position:absolute;visibility:hidden;height:' + mm + 'mm';
+  feuille.appendChild(regle);
+  const pixels = regle.getBoundingClientRect().height;
+  regle.remove();
+  return pixels;
+}
+
+/* Les blocs de la fiche, dans l'ordre, chacun autonome. */
+function blocsDeLaFiche(fiche) {
+  const blocs = [];
   const ajouter = (parent, balise, classe, texte) => {
     const noeud = document.createElement(balise);
     if (classe) noeud.className = classe;
@@ -4440,60 +4477,183 @@ function dessinerFichePapier(fiche, type) {
     return noeud;
   };
 
-  const tete = ajouter(feuille, 'header', 'papier-tete');
-  ajouter(tete, 'h1', 'papier-titre', fiche.titre || 'Fiche de révision');
-  const dessous = [etat && etat.matiere ? nomMatiere(etat.matiere) : '',
-                   etat && etat.niveau ? etat.niveau : '',
-                   type === 'ciblee' ? 'ce qui a coincé' : '']
-    .filter(Boolean).join(' · ');
-  ajouter(tete, 'p', 'papier-dessous', dessous);
-
-  const corps = ajouter(feuille, 'div', 'papier-corps');
-
   (fiche.sections || []).forEach((section, rang) => {
-    const bloc = ajouter(corps, 'section', 'papier-partie');
+    const bloc = document.createElement('section');
+    bloc.className = 'papier-partie';
+    bloc.dataset.teinte = String(rang % 6);
     const titre = ajouter(bloc, 'h2', 'papier-partie-titre');
     ajouter(titre, 'span', 'papier-numero', String(rang + 1));
     titre.appendChild(document.createTextNode(section.titre || ''));
-
     const liste = ajouter(bloc, 'ul', 'papier-points');
     (section.points || []).forEach((point) => ajouter(liste, 'li', '', point));
-
     if (section.a_retenir) {
       const retenir = ajouter(bloc, 'p', 'papier-retenir');
       ajouter(retenir, 'span', 'papier-retenir-mot', 'À retenir');
-      retenir.appendChild(document.createTextNode(section.a_retenir));
+      // Dans son propre span : le surligneur doit tenir sur la phrase, pas sur
+      // le bloc — sinon la bande court jusqu'au bord de la carte.
+      ajouter(retenir, 'span', 'papier-retenir-texte', section.a_retenir);
     }
+    blocs.push(bloc);
   });
 
   if ((fiche.definitions || []).length) {
-    const bloc = ajouter(corps, 'section', 'papier-partie papier-mots');
+    const bloc = document.createElement('section');
+    bloc.className = 'papier-partie papier-mots';
     ajouter(bloc, 'h2', 'papier-partie-titre', 'Les mots à connaître');
     const liste = ajouter(bloc, 'dl', 'papier-definitions');
     fiche.definitions.forEach((d) => {
       ajouter(liste, 'dt', '', d.terme);
       ajouter(liste, 'dd', '', d.definition);
     });
+    blocs.push(bloc);
   }
 
   if ((fiche.pieges || []).length) {
-    const bloc = ajouter(corps, 'section', 'papier-partie papier-pieges');
+    const bloc = document.createElement('section');
+    bloc.className = 'papier-partie papier-pieges';
     ajouter(bloc, 'h2', 'papier-partie-titre',
             fiche.pieges.length > 1 ? 'Les pièges' : 'Le piège');
     const liste = ajouter(bloc, 'ul', 'papier-points');
     fiche.pieges.forEach((piege) => ajouter(liste, 'li', '', piege));
+    blocs.push(bloc);
   }
 
-  // Dans le flux des colonnes, pas après : seul derrière un bloc qui remplit la
-  // page, il s'offrait une page entière pour lui.
-  ajouter(corps, 'footer', 'papier-pied', 'Repère — ta fiche, tirée de ton cours.');
-  soignerTypographie(feuille);
+  // La typographie AVANT la mesure, jamais après : les espaces insécables
+  // suppriment des points de césure, donc une ligne peut passer à la suivante.
+  // Soigner la feuille une fois rangée, c'était la faire grandir dans le dos de
+  // la mise en pages — et déborder la colonne qu'on venait de calculer juste.
+  blocs.forEach(soignerTypographie);
+  return blocs;
+}
+
+function dessinerFichePapier(fiche, type) {
+  const feuille = $('fiche-papier');
+  feuille.innerHTML = '';
+  if (!fiche) return 0;
+
+  const enTete = document.createElement('header');
+  enTete.className = 'papier-tete';
+  const titre = document.createElement('h1');
+  titre.className = 'papier-titre';
+  titre.textContent = fiche.titre || 'Fiche de révision';
+  const dessous = document.createElement('p');
+  dessous.className = 'papier-dessous';
+  dessous.textContent = [etat && etat.matiere ? nomMatiere(etat.matiere) : '',
+                         etat && etat.niveau ? etat.niveau : '',
+                         type === 'ciblee' ? 'ce qui a coincé' : '']
+    .filter(Boolean).join(' · ');
+  enTete.append(titre, dessous);
+  soignerTypographie(enTete);
+
+  const pied = document.createElement('footer');
+  pied.className = 'papier-pied';
+  pied.textContent = 'Repère — ta fiche, tirée de ton cours.';
+  soignerTypographie(pied);
+
+  // On essaie la taille la plus lisible ; on ne descend que si la fiche déborde.
+  let pages = [];
+  for (const corps of PAPIER.corps) {
+    feuille.dataset.corps = String(corps);
+    pages = rangerEnPages(feuille, enTete, pied, blocsDeLaFiche(fiche));
+    if (pages <= PAPIER.pagesVoulues) break;
+  }
+  return pages;
+}
+
+/* Remplir les colonnes en mesurant, puis équilibrer la dernière page.
+ *
+ * On mesure la COLONNE et non la somme des blocs : les cartes portent une marge
+ * basse, que « getBoundingClientRect » d'un bloc ne compte pas. Sur six parties
+ * cela faisait un centimètre et demi d'écart — de quoi déborder sans le voir.
+ *
+ * Rend le nombre de pages. */
+function rangerEnPages(feuille, enTete, pied, blocs) {
+  feuille.innerHTML = '';
+  const hauteur = mmEnPixels(PAPIER.hauteurColonne);
+  const pages = [];
+
+  const hautDe = (noeud) => noeud.getBoundingClientRect().height;
+
+  const nouvellePage = () => {
+    const page = document.createElement('div');
+    page.className = 'papier-page';
+    if (!pages.length) page.appendChild(enTete);
+    const boite = document.createElement('div');
+    boite.className = 'papier-colonnes';
+    const colonnes = [document.createElement('div'), document.createElement('div')];
+    colonnes.forEach((c) => { c.className = 'papier-colonne'; boite.appendChild(c); });
+    page.appendChild(boite);
+    feuille.appendChild(page);
+    // Le titre coiffe les DEUX colonnes : il rogne le budget des deux, pas
+    // seulement celui de la première.
+    const plafond = hauteur - (pages.length ? 0 : hautDe(enTete));
+    const posee = { page, colonnes, plafond, colonne: 0 };
+    pages.push(posee);
+    return posee;
+  };
+
+  let ici = nouvellePage();
+  blocs.forEach((bloc) => {
+    ici.colonnes[ici.colonne].appendChild(bloc);
+    // Un bloc seul dans sa colonne y reste même s'il déborde : le pousser plus
+    // loin ne l'y ferait pas tenir davantage, et laisserait un trou.
+    const deborde = hautDe(ici.colonnes[ici.colonne]) > ici.plafond;
+    if (deborde && ici.colonnes[ici.colonne].childElementCount > 1) {
+      if (ici.colonne === 0) ici.colonne = 1;
+      else ici = nouvellePage();
+      ici.colonnes[ici.colonne].appendChild(bloc);
+    }
+  });
+
+  equilibrerLaDerniere(pages[pages.length - 1]);
+
+  // Le pied signe la feuille : sous les colonnes de la dernière page, au bas de
+  // la fiche, jamais au milieu d'une colonne à moitié vide.
+  pages[pages.length - 1].page.appendChild(pied);
+  return pages.length;
+}
+
+/* La dernière page est rarement pleine. Remplie gloutonnement, elle donne une
+ * colonne pleine à ras bord et une colonne presque vide : une demi-feuille
+ * blanche que l'élève a pourtant imprimée. On répartit donc ses blocs de façon
+ * que les deux colonnes finissent à peu près à la même hauteur.
+ *
+ * Les hauteurs ne dépendent pas de la colonne — les deux ont la même largeur —
+ * donc on peut déplacer un bloc sans le remesurer. */
+function equilibrerLaDerniere(derniere) {
+  const blocs = [...derniere.colonnes[0].children, ...derniere.colonnes[1].children];
+  if (blocs.length < 2) return;
+
+  derniere.colonnes[1].innerHTML = '';
+  blocs.forEach((bloc) => derniere.colonnes[0].appendChild(bloc));
+
+  // La hauteur de la colonne après chaque bloc : le cumul, marges comprises.
+  const cumul = blocs.map((bloc) => {
+    const suivant = bloc.nextElementSibling;
+    return suivant ? suivant.offsetTop - derniere.colonnes[0].offsetTop
+                   : derniere.colonnes[0].getBoundingClientRect().height;
+  });
+  const total = cumul[cumul.length - 1];
+
+  // On cherche la coupure qui rend la plus haute des deux colonnes la plus
+  // basse possible, sans jamais dépasser le plafond de la page.
+  let meilleure = blocs.length;
+  let meilleurMax = Infinity;
+  for (let k = 1; k <= blocs.length; k += 1) {
+    const gauche = cumul[k - 1];
+    const droite = total - gauche;
+    if (gauche > derniere.plafond) break;
+    const pire = Math.max(gauche, droite);
+    if (pire < meilleurMax) { meilleurMax = pire; meilleure = k; }
+  }
+
+  blocs.slice(meilleure).forEach((bloc) => derniere.colonnes[1].appendChild(bloc));
 }
 
 function imprimerFiche() {
   if (!ficheCourante.fiche) return;
-  dessinerFichePapier(ficheCourante.fiche, ficheCourante.type);
-  tracer('impression', { type: ficheCourante.type });
+  const pages = dessinerFichePapier(ficheCourante.fiche, ficheCourante.type);
+  tracer('impression', { type: ficheCourante.type, pages });
   window.print();
 }
 
