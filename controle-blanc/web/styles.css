@@ -5231,9 +5231,26 @@ h1 {
   margin-bottom: .6mm;
 }
 
+/* Un aplat opaque, jamais un dégradé, et surtout jamais « transparent ».
+ *
+ * Sur l'aperçu PDF d'un iPhone, la moitié transparente du dégradé sortait en
+ * NOIR PLEIN : des bandes noires par-dessus la phrase à retenir, illisible.
+ * « transparent » vaut rgba(0, 0, 0, 0) — du noir que seul l'alpha rend
+ * invisible. Le moteur d'impression jette l'alpha : il ne reste que le noir.
+ *
+ * Ici les deux bornes sont identiques et opaques : il n'y a plus une seule
+ * valeur transparente à perdre. La bande basse vient de la TAILLE du fond, pas
+ * d'une borne de dégradé. Et si un moteur ignorait « background-size », la
+ * bande couvrirait toute la ligne : un surligneur un peu large, jamais du noir.
+ *
+ * La teinte est celle du surligneur de l'écran, aplatie sur le papier :
+ * rgba(255, 196, 60, .55) posé sur les teintes des parties donne cet ambre. */
 .papier-retenir-texte {
   font-weight: 500;
-  background: linear-gradient(to bottom, transparent 58%, rgba(255, 196, 60, .55) 58%);
+  background-image: linear-gradient(#ffdc8a, #ffdc8a);
+  background-size: 100% 42%;
+  background-position: 0 100%;
+  background-repeat: no-repeat;
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
 }

@@ -46,6 +46,12 @@ def fonction(nom: str) -> str:
     return SCRIPT[debut: SCRIPT.index("\n}\n", debut)]
 
 
+def sans_commentaires_css(feuille: str) -> str:
+    """Une feuille de style sans ses commentaires : un test qui interdit un mot
+    ne doit pas se déclencher sur la phrase qui explique pourquoi il l'est."""
+    return re.sub(r"/\*.*?\*/", "", feuille, flags=re.S)
+
+
 def sans_commentaires(code: str) -> str:
     """Le code seul. Sans ça, un test sur un mot interdit se déclenche sur la
     phrase qui explique pourquoi il l'est — c'est déjà arrivé deux fois."""
@@ -183,6 +189,30 @@ def test_le_corps_reste_lisible():
     assert essais[0] >= 10, "la fiche confortable doit partir de 10 pt"
     assert essais[-1] >= 9, "le corps est descendu sous 9 pt"
     assert "if (pages <= PAPIER.pagesVoulues) break;" in fonction("dessinerFichePapier")
+
+
+def test_aucune_transparence_dans_les_fonds_de_la_feuille():
+    """Signalé depuis un iPhone : des bandes NOIRES par-dessus chaque phrase à
+    retenir, sur l'aperçu PDF. Le surligneur était un dégradé dont la moitié
+    haute valait « transparent » — c'est-à-dire rgba(0, 0, 0, 0), du noir que
+    seul l'alpha rend invisible. Le moteur d'impression jette l'alpha : il ne
+    restait que le noir, sur exactement les 58 % que la borne découpait.
+
+    Les couleurs de TEXTE et de FILET en rgba, elles, sortent correctement — on
+    l'a vu sur la même capture. Ce test ne garde donc que les fonds."""
+    feuille = sans_commentaires_css(ECRAN[ECRAN.index("#fiche-papier {"):]
+                                    + IMPRESSION)
+    for fond in re.findall(r"background[\w-]*:[^;]+;", feuille):
+        assert "transparent" not in fond, f"fond transparent sur le papier : {fond}"
+        assert not re.search(r"rgba\([^)]*,\s*0?\.\d+\s*\)", fond), \
+            f"fond semi-transparent sur le papier : {fond}"
+
+    # Et le surligneur est toujours là, en aplat plein, sur le bas de la ligne.
+    surligneur = regle(ECRAN, ".papier-retenir-texte")
+    assert "linear-gradient(#ffdc8a, #ffdc8a)" in surligneur, "le surligneur a disparu"
+    assert "background-size: 100% 42%" in surligneur
+    assert "box-decoration-break: clone" in surligneur, \
+        "sans ça, la bande ne suit pas les lignes d'une phrase qui se replie"
 
 
 def test_elle_porte_les_couleurs_de_l_application():
