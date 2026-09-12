@@ -86,9 +86,9 @@ def test_la_page_perso_vide_n_est_pas_un_cul_de_sac():
     assert 'id="porte-photo"' in espace
     assert "Photographie tes pages" in espace
     assert espace.index('id="porte-photo"') < espace.index('id="bouton-agenda"')
-    # Le menu des matières est là aussi : il liste les douze, y compris quand
-    # on n'a encore rien fait.
-    assert 'id="choix-matiere"' in espace
+    # La porte des matières est là aussi : elle ouvre les douze, y compris
+    # quand on n'a encore rien fait.
+    assert 'id="porte-matieres"' in espace
 
 
 def test_le_retour_est_mesure():

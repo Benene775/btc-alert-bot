@@ -34,7 +34,7 @@ SCRIPT = (RACINE / "web" / "app.js").read_text(encoding="utf-8")
 STYLE = (RACINE / "web" / "styles.css").read_text(encoding="utf-8")
 
 ESPACE = PAGE[PAGE.index('id="ecran-espace"') : PAGE.index('id="ecran-matiere"')]
-PORTES = ("porte-photo", "bouton-agenda", "choix-matiere",
+PORTES = ("porte-photo", "bouton-agenda", "porte-matieres",
           "outil-controle", "outil-fiche", "porte-travail")
 
 
@@ -114,25 +114,35 @@ def test_ce_qu_on_revient_chercher_est_a_un_doigt():
     assert "'Rien encore'" in bloc("dessinerLesPortes")
 
 
-def test_le_menu_des_matieres_est_la_tuile():
-    """On ne dessine pas une imitation de menu : le « select » du système est
-    étendu sur toute la porte et rendu invisible. Douze tuiles de matières
-    feraient onze cents pixels sur un téléphone ; le sélecteur, lui, s'ouvre en
-    plein écran, au pouce, et l'élève sait déjà s'en servir."""
-    d = ESPACE.index("tuile-matieres")
-    porte = ESPACE[d : ESPACE.index("</label>", d)]
-    assert 'id="choix-matiere"' in porte
-    assert "<label" in ESPACE[ESPACE.index("tuile-matieres") - 40 : ESPACE.index("tuile-matieres")]
+def test_la_porte_des_matieres_ouvre_une_feuille_a_nous():
+    """Elle ouvrait le « select » du système, étendu sur la porte et rendu
+    invisible. Le raisonnement tenait — il s'ouvre au pouce, en plein écran, et
+    l'élève sait s'en servir — mais il produisait une roue grise, la seule chose
+    du produit qui ne ressemblait pas au produit.
 
-    regle = STYLE[STYLE.index(".choix-matiere {"):].split("}")[0]
-    assert "position: absolute" in regle and "inset: 0" in regle
-    assert "opacity: 0" in regle
-    # 16 px : en dessous, Safari iOS zoome la page dès qu'un champ prend le focus.
-    assert "font-size: 16px" in regle
+    La feuille fait le même geste et porte les couleurs de l'application."""
+    assert "choix-matiere" not in PAGE, "le sélecteur du système est revenu"
+    assert 'aria-haspopup="dialog"' in ESPACE[ESPACE.index('id="porte-matieres"') - 160:
+                                              ESPACE.index('id="porte-matieres"') + 160]
+    assert "$('porte-matieres').onclick = ouvrirLesMatieres;" in SCRIPT
+    assert "$('feuille-matieres').showModal()" in SCRIPT
 
-    # La règle générale des champs pose 20 px de marge haute aux « label » : la
-    # porte des matières tombait vingt pixels sous ses voisines de rangée.
-    assert "margin: 0;" in STYLE[STYLE.index(".tuile-porte {"):].split("}")[0]
+    # Chaque matière porte sa teinte et son code de trois lettres — les mêmes
+    # que dans les archives et sur les puces de filtre.
+    for rang in range(1, 6):
+        assert f'.matiere-choix[data-teinte="{rang}"]' in STYLE
+
+
+def test_la_feuille_fermee_ne_reste_pas_sur_la_page():
+    """« display » posé sur « .feuille » tout court écrase le « display: none »
+    que le navigateur applique à un « dialog » fermé. La feuille restait alors
+    dans la page, invisible mais cliquable, étalée par-dessus les six portes :
+    ouvrir les matières une fois, en choisir une, revenir — et plus rien ne
+    répondait. Le pointeur tombait sur une ligne de matière fantôme."""
+    regle = STYLE[STYLE.index(".feuille {"):].split("}")[0]
+    assert "display:" not in regle, "le dialog fermé restera affiché"
+    assert ".feuille[open] {" in STYLE
+    assert "display: flex" in STYLE[STYLE.index(".feuille[open] {"):].split("}")[0]
 
 
 def test_la_page_parle_a_l_eleve_pas_de_lui():

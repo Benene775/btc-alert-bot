@@ -606,7 +606,6 @@ let revoirDeplie = false;
 function dessinerEspace() {
   const sessions = sessionsFaites();
   dessinerMoi(sessions);
-  dessinerChoixMatiere();
   dessinerApparence();
   const echeances = dessinerAgenda(sessions);
   dessinerLesPortes(sessions, echeances);
@@ -668,33 +667,54 @@ function dessinerLesPortes(sessions, echeances) {
   peindreQuotas();
 }
 
-/* Où l'on choisit sa matière.
+/* --- La feuille des matières ---------------------------------------------
  *
  * Rien que les matières. Le menu a porté un moment les comptes, les échéances
  * et deux groupes — « commencées » d'un côté, le reste de l'autre. C'était
  * répondre à une question qu'on ne pose pas ici : on vient choisir où aller,
- * pas relire son bilan. Ce que contient une matière, on le lit une fois
- * dedans ; ce qui approche est déjà sur la carte juste au-dessus.
+ * pas relire son bilan. Ce que contient une matière, on le lit une fois dedans.
  *
  * Les douze y sont, dans l'ordre du programme, commencées ou non : une liste
  * qui change selon ce qu'on a fait ne se parcourt pas, elle se devine.
+ *
+ * C'était un « select » du système, étendu sur la tuile et rendu invisible.
+ * Le raisonnement tenait — il s'ouvre au pouce, en plein écran, et l'élève sait
+ * s'en servir — mais il produisait une roue grise, la seule chose du produit
+ * qui ne ressemblait pas au produit. La feuille fait le même geste et porte les
+ * couleurs de l'application : chaque matière a sa teinte et son code de trois
+ * lettres, les mêmes que dans les archives et sur les puces de filtre.
  */
-function dessinerChoixMatiere() {
-  const choix = $('choix-matiere');
-  choix.innerHTML = '';
-
-  // L'invite reste sélectionnée : le menu n'est pas un état, c'est une porte.
-  const invite = document.createElement('option');
-  invite.value = '';
-  invite.textContent = 'Ouvrir une matière…';
-  choix.appendChild(invite);
-
+function dessinerLesMatieres() {
+  const liste = $('matieres-liste');
+  liste.innerHTML = '';
   (config.matieres || []).forEach((m) => {
-    const option = document.createElement('option');
-    option.value = m.cle;
-    option.textContent = m.nom;
-    choix.appendChild(option);
+    const ligne = document.createElement('button');
+    ligne.type = 'button';
+    ligne.className = 'matiere-choix';
+    ligne.dataset.teinte = teinteMatiere(m.cle);
+
+    const code = document.createElement('span');
+    code.className = 'matiere-choix-code';
+    code.textContent = codeMatiere(m.cle);
+
+    const nom = document.createElement('span');
+    nom.className = 'matiere-choix-nom';
+    nom.textContent = m.nom;
+
+    ligne.append(code, nom);
+    ligne.onclick = () => { fermerLesMatieres(); ouvrirMatiere(m.cle); };
+    liste.appendChild(ligne);
   });
+}
+
+function ouvrirLesMatieres() {
+  dessinerLesMatieres();
+  $('feuille-matieres').showModal();
+}
+
+function fermerLesMatieres() {
+  const feuille = $('feuille-matieres');
+  if (feuille.open) feuille.close();
 }
 
 /* --- La vue d'une matière ------------------------------------------------ */
@@ -5781,13 +5801,8 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   $('porte-photo').onclick = () => demarrerSession();
   $('porte-travail').onclick = () => ouvrirMatiere(null);
-  $('choix-matiere').onchange = (evenement) => {
-    const cle = evenement.target.value;
-    // On repose l'invite : revenir sur sa page et retrouver « Français » écrit
-    // dans le menu ferait croire à un filtre posé, alors que rien n'est filtré.
-    evenement.target.value = '';
-    if (cle) ouvrirMatiere(cle);
-  };
+  $('porte-matieres').onclick = ouvrirLesMatieres;
+  $('fermer-matieres').onclick = fermerLesMatieres;
   document.querySelectorAll('[data-apparence]').forEach((bouton) => {
     bouton.onclick = () => poserApparence(bouton.dataset.apparence);
   });

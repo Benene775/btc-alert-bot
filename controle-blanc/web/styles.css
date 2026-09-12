@@ -3429,40 +3429,161 @@ h1 {
 #bouton-agenda[data-urgence="moyenne"] .tuile-pastille { background: var(--partiel); }
 #bouton-agenda[data-urgence="haute"] .tuile-pastille { background: var(--rouge); }
 
-/* LE MENU DES MATIÈRES EST LA TUILE.
- *
- * Douze tuiles de matières feraient onze cents pixels sur un téléphone. Le
- * sélecteur du système, lui, s'ouvre en plein écran, au pouce, et l'élève sait
- * déjà s'en servir. On ne l'imite donc pas : on l'étend sur toute la porte et
- * on le rend invisible. Ce qu'on touche est un vrai « select », ce qu'on voit
- * est un carré comme les cinq autres.
- *
- * 16 px n'est pas un caprice : en dessous, Safari sur iPhone zoome la page
- * entière quand un champ prend le focus. */
-.tuile-matieres { position: relative; }
-
-.choix-matiere {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  opacity: 0;
-  font-family: inherit;
-  font-size: 16px;
-  cursor: pointer;
-  -webkit-appearance: none;
-  appearance: none;
-}
-
-.choix-matiere:focus-visible + .tuile-signe,
-.tuile-matieres:focus-within { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: var(--rayon-carte); }
-
 @media (prefers-reduced-motion: reduce) {
   .tuile-porte { transition: none; }
   .tuile-porte:hover, .tuile-porte:active { transform: none; }
+}
+
+/* --- La feuille des matières ---------------------------------------------
+ *
+ * Elle monte du bas sur un téléphone — là où est le pouce, et là où le
+ * sélecteur du système apparaissait avant elle — et se pose au milieu sur un
+ * écran large. Chaque matière porte sa teinte et son code de trois lettres :
+ * les mêmes que dans les archives et sur les puces de filtre, parce qu'une
+ * matière doit se reconnaître à la couleur avant d'être lue.
+ */
+.feuille {
+  border: 0;
+  padding: 0;
+  width: min(520px, 100vw);
+  max-width: 100vw;
+  max-height: 86vh;
+  margin: auto auto 0;
+  border-radius: 24px 24px 0 0;
+  background: var(--papier);
+  color: var(--encre);
+  overflow: hidden;
+}
+
+/* « display » UNIQUEMENT sur la feuille ouverte.
+ *
+ * Posé sur « .feuille » tout court, il écrase le « display: none » que le
+ * navigateur applique à un « dialog » fermé : la feuille restait alors dans la
+ * page, invisible mais cliquable, étalée par-dessus les six portes. Ouvrir les
+ * matières une fois, en choisir une, revenir — et la page perso ne répondait
+ * plus à rien. Le pointeur tombait sur une ligne de matière fantôme. */
+.feuille[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.feuille::backdrop { background: color-mix(in srgb, var(--encre) 52%, transparent); }
+
+.feuille[open] { animation: feuille-monte .26s cubic-bezier(.2, .7, .3, 1); }
+.feuille[open]::backdrop { animation: feuille-voile .26s ease; }
+
+@keyframes feuille-monte { from { transform: translateY(24px); opacity: 0; } }
+@keyframes feuille-voile { from { opacity: 0; } }
+
+.feuille-tete {
+  display: flex;
+  align-items: center;
+  gap: var(--e2);
+  padding: var(--e3) var(--e3) var(--e2);
+}
+
+.feuille-titre {
+  flex: 1;
+  margin: 0;
+  font-family: var(--titre);
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.feuille-fermer {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  border: 0;
+  background: color-mix(in srgb, var(--encre) 6%, transparent);
+  color: var(--encre-douce);
+  font-size: .9rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.feuille-fermer:hover { background: color-mix(in srgb, var(--encre) 11%, transparent); }
+
+/* Le défilement est ici, pas sur la feuille : la tête reste en place pendant
+   qu'on parcourt les douze. */
+.feuille-corps {
+  overflow-y: auto;
+  padding: 0 var(--e3) var(--e3);
+  -webkit-overflow-scrolling: touch;
+}
+
+.matieres-liste { display: grid; gap: 8px; }
+
+.matiere-choix {
+  display: flex;
+  align-items: center;
+  gap: var(--e2);
+  width: 100%;
+  padding: 11px 13px;
+  border: 0;
+  border-radius: 15px;
+  background-color: color-mix(in srgb, var(--t0) 62%, var(--carte));
+  color: var(--encre);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: transform .15s cubic-bezier(.2, .7, .3, 1);
+}
+
+.matiere-choix[data-teinte="1"] { background-color: color-mix(in srgb, var(--t1) 62%, var(--carte)); }
+.matiere-choix[data-teinte="2"] { background-color: color-mix(in srgb, var(--t2) 62%, var(--carte)); }
+.matiere-choix[data-teinte="3"] { background-color: color-mix(in srgb, var(--t3) 62%, var(--carte)); }
+.matiere-choix[data-teinte="4"] { background-color: color-mix(in srgb, var(--t4) 62%, var(--carte)); }
+.matiere-choix[data-teinte="5"] { background-color: color-mix(in srgb, var(--t5) 62%, var(--carte)); }
+
+.matiere-choix:hover { transform: translateX(3px); }
+.matiere-choix:active { transform: scale(.99); }
+
+/* Trois lettres dans une pastille claire : c'est ce qu'on lit en premier, et
+   c'est la même pastille que dans les listes de fiches. */
+/* Largeur FIXE, pas un minimum : « PHILO » et « P-C » débordaient les 52 px
+   des autres, et les douze noms ne commençaient plus à la même abscisse. Une
+   colonne de noms qui ondule se lit comme une liste mal rangée. */
+.matiere-choix-code {
+  flex: 0 0 auto;
+  width: 58px;
+  padding: 7px 6px;
+  overflow: hidden;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--carte) 78%, transparent);
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+  text-align: center;
+}
+
+.matiere-choix-nom {
+  font-family: var(--titre);
+  font-weight: 600;
+  font-size: .98rem;
+  line-height: 1.2;
+}
+
+/* Sur un écran large, la feuille se pose au milieu et les douze tiennent en
+   deux colonnes : douze lignes dans une boîte centrée feraient une colonne
+   étroite au milieu du vide. */
+@media (min-width: 700px) {
+  .feuille {
+    margin: auto;
+    max-height: 80vh;
+    border-radius: var(--rayon-carte);
+    width: min(680px, calc(100vw - 48px));
+  }
+  .matieres-liste { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feuille[open], .feuille[open]::backdrop { animation: none; }
+  .matiere-choix { transition: none; }
+  .matiere-choix:hover, .matiere-choix:active { transform: none; }
 }
 
 /* Ouvert, l'agenda est seul : on est venu poser une date, pas relire son

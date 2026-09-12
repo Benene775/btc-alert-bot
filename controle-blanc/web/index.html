@@ -571,17 +571,15 @@
       <span class="tuile-pastille" id="compte-agenda" hidden></span>
     </button>
 
-    <!-- Le menu natif du système, étendu sur toute la tuile et rendu invisible.
-         Douze tuiles de matières feraient onze cents pixels sur un téléphone ;
-         le sélecteur, lui, s'ouvre en plein écran, au pouce, et l'élève sait
-         déjà s'en servir. La tuile n'est donc pas une imitation de menu : c'est
-         le menu, habillé. -->
-    <label class="tuile-porte tuile-matieres" data-teinte="3">
+    <!-- Elle ouvrait le sélecteur du système : une roue grise, la seule chose
+         du produit qui ne ressemblait pas au produit. Elle ouvre maintenant une
+         feuille à nous, où chaque matière porte sa couleur. -->
+    <button type="button" class="tuile-porte" id="porte-matieres" data-teinte="3"
+            aria-haspopup="dialog">
       <span class="tuile-signe" aria-hidden="true"><svg><use href="#glyphe-matieres"/></svg></span>
       <span class="tuile-nom">Tes matières</span>
       <span class="tuile-mot">Fiches et contrôles</span>
-      <select id="choix-matiere" class="choix-matiere" aria-label="Ouvrir une matière"></select>
-    </label>
+    </button>
 
     <!-- Les deux fabrications. Elles ne font pas la même chose : le contrôle
          fait rédiger, la fiche fait relire. -->
@@ -1014,6 +1012,23 @@
 </div>
 
 <!-- Boîte de dialogue de signalement -->
+<!-- LA FEUILLE DES MATIÈRES.
+     Douze matières, chacune dans sa teinte, avec son code court à gauche — le
+     même que dans les archives et sur les puces de filtre : une matière garde
+     sa couleur et ses trois lettres partout dans le produit. Elle monte du bas
+     sur un téléphone, là où est le pouce, et se pose au milieu sur un écran
+     large. C'est un « dialog » natif : Échap, le clic à côté et le piège au
+     clavier sont gratuits, et corrects. -->
+<dialog id="feuille-matieres" class="feuille" aria-labelledby="titre-matieres">
+  <div class="feuille-tete">
+    <h3 class="feuille-titre" id="titre-matieres">Tes matières</h3>
+    <button type="button" class="feuille-fermer" id="fermer-matieres" aria-label="Fermer">✕</button>
+  </div>
+  <div class="feuille-corps">
+    <div class="matieres-liste" id="matieres-liste"></div>
+  </div>
+</dialog>
+
 <dialog id="dialogue-signalement">
   <form method="dialog">
     <h3>Qu’est-ce qui ne va pas ?</h3>

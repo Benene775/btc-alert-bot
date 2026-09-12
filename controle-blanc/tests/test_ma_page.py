@@ -155,9 +155,10 @@ def test_la_matiere_est_la_structure_de_la_page():
     onglets — en arrivant, on voyait son prénom et une échéance, jamais son
     année. Une tuile par matière la montre d'un coup, et l'ouvre.
     """
-    assert 'id="choix-matiere"' in PAGE, "on ne choisit sa matière nulle part"
+    assert 'id="porte-matieres"' in PAGE, "on ne choisit sa matière nulle part"
+    assert 'id="feuille-matieres"' in PAGE, "la feuille des matières a disparu"
     assert 'id="ecran-matiere"' in PAGE, "une matière ne s'ouvre nulle part"
-    assert "function dessinerChoixMatiere" in CODE_NU
+    assert "function dessinerLesMatieres" in CODE_NU
     assert "function ouvrirMatiere" in CODE_NU
     assert "intercalaire" not in PAGE, "les onglets sont revenus"
 
@@ -167,7 +168,7 @@ def test_toutes_les_matieres_y_sont_pas_seulement_les_commencees():
     travaillé. C'était juste pour un tableau de bord et faux pour aller quelque
     part : celui qui cherchait l'espagnol ne le trouvait nulle part tant qu'il
     n'avait pas photographié un cours d'espagnol."""
-    bloc = CODE_NU[CODE_NU.index("function dessinerChoixMatiere") :]
+    bloc = CODE_NU[CODE_NU.index("function dessinerLesMatieres") :]
     bloc = bloc[: bloc.index("\n}\n")]
     assert "config.matieres" in bloc, "la liste ne part pas des matières du programme"
     assert "sessions" not in bloc, (
@@ -175,16 +176,17 @@ def test_toutes_les_matieres_y_sont_pas_seulement_les_commencees():
     )
 
 
-def test_le_menu_ne_porte_que_des_matieres():
-    """Il a porté un moment les comptes, les échéances et deux groupes. C'était
-    répondre à une question qu'on ne pose pas ici : on vient choisir où aller,
-    pas relire son bilan. Ce que contient une matière se lit une fois dedans,
-    et ce qui approche est déjà sur la carte juste au-dessus."""
-    bloc = CODE_NU[CODE_NU.index("function dessinerChoixMatiere") :]
+def test_la_feuille_ne_porte_que_des_matieres():
+    """Le menu a porté un moment les comptes, les échéances et deux groupes.
+    C'était répondre à une question qu'on ne pose pas ici : on vient choisir où
+    aller, pas relire son bilan. Ce que contient une matière se lit une fois
+    dedans, et ce qui approche est déjà sur la porte de l'agenda."""
+    bloc = CODE_NU[CODE_NU.index("function dessinerLesMatieres") :]
     bloc = bloc[: bloc.index("\n}\n")]
     for intrus in ("optgroup", "Commencées", "Tout ton travail", "fiches", "J−"):
-        assert intrus not in bloc, f"« {intrus} » n'a rien à faire dans le menu"
-    assert "m.nom" in bloc, "le libellé doit être le nom de la matière, rien de plus"
+        assert intrus not in bloc, f"« {intrus} » n'a rien à faire dans la feuille"
+    # Son nom et son code de trois lettres, rien de plus.
+    assert "m.nom" in bloc and "codeMatiere(m.cle)" in bloc
 
 
 def test_l_agenda_s_ouvre_depuis_sa_porte():
@@ -217,7 +219,7 @@ def test_la_porte_de_l_agenda_se_lit_sans_survol():
     doigt il n'y a pas de survol pour le découvrir. Un carré nommé, lui, se lit
     sans rien survoler — et il dit en plus ce qu'il y a derrière : la prochaine
     échéance sous son nom, le nombre d'échéances sur sa pastille."""
-    porte = PAGE[PAGE.index('id="bouton-agenda"') : PAGE.index('id="choix-matiere"')]
+    porte = PAGE[PAGE.index('id="bouton-agenda"') : PAGE.index('id="porte-matieres"')]
     assert ">Ton agenda<" in porte
     assert 'id="agenda-mot"' in porte, "la porte ne dit pas ce qui vient"
     assert 'id="compte-agenda"' in porte, "la porte ne dit pas combien"
