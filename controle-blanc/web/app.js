@@ -4412,6 +4412,91 @@ function majCarteFin() {
   }
 }
 
+/* --- La fiche sur papier --------------------------------------------------
+ *
+ * Deux A4, soit le recto-verso d'une seule feuille : c'est la contrainte, et
+ * elle vient du classeur de l'élève, pas d'une préférence. Au-delà, une fiche
+ * cesse d'être une fiche.
+ *
+ * On rebâtit une feuille plutôt que d'habiller le paquet de cartes. Les cartes
+ * coupent une partie en deux quand la liste est longue, répètent leur titre à
+ * chaque morceau, cachent la phrase à retenir derrière un « Tu te souviens ? »
+ * et finissent par une carte de bilan. Aucune de ces quatre choses ne veut dire
+ * quoi que ce soit sur du papier.
+ *
+ * Le second tour n'imprime pas moins : on imprime la fiche entière, parce
+ * qu'une feuille qui ne porterait que deux notions ne se range pas.
+ */
+function dessinerFichePapier(fiche, type) {
+  const feuille = $('fiche-papier');
+  feuille.innerHTML = '';
+  if (!fiche) return;
+
+  const ajouter = (parent, balise, classe, texte) => {
+    const noeud = document.createElement(balise);
+    if (classe) noeud.className = classe;
+    if (texte !== undefined) noeud.textContent = texte;
+    parent.appendChild(noeud);
+    return noeud;
+  };
+
+  const tete = ajouter(feuille, 'header', 'papier-tete');
+  ajouter(tete, 'h1', 'papier-titre', fiche.titre || 'Fiche de révision');
+  const dessous = [etat && etat.matiere ? nomMatiere(etat.matiere) : '',
+                   etat && etat.niveau ? etat.niveau : '',
+                   type === 'ciblee' ? 'ce qui a coincé' : '']
+    .filter(Boolean).join(' · ');
+  ajouter(tete, 'p', 'papier-dessous', dessous);
+
+  const corps = ajouter(feuille, 'div', 'papier-corps');
+
+  (fiche.sections || []).forEach((section, rang) => {
+    const bloc = ajouter(corps, 'section', 'papier-partie');
+    const titre = ajouter(bloc, 'h2', 'papier-partie-titre');
+    ajouter(titre, 'span', 'papier-numero', String(rang + 1));
+    titre.appendChild(document.createTextNode(section.titre || ''));
+
+    const liste = ajouter(bloc, 'ul', 'papier-points');
+    (section.points || []).forEach((point) => ajouter(liste, 'li', '', point));
+
+    if (section.a_retenir) {
+      const retenir = ajouter(bloc, 'p', 'papier-retenir');
+      ajouter(retenir, 'span', 'papier-retenir-mot', 'À retenir');
+      retenir.appendChild(document.createTextNode(section.a_retenir));
+    }
+  });
+
+  if ((fiche.definitions || []).length) {
+    const bloc = ajouter(corps, 'section', 'papier-partie papier-mots');
+    ajouter(bloc, 'h2', 'papier-partie-titre', 'Les mots à connaître');
+    const liste = ajouter(bloc, 'dl', 'papier-definitions');
+    fiche.definitions.forEach((d) => {
+      ajouter(liste, 'dt', '', d.terme);
+      ajouter(liste, 'dd', '', d.definition);
+    });
+  }
+
+  if ((fiche.pieges || []).length) {
+    const bloc = ajouter(corps, 'section', 'papier-partie papier-pieges');
+    ajouter(bloc, 'h2', 'papier-partie-titre',
+            fiche.pieges.length > 1 ? 'Les pièges' : 'Le piège');
+    const liste = ajouter(bloc, 'ul', 'papier-points');
+    fiche.pieges.forEach((piege) => ajouter(liste, 'li', '', piege));
+  }
+
+  // Dans le flux des colonnes, pas après : seul derrière un bloc qui remplit la
+  // page, il s'offrait une page entière pour lui.
+  ajouter(corps, 'footer', 'papier-pied', 'Repère — ta fiche, tirée de ton cours.');
+  soignerTypographie(feuille);
+}
+
+function imprimerFiche() {
+  if (!ficheCourante.fiche) return;
+  dessinerFichePapier(ficheCourante.fiche, ficheCourante.type);
+  tracer('impression', { type: ficheCourante.type });
+  window.print();
+}
+
 function afficherFiche(fiche, type, options = {}) {
   // Le second tour ne rejoue que les notions mises de côté, et rien d’autre :
   // ni les mots, ni les pièges, ni les notions déjà tenues.
@@ -5695,6 +5780,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!$('fiche-jour').hidden) { jourChoisi = null; dessinerEspace(); }
   });
 
+  $('bouton-imprimer').onclick = () => imprimerFiche();
   $('bouton-tout-afficher').onclick = () => {
     const paquet = $('paquet');
     const colonne = paquet.dataset.vue === 'colonne';

@@ -5088,3 +5088,143 @@ h1 {
 @media (min-width: 1160px) {
   #scene { padding-inline: var(--e5); }
 }
+
+/* --- La fiche sur papier --------------------------------------------------
+ *
+ * Deux A4, soit le recto-verso d'une feuille. La contrainte vient du classeur
+ * de l'élève : au-delà, une fiche cesse d'être une fiche.
+ *
+ * Deux colonnes, parce qu'une ligne de texte sur 186 mm se lit mal et gâche la
+ * place — une fiche est faite de listes courtes, pas de paragraphes. Le corps
+ * reste à 10 pt : c'est le plancher sous lequel un élève de troisième renonce à
+ * relire, et tenir dans deux pages ne sert à rien si personne ne les lit.
+ *
+ * Tout est en noir sur blanc, sans aplat : une cartouche d'encre couleur coûte
+ * plus cher que le mois d'abonnement qu'on vise, et la moitié des familles
+ * impriment au collège.
+ */
+#fiche-papier { display: none; }
+
+@media print {
+  /* Rien d'autre que la feuille. « visibility » plutôt que « display » sur la
+     racine garderait les ancêtres ; on cache franchement. */
+  body > *:not(#fiche-papier) { display: none !important; }
+
+  #fiche-papier {
+    display: block;
+    color: #000;
+    background: #fff;
+    font-family: var(--texte);
+    font-size: 10pt;
+    line-height: 1.27;
+  }
+
+  @page {
+    size: A4;
+    margin: 10mm 11mm 9mm;
+  }
+
+  .papier-tete {
+    border-bottom: 1.6pt solid #000;
+    padding-bottom: 2mm;
+    margin-bottom: 3mm;
+  }
+
+  .papier-titre {
+    font-family: var(--titre);
+    font-size: 16pt;
+    line-height: 1.12;
+    margin: 0;
+  }
+
+  .papier-dessous {
+    font-family: var(--mono);
+    font-size: 7.5pt;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    margin: 1mm 0 0;
+  }
+
+  /* Deux colonnes, équilibrées. « column-fill: auto » paraissait plus juste —
+     remplir la première colonne avant la seconde, comme on lit — mais il fait
+     occuper TOUTE la hauteur de page au bloc, même quand la fiche est courte :
+     le pied n'avait plus de place et partait seul sur une seconde page. */
+  .papier-corps {
+    column-count: 2;
+    column-gap: 7mm;
+  }
+
+  /* Une partie coupée entre deux colonnes perd son titre de vue. Les listes
+     longues, elles, ont le droit de couler : les interdire ferait des trous. */
+  .papier-partie { margin: 0 0 2.6mm; break-inside: auto; }
+  .papier-partie-titre { break-after: avoid; }
+
+  .papier-partie-titre {
+    font-family: var(--titre);
+    font-size: 11pt;
+    line-height: 1.2;
+    margin: 0 0 1.2mm;
+    display: flex;
+    gap: 1.8mm;
+    align-items: baseline;
+  }
+
+  .papier-numero {
+    font-family: var(--mono);
+    font-size: 8pt;
+    border: .8pt solid #000;
+    border-radius: 2pt;
+    padding: 0 1.2mm;
+    flex: 0 0 auto;
+  }
+
+  .papier-points {
+    margin: 0;
+    padding-left: 4.2mm;
+    list-style: none;
+  }
+
+  .papier-points li {
+    margin: 0 0 .6mm;
+    position: relative;
+    break-inside: avoid;
+  }
+
+  .papier-points li::before {
+    content: "·";
+    position: absolute;
+    left: -3.2mm;
+    font-weight: 700;
+  }
+
+  /* La phrase à retenir est ce qu'on relit dans le bus : elle doit se trouver
+     sans lire le reste. */
+  .papier-retenir {
+    margin: 1.1mm 0 0;
+    padding: 1mm 1.8mm;
+    border-left: 2pt solid #000;
+    background: #f0f0f0;
+    break-inside: avoid;
+  }
+
+  .papier-retenir-mot {
+    font-family: var(--mono);
+    font-size: 7pt;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    display: block;
+  }
+
+  .papier-definitions { margin: 0; }
+  .papier-definitions dt { font-weight: 700; break-after: avoid; }
+  .papier-definitions dd { margin: 0 0 .9mm; break-inside: avoid; }
+
+  .papier-pied {
+    font-family: var(--mono);
+    font-size: 7pt;
+    text-align: center;
+    margin-top: 2mm;
+    padding-top: 1.2mm;
+    border-top: .6pt solid #999;
+  }
+}

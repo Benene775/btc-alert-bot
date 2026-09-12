@@ -828,8 +828,10 @@
 
   <div class="fiche-pied">
     <button type="button" class="lien-outil" id="bouton-tout-afficher">Tout afficher d’un coup</button>
+    <button type="button" class="lien-outil" id="bouton-imprimer">Imprimer ma fiche</button>
   </div>
 </section>
+
 
 <!-- ÉTAPE 4 — le contrôle blanc -->
 <!-- L'ATELIER — sur quel cours ? Un seul écran pour les deux outils : ils
@@ -927,6 +929,14 @@
 </section>
 
 </main>
+
+<!-- La fiche sur papier. HORS de « main », qui disparaît à l'impression avec
+     tout le reste de l'application — la feuille y était, et sortait blanche.
+     Une feuille bâtie à part, pas le paquet de cartes déguisé : les cartes
+     coupent une partie en deux quand la liste est longue, répètent leur titre à
+     chaque morceau, et cachent la phrase à retenir derrière un « Tu te
+     souviens ? ». Rien de tout ça ne veut dire quoi que ce soit sur papier. -->
+<div id="fiche-papier" class="papier" aria-hidden="true"></div>
 
 <!-- Surcouche d’attente -->
 <div id="attente" class="attente" hidden aria-live="polite">
