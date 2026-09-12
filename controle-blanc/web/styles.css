@@ -1846,27 +1846,16 @@ select {
 
 .ecran-plein { min-height: 70vh; display: flex; flex-direction: column; }
 
+/* Il y avait là un compte à rebours, en face de la progression. Il est parti :
+   un élève qui révise n'a pas à se battre contre une horloge. Ce qui reste dit
+   où l'on en est, pas combien de temps il reste. */
 .barre-controle {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   margin-bottom: 10px;
 }
 
 .progression { color: var(--encre-douce); }
-
-.chrono {
-  font-family: var(--mono);
-  font-variant-numeric: tabular-nums;
-  font-size: 1.05rem;
-  padding: 6px 12px;
-  border-radius: 999px;
-  background: var(--carte);
-  border: 0;
-  box-shadow: var(--ombre-carte);
-}
-
-.chrono[data-urgent="oui"] { color: var(--papier); background: var(--rouge); }
 
 .jauge { height: 3px; background: var(--trait); border-radius: 999px; overflow: hidden; margin-bottom: 24px; }
 #jauge-remplie { height: 100%; width: 0; background: var(--accent); transition: width .3s ease; }

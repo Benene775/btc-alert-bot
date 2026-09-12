@@ -100,7 +100,11 @@ def test_etape_4_format_reel_de_la_matiere(client, session, photo_factice):
               "chapitres": chapitres},
     ).json()
     assert controle["matiere"].startswith("Histoire-Géographie")
-    assert controle["duree_minutes"] >= 10
+    # Plus aucune durée n'atteint le navigateur : ni le total, ni celle des
+    # questions. Elle vivait pour un compte à rebours qui n'existe plus, et une
+    # durée affichée est un chronomètre qui s'ignore.
+    assert "duree_minutes" not in controle
+    assert all("duree_minutes" not in q for q in controle["questions"])
     # Un vrai sujet a des parties, et au moins une question s'appuie sur un document.
     assert any(q["partie"] for q in controle["questions"])
     assert any(q["document"] for q in controle["questions"])

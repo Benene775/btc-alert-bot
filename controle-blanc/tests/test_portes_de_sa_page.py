@@ -86,16 +86,17 @@ def test_les_six_sont_le_meme_objet():
         assert 'stroke-width="1.7"' in symbole, f"« {signe} » n'a pas la même graisse"
 
 
-def test_fabriquer_annonce_une_duree_ouvrir_annonce_un_contenu():
+def test_fabriquer_annonce_un_geste_ouvrir_annonce_un_contenu():
     """Ce qui remplace le verbe. « Fiche de révision » posé sur une page où
     vivaient aussi des fiches se lisait comme la porte de ces fiches-là ; il en
-    fabriquait une de plus. Une durée sous un nom dit qu'il va se passer
-    quelque chose ; un contenu dit qu'on va trouver quelque chose."""
+    fabriquait une de plus. Sous le nom d'une porte qui FABRIQUE, on écrit donc
+    ce qui va se passer — un geste, ou le temps que ça prend ; sous une porte
+    qui OUVRE, ce qu'on va trouver."""
     def mot(identifiant):
         porte = ESPACE[ESPACE.index(f'id="{identifiant}"'):]
         return porte[: porte.index("</button>")] if "</button>" in porte else porte
 
-    assert "40 min" in mot("outil-controle"), "le contrôle n'annonce pas sa durée"
+    assert "à rédiger" in mot("outil-controle"), "le contrôle n'annonce pas le geste"
     assert "9 min" in mot("outil-fiche"), "la fiche n'annonce pas sa durée"
 
     portes = bloc("dessinerLesPortes")

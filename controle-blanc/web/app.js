@@ -65,7 +65,6 @@ let photosEnAttente = [];      // le lot en cours de sélection
 let photosDuCours = [];        // les pages déjà analysées, gardées pour la fiche
 let config = { matieres: [], niveaux: [], mode_demonstration: false, max_photos: 8, max_doutes: 7 };
 let controleEnCours = null;
-let minuteur = null;
 
 const $ = (id) => document.getElementById(id);
 const ecrans = () => document.querySelectorAll('.ecran');
@@ -649,7 +648,7 @@ function dessinerLesPortes(sessions, echeances) {
   // elles partent des pages de l'élève, pas d'ailleurs. Éteintes plutôt que
   // cachées — une porte qui disparaît ne s'explique pas, une porte grise si.
   const cours = coursRepassables().size;
-  [['outil-controle', 'mot-controle', 'Au format réel · 40 min'],
+  [['outil-controle', 'mot-controle', 'Un vrai sujet, à rédiger'],
    ['outil-fiche', 'mot-fiche', 'Ton cours resserré · 9 min']].forEach(([id, mot, dit]) => {
     $(id).disabled = cours === 0;
     $(mot).textContent = cours ? dit : 'Photographie un cours d’abord';
@@ -4974,7 +4973,7 @@ const OUTILS = {
   controle: {
     etiquette: 'Contrôle blanc',
     titre: 'Tu te testes sur quoi ?',
-    chapeau: 'Un vrai sujet au format de la matière, chronométré, à rédiger. '
+    chapeau: 'Un vrai sujet au format de la matière, à rédiger. '
       + 'C’est ce qui révèle ce que tu crois savoir.',
     bouton: 'Passer le contrôle blanc',
   },
@@ -5208,13 +5207,11 @@ async function lancerControle(notionsCiblees = [], chapitres = null) {
       reponses: {},
       signalees: new Set(),
       debut: Date.now(),
-      finPrevue: Date.now() + controle.duree_minutes * 60000,
     };
     etat.etape = 'controle';
     sauver();
     dessinerQuestion();
     montrer('ecran-controle');
-    demarrerChrono();
   } catch (e) { gererErreur(e); }
 }
 
@@ -5259,27 +5256,7 @@ function questionSuivante() {
   dessinerQuestion();
 }
 
-function demarrerChrono() {
-  clearInterval(minuteur);
-  const afficher = () => {
-    const restant = Math.max(0, controleEnCours.finPrevue - Date.now());
-    const minutes = Math.floor(restant / 60000);
-    const secondes = Math.floor((restant % 60000) / 1000);
-    const chrono = $('chrono');
-    chrono.textContent = String(minutes).padStart(2, '0') + ':' + String(secondes).padStart(2, '0');
-    chrono.dataset.urgent = restant < 120000 ? 'oui' : 'non';
-    if (restant <= 0) {
-      clearInterval(minuteur);
-      message("Le temps est écoulé, comme au contrôle. On corrige ce que tu as écrit.", 'alerte', 6000);
-      terminerControle();
-    }
-  };
-  afficher();
-  minuteur = setInterval(afficher, 1000);
-}
-
 async function terminerControle() {
-  clearInterval(minuteur);
   // La question affichée compte, même si l’élève n’a pas eu le temps de valider.
   const courante = controleEnCours.questions[controleEnCours.index];
   if (courante && controleEnCours.reponses[courante.numero] === undefined) {

@@ -547,6 +547,13 @@ def creer_fiche_ciblee(corps: DemandeFicheCiblee,
 
 CHAMPS_CORRIGE = ("points_attendus", "ou_dans_le_cours")
 
+# Ce que le modèle produit pour lui-même, et que le navigateur n'a pas à voir.
+# « duree_minutes » servait à un compte à rebours ; le compte à rebours est
+# parti, et la durée reste ici, où elle calibre le sujet et où la garde s'en
+# sert pour distinguer un contrôle d'un quiz. Sur le téléphone d'un élève, elle
+# n'a plus rien à faire : une durée affichée est un chronomètre qui s'ignore.
+CHAMPS_INTERNES = ("duree_minutes",)
+
 
 @app.post("/api/controle")
 def creer_controle(corps: DemandeControle,
@@ -583,8 +590,9 @@ def creer_controle(corps: DemandeControle,
         {"cible": bool(corps.notions_ciblees), "questions": len(questions)},
     )
 
+    caches = CHAMPS_CORRIGE + CHAMPS_INTERNES
     publiques = [
-        {cle: valeur for cle, valeur in q.items() if cle not in CHAMPS_CORRIGE}
+        {cle: valeur for cle, valeur in q.items() if cle not in caches}
         for q in questions
     ]
     return {
@@ -592,7 +600,6 @@ def creer_controle(corps: DemandeControle,
         "titre": brut.get("titre", "Contrôle blanc"),
         "consigne_generale": brut.get("consigne_generale", ""),
         "matiere": fmt["nom"],
-        "duree_minutes": max(10, sum(int(q.get("duree_minutes", 5)) for q in questions)),
         "questions": publiques,
         "quotas": store.etat_quota(corps.session_id, "controle"),
     }
