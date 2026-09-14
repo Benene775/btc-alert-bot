@@ -768,15 +768,26 @@ function dessinerFabriquer() {
                                     : 'Passer un contrôle blanc';
   bouton.disabled = cours === 0;
 
+  // « Il t'en reste 8 sur 8 » demandait de tenir deux chiffres et de nommer
+  // soi-même ce dont on parle. On dit la chose, et ce qui en reste : c'est la
+  // même phrase que sur l'écran des photos, au nom près.
   const action = surLesFiches ? 'fiche_generale' : 'controle';
   const etatQuota = quotasMois && quotasMois[action];
   $('aide-fabriquer').textContent = cours === 0
     ? 'Photographie un cours d’abord : tout sort de tes pages, pas d’ailleurs.'
     : (etatQuota
       ? (etatQuota.restant > 0
-        ? 'Il t’en reste ' + etatQuota.restant + ' sur ' + etatQuota.plafond + ' ce mois-ci.'
-        : 'Plafond atteint pour ce mois-ci.')
+        ? 'Il te reste ' + phraseOutil(surLesFiches, etatQuota.restant) + ' ce mois-ci.'
+        : 'Tu as fait ' + (surLesFiches ? 'toutes tes fiches' : 'tous tes contrôles blancs')
+          + ' du mois. Ça repart le 1er.')
       : '');
+}
+
+/* Le pluriel de « contrôle blanc » n'est pas « contrôle blancs » : les deux
+   formes s'écrivent en entier plutôt qu'un « s » collé au bout. */
+function phraseOutil(surLesFiches, n) {
+  if (surLesFiches) return n === 1 ? 'une fiche' : n + ' fiches';
+  return n === 1 ? 'un contrôle blanc' : n + ' contrôles blancs';
 }
 
 function dessinerMatiere() {
@@ -3586,29 +3597,36 @@ function reduirePhoto(fichier) {
  * Il ne s'affichait qu'à l'approche de la limite, de peur qu'un compteur
  * permanent ne transforme « photographie ton cours » en « attention à ta
  * consommation ». Demandé dans l'autre sens : rappeler ici, au moment de
- * photographier, ce qu'il reste à l'élève. Il est donc là dès l'arrivée sur
- * l'écran, et il le dit aussi en COURS, parce que c'est en cours qu'on pense
- * quand on pose ses feuilles sur la table — « 64 pages » ne se traduit pas
- * tout seul.
+ * photographier, ce qu'il reste à l'élève.
  *
- * Ce nombre de cours est un plancher : il suppose des cours pleins (huit
- * pages). Qui photographie trois pages à la fois en fera bien plus. D'où « de
- * quoi photographier huit cours », jamais « il te reste huit cours », qui
- * serait faux. Les pages restent le chiffre exact, et le seul qui bouge photo
- * par photo.
+ * Et le lui dire en COURS, pas en pages. Le budget se compte en pages — c'est
+ * ce que le serveur décompte, et ça ne change pas — mais « il te reste 64
+ * pages » demande une division avant de vouloir dire quelque chose. « Il te
+ * reste 8 cours à photographier » se lit d'un coup, et c'est la question que
+ * l'élève se pose vraiment.
  *
- * Le futur porte le reste : « il te RESTERA » dit sans y insister que les pages
- * déjà posées sur l'écran sont comptées dedans.
+ * Le nombre de cours est un plancher : huit pages par cours, arrondi vers le
+ * bas. Qui photographie trois pages à la fois en fera bien plus que ce qui est
+ * annoncé — jamais moins. C'est le seul sens dans lequel un compteur a le droit
+ * de se tromper.
+ *
+ * Sous un cours entier, les pages reviennent : c'est la fin du mois, il reste
+ * cinq feuilles, et « moins d'un cours » ne dirait pas ce qu'on peut encore
+ * faire avec.
  */
 function phrasePages(n) {
   return n === 1 ? 'une page' : n + ' pages';
 }
 
-function phraseCours(pages) {
+function phraseCours(n) {
+  return n === 1 ? 'un cours' : n + ' cours';
+}
+
+/* Ce qui reste, dans l'unité qui se comprend : des cours tant qu'il y en a un
+   entier, des pages en dessous. */
+function cequiReste(pages) {
   const cours = Math.floor(pages / (config.max_photos || 8));
-  if (cours < 1) return '';
-  return ', de quoi photographier '
-    + (cours === 1 ? 'un cours entier' : cours + ' cours entiers');
+  return cours >= 1 ? phraseCours(cours) : phrasePages(pages);
 }
 
 function peindreRestePages() {
@@ -3625,18 +3643,22 @@ function peindreRestePages() {
   cible.hidden = false;
 
   if (restant > 0) {
-    cible.textContent = (enAttente ? 'Il te restera ' : 'Il te reste ')
-      + phrasePages(restant) + ' ce mois-ci' + phraseCours(restant) + '.';
+    // « Après celui-ci » : les pages déjà posées sur l'écran sont comptées
+    // dedans, et le cours qu'on est en train de photographier ne l'est plus.
+    cible.textContent = enAttente
+      ? 'Après celui-ci, il te restera ' + cequiReste(restant) + ' à photographier ce mois-ci.'
+      : 'Il te reste ' + cequiReste(restant) + ' à photographier ce mois-ci.';
     delete cible.dataset.epuise;
     return;
   }
   cible.dataset.epuise = 'oui';
   if (restant === 0) {
     cible.textContent = enAttente
-      ? 'Avec celles-ci, tu auras rentré toutes tes pages du mois.'
-      : 'Tu as rentré toutes tes pages du mois. Le compteur repart le 1er.';
+      ? 'Avec celles-ci, c’est ton dernier cours du mois. Ça repart le 1er.'
+      : 'Tu as photographié tous tes cours du mois. Ça repart le 1er.';
     return;
   }
+  // Ici seulement on reparle de pages : c'est de photos qu'il faut en retirer.
   cible.textContent = 'Ça fait ' + phrasePages(-restant) + ' de trop pour ce mois-ci. '
     + 'Retires-en, ou garde le reste pour le 1er.';
 }

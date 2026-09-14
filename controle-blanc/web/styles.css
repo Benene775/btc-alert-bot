@@ -819,11 +819,11 @@ select {
 /* « Voir ce que j'ai lu » : la transcription, dépliable, sous chaque chapitre.
    Un <details> natif — il s'ouvre au clavier, il s'imprime ouvert, et il ne
    demande aucun état à tenir en JavaScript. */
-/* Le reste de pages : une aide, pas une alarme — jusqu'à ce que ça dépasse.
-   Il ne paraissait qu'au bord de la limite ; il est là en permanence depuis
-   qu'on rappelle à l'élève ce qui lui reste au moment de photographier. Une
-   phrase qu'on lit à chaque visite mérite d'être lisible : le chiffré garde le
-   mono, mais pas la taille d'un compteur qu'on ne lisait qu'une fois. */
+/* Ce qu'il reste de cours : une aide, pas une alarme — jusqu'à ce que ça
+   dépasse. Il ne paraissait qu'au bord de la limite ; il est là en permanence
+   depuis qu'on rappelle à l'élève ce qui lui reste au moment de photographier.
+   Une phrase qu'on lit à chaque visite mérite d'être lisible : le chiffré garde
+   le mono, mais pas la taille d'un compteur qu'on ne lisait qu'une fois. */
 .reste-pages {
   font-family: var(--mono);
   font-size: .78rem;

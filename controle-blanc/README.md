@@ -421,20 +421,25 @@ blancs. Changer l'un oblige à regarder les deux autres.
 carreaux de 28×28 px), et les photos font 55 à 79 % du coût d'un parcours complet
 — mesuré sur les prompts réels. Compter les envois revenait donc à facturer pareil
 quatre pages et cinquante. C'est aussi l'unité qu'un élève comprend sans qu'on la
-lui explique : il voit ses feuilles. L'écran des photos le lui rappelle à chaque
-visite — « il te reste 64 pages ce mois-ci, de quoi photographier 8 cours entiers » —
-et un envoi qui dépasserait est refusé **avant** l'appel, pas constaté après.
+lui explique : il voit ses feuilles. Un envoi qui dépasserait est refusé **avant**
+l'appel, pas constaté après.
+
+**Ça se compte en pages, ça se dit en cours.** L'écran des photos rappelle à chaque
+visite « il te reste 8 cours à photographier ce mois-ci ». Il a d'abord annoncé les
+pages, et c'était une division de trop : personne ne sait ce que valent 64 pages sans
+la faire. Le budget, lui, ne bouge pas — le serveur décompte toujours des pages ;
+c'est l'affichage qui traduit, à huit pages par cours, **arrondi vers le bas**. Ce
+plancher peut annoncer moins que ce qui est possible, jamais plus : qui photographie
+trois pages à la fois en fera bien plus que huit cours. Les pages ne reparaissent
+qu'aux deux endroits où elles sont la seule vérité utile — sous un cours entier
+(« il te reste 5 pages », en fin de mois) et quand il faut en retirer (« ça fait
+2 pages de trop »). Quand des photos sont déjà posées sur l'écran, la phrase le dit
+au futur : « après celui-ci, il te restera 7 cours ».
 
 Ce rappel ne paraissait qu'à vingt pages de la limite, pour qu'un compteur permanent
 ne transforme pas « photographie ton cours » en « attention à ta consommation ».
 Demandé en sens inverse à l'usage : l'élève qui pose ses feuilles sur la table veut
-le savoir **avant** de les photographier. Il est donc là dès l'arrivée sur l'écran,
-et il se dit aussi en cours, parce que c'est en cours qu'on pense quand on révise.
-Ce nombre de cours est un plancher — il suppose des cours pleins de huit pages : « de
-quoi photographier 8 cours » est vrai, « il te reste 8 cours » serait faux pour qui
-photographie trois pages à la fois. Les pages restent le chiffre exact, et le seul
-qui bouge photo par photo ; le futur fait le reste du travail quand des pages sont
-déjà posées sur l'écran (« il te **restera** 61 pages »).
+le savoir **avant** de les photographier.
 
 Le plafond du mois est le seul qui tienne l'abonnement. Les deux autres se comptent
 par séance : en ouvrir une nouvelle les remet à zéro, ce qui est gratuit et se fait
@@ -461,8 +466,11 @@ lendemain qui refusera pareil.
 
 Ce qu'il reste du mois s'affiche là où l'on dépense : sous le bouton qui fabrique,
 dans la liste des fiches ou des contrôles, et sur l'écran des photos
-(`GET /api/compte/quotas`). Le bouton reste cliquable même à zéro : ce compteur peut
-être en retard, et c'est le serveur qui refuse, avec la vraie raison.
+(`GET /api/compte/quotas`). Partout la même phrase, la chose et ce qu'il en reste :
+« il te reste 8 contrôles blancs ce mois-ci », et non « il t'en reste 8 sur 8 », qui
+demandait de tenir deux chiffres et de deviner de quoi on parlait. Le bouton reste
+cliquable même à zéro : ce compteur peut être en retard, et c'est le serveur qui
+refuse, avec la vraie raison.
 
 ---
 

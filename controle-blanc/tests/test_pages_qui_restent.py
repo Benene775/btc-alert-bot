@@ -7,17 +7,23 @@ l'autre sens en usage réel — rappeler ici combien de cours il reste — parce
 l'élève qui pose ses feuilles sur la table veut le savoir AVANT de les
 photographier, pas au moment où on les lui refuse.
 
+Et le dire en COURS, pas en pages : « il te reste 64 pages » demandait une
+division avant de vouloir dire quelque chose. Le budget, lui, se compte
+toujours en pages côté serveur — c'est l'affichage qui traduit.
+
 Ce qui doit tenir :
 
 1. La phrase est là dès l'arrivée sur l'écran, sans attendre le réseau.
-2. Elle parle en cours autant qu'en pages : c'est en cours qu'on pense quand on
-   révise, et « 64 pages » ne se traduit pas tout seul.
-3. Le nombre de cours est un PLANCHER — il suppose des cours pleins. « De quoi
-   photographier 8 cours » est vrai ; « il te reste 8 cours » serait faux pour
-   qui photographie trois pages à la fois.
+2. Elle parle en cours. Les pages ne reviennent qu'aux deux endroits où elles
+   sont la seule vérité : sous un cours entier (cinq feuilles en fin de mois),
+   et quand il faut retirer des photos qui dépassent.
+3. Le nombre de cours est un PLANCHER — huit pages par cours, arrondi vers le
+   bas. Il peut annoncer moins que ce qui est possible, jamais plus.
 4. Elle ne ment jamais sur ce qui est déjà posé sur l'écran : les pages en
    attente sont comptées dedans, et la phrase le dit.
 5. Sans compte ni réseau, elle se tait plutôt que d'annoncer un chiffre faux.
+6. Le compteur des fiches et des contrôles parle la même langue : la chose et
+   ce qu'il en reste, pas « il t'en reste 8 sur 8 ».
 """
 
 from __future__ import annotations
@@ -80,10 +86,19 @@ def test_plus_aucun_seuil_ne_le_cache():
 def test_les_cours_se_comptent_a_la_baisse():
     """Math.floor, et pas round : annoncer un cours qu'on ne peut pas
     photographier en entier, c'est promettre ce qu'on refusera ensuite."""
-    assert "Math.floor(pages / (config.max_photos || 8))" in bloc("phraseCours")
-    assert "de quoi photographier" in bloc("phraseCours")
-    # « De quoi », jamais « il te reste tant de cours » : c'est un plancher.
-    assert "te reste " not in bloc("phraseCours")
+    assert "Math.floor(pages / (config.max_photos || 8))" in bloc("cequiReste")
+    # Sous un cours entier, les pages reprennent la main.
+    assert "phrasePages(pages)" in bloc("cequiReste")
+
+
+def test_les_pages_ne_reviennent_que_la_ou_elles_sont_la_seule_verite():
+    """Le chiffre du mois ne se dit plus en pages : c'est ce qui a été demandé.
+    Mais retirer « deux cours de trop » ne veut rien dire quand ce sont des
+    photos qu'on enlève une par une."""
+    corps = bloc("peindreRestePages")
+    assert "cequiReste(restant)" in corps
+    assert corps.count("phrasePages(") == 1, "les pages parlent ailleurs que sur le dépassement"
+    assert "de trop" in corps[corps.index("phrasePages(") :]
 
 
 def test_la_ligne_reste_lisible_maintenant_qu_on_la_lit_a_chaque_fois():
@@ -95,19 +110,21 @@ def test_la_ligne_reste_lisible_maintenant_qu_on_la_lit_a_chaque_fois():
 
 # --- Les phrases elles-mêmes, exécutées ------------------------------------
 
-MORCEAUX = ("phrasePages", "phraseCours", "peindreRestePages")
+MORCEAUX = ("phrasePages", "phraseCours", "cequiReste", "peindreRestePages")
 
 CAS = [
     # (pages restantes au serveur, photos déjà posées) -> phrase, épuisé
-    ((64, 0), "Il te reste 64 pages ce mois-ci, de quoi photographier 8 cours entiers.", False),
-    ((64, 4), "Il te restera 60 pages ce mois-ci, de quoi photographier 7 cours entiers.", False),
-    ((16, 0), "Il te reste 16 pages ce mois-ci, de quoi photographier 2 cours entiers.", False),
+    ((64, 0), "Il te reste 8 cours à photographier ce mois-ci.", False),
+    ((64, 4), "Après celui-ci, il te restera 7 cours à photographier ce mois-ci.", False),
+    ((16, 0), "Il te reste 2 cours à photographier ce mois-ci.", False),
     # Un plancher : quinze pages ne font pas deux cours.
-    ((15, 0), "Il te reste 15 pages ce mois-ci, de quoi photographier un cours entier.", False),
-    ((7, 0), "Il te reste 7 pages ce mois-ci.", False),
-    ((1, 0), "Il te reste une page ce mois-ci.", False),
-    ((8, 8), "Avec celles-ci, tu auras rentré toutes tes pages du mois.", True),
-    ((0, 0), "Tu as rentré toutes tes pages du mois. Le compteur repart le 1er.", True),
+    ((15, 0), "Il te reste un cours à photographier ce mois-ci.", False),
+    # La fin du mois, où les pages redeviennent la seule vérité utile.
+    ((7, 0), "Il te reste 7 pages à photographier ce mois-ci.", False),
+    ((1, 0), "Il te reste une page à photographier ce mois-ci.", False),
+    ((10, 4), "Après celui-ci, il te restera 6 pages à photographier ce mois-ci.", False),
+    ((8, 8), "Avec celles-ci, c\u2019est ton dernier cours du mois. \u00c7a repart le 1er.", True),
+    ((0, 0), "Tu as photographié tous tes cours du mois. Ça repart le 1er.", True),
     ((3, 4), "Ça fait une page de trop pour ce mois-ci. Retires-en, ou garde le reste pour le 1er.", True),
     ((3, 6), "Ça fait 3 pages de trop pour ce mois-ci. Retires-en, ou garde le reste pour le 1er.", True),
 ]
@@ -121,8 +138,9 @@ def _extraire(nom: str) -> str:
 @pytest.mark.skipif(shutil.which("node") is None, reason="node absent")
 def test_chaque_etat_du_mois_donne_sa_phrase():
     """Les cas limites de ce rappel sont tous à un mot près — « reste » et
-    « restera », « une page » et « 1 pages », « avec celles-ci » quand il n'y a
-    pas de celles-ci. On les lit donc pour de vrai."""
+    « restera », « un cours » et « 1 cours », « avec celles-ci » quand il n'y a
+    pas de celles-ci, et le basculement des cours vers les pages en fin de
+    mois. On les lit donc pour de vrai."""
     programme = "\n".join(_extraire(n) for n in MORCEAUX) + """
 const cible = { hidden: null, textContent: '', dataset: {} };
 function $(id) { return id === 'reste-pages' ? cible : null; }
@@ -159,3 +177,35 @@ console.log(JSON.stringify(sortie));
         assert rouge is epuise, f"{etat} : la couleur d'alerte tombe mal"
         assert cache is False, f"{etat} : le rappel se cache"
     assert rendu[-1][2] is True, "sans quota connu, le rappel devrait se taire"
+
+
+# --- La même langue sous le bouton qui fabrique ------------------------------
+
+def test_le_compteur_des_outils_nomme_la_chose_au_lieu_de_compter_sur_huit():
+    """« Il t'en reste 8 sur 8 » demande de tenir deux chiffres et de deviner de
+    quoi on parle. Sous une liste de fiches, « il te reste 8 fiches » se lit
+    sans rien tenir du tout."""
+    corps = bloc("dessinerFabriquer")
+    assert "phraseOutil(surLesFiches, etatQuota.restant)" in corps
+    assert "etatQuota.plafond" not in corps, "le dénominateur est revenu"
+    assert "Plafond atteint" not in corps, "la langue administrative est revenue"
+    # Épuisé, on dit quand ça repart — comme sur l'écran des photos.
+    assert "Ça repart le 1er." in corps
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node absent")
+def test_le_pluriel_de_controle_blanc_n_est_pas_un_s_colle_au_bout():
+    """Le piège de la phrase : « contrôle blancs ». Les deux formes s'écrivent
+    en entier, et on le vérifie plutôt que de l'espérer."""
+    programme = _extraire("phraseOutil") + """
+console.log(JSON.stringify([[true, 1], [true, 8], [false, 1], [false, 8]]
+  .map(([f, n]) => phraseOutil(f, n))));
+"""
+    with tempfile.TemporaryDirectory() as dossier:
+        js = Path(dossier) / "outils.js"
+        js.write_text(programme, encoding="utf-8")
+        fait = subprocess.run(["node", str(js)], capture_output=True, text=True)
+    assert fait.returncode == 0, fait.stderr
+    assert json.loads(fait.stdout) == [
+        "une fiche", "8 fiches", "un contrôle blanc", "8 contrôles blancs",
+    ]

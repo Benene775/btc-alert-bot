@@ -145,8 +145,10 @@ def test_le_reste_du_mois_se_lit_sous_le_bouton_qui_depense():
     assert 'id="aide-fabriquer"' in PAGE
     bloc = SCRIPT[SCRIPT.index("function dessinerFabriquer()"):]
     bloc = bloc[: bloc.index("\n}\n")]
-    assert "Il t’en reste " in bloc and "ce mois-ci" in bloc
-    assert "Plafond atteint" in bloc
+    # Il nomme ce qui reste plutôt que de le compter sur son plafond : voir
+    # tests/test_pages_qui_restent.py, qui tient la phrase elle-même.
+    assert "Il te reste " in bloc and "ce mois-ci" in bloc
+    assert "phraseOutil(surLesFiches, etatQuota.restant)" in bloc
 
 
 def test_rien_ne_se_promet_quand_il_n_y_a_rien_a_fabriquer():
