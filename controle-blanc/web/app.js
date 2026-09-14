@@ -1156,7 +1156,7 @@ function dessinerJourChoisi(sessions) {
     } else {
       action.textContent = 'Photographier';
       action.onclick = () =>
-        demarrerSession({ matiere: e.matiere, date: e.date, versPhotos: true });
+        demarrerSession({ matiere: e.matiere, date: e.date });
     }
     ligne.appendChild(action);
 
@@ -1233,7 +1233,7 @@ function formulaireRendezVous() {
   photos.onclick = () => {
     const jour = jourChoisi;
     ajouterRendezVous(jour, choix.value, note.value.trim());
-    demarrerSession({ matiere: choix.value, date: jour, versPhotos: true });
+    demarrerSession({ matiere: choix.value, date: jour });
   };
 
   forme.onsubmit = (evenement) => {
@@ -3093,7 +3093,11 @@ function montrer(id, options = {}) {
   // sur la section, qui porte un transform. Elle ne se cache donc pas avec eux :
   // on la referme à la main en quittant sa page.
   if ($('menu-marque') && !$('menu-marque').hidden) ouvrirMenuMarque(false);
-  if (id === 'ecran-photos') { peindreRestePages(); rafraichirQuotas(); }
+  if (id === 'ecran-photos') {
+    dessinerResumeContexte();
+    peindreRestePages();
+    rafraichirQuotas();
+  }
   if (id !== 'ecran-espace') {
     if (!$('fiche-jour').hidden) { jourChoisi = null; fermerFicheJour(); }
     if ($('ecran-espace').dataset.agenda) basculerAgenda(false);
@@ -3331,12 +3335,20 @@ async function demarrerSession(depuisAgenda = null) {
     }
     sauver();
     fermerAttente();
-    // « versPhotos » : on sait déjà quoi et quand, l'écran de contexte n'aurait
-    // que trois champs remplis et un bouton. validerContexte() les lit dans le
-    // formulaire — que les deux lignes ci-dessus viennent de renseigner — et
-    // enchaîne sur l'appareil photo.
-    if (depuisAgenda && depuisAgenda.versPhotos) return validerContexte();
-    montrer('ecran-contexte');
+    // Droit à l'appareil photo, d'où qu'on vienne.
+    //
+    // L'écran de contexte ouvrait le parcours et ne demandait plus rien : la
+    // classe vient du compte, la matière et la date ont leur valeur par défaut.
+    // Trois champs déjà remplis et un bouton « Continuer » — une porte à
+    // pousser entre « je veux photographier mon cours » et l'appareil photo.
+    // Signalé en usage réel depuis le carré « un nouveau cours ».
+    //
+    // Ce qui était vrai du raccourci de l'agenda l'est donc de tous les
+    // chemins : validerContexte() lit le formulaire — que les lignes ci-dessus
+    // viennent de renseigner quand on vient de l'agenda — l'envoie au serveur,
+    // et montre les photos. Le contexte, lui, ne disparaît pas : il s'affiche
+    // sur l'écran des photos et s'y change en un doigt (dessinerResumeContexte).
+    return validerContexte();
   } catch (e) { gererErreur(e); }
 }
 
@@ -3521,6 +3533,27 @@ async function validerContexte() {
     date_controle: etat.dateControle,
   }).catch(() => {});
   montrer('ecran-photos');
+}
+
+/* Ce qu'on est en train d'enregistrer, sur l'écran des photos.
+ *
+ * L'écran de contexte ne barre plus le passage ; sans cette ligne, ses trois
+ * valeurs deviendraient invisibles, et un cours de maths se rangerait sous
+ * « Histoire-Géographie » sans que personne ne le voie — la matière décide du
+ * classement ET du format du contrôle blanc. Elle est donc écrite là où on
+ * agit, et se change d'un doigt : c'est le prix honnête du raccourci.
+ */
+function dessinerResumeContexte() {
+  const ligne = $('resume-contexte');
+  if (!ligne) return;
+  if (!etat) { ligne.hidden = true; return; }
+  const matiere = (config.matieres.find((m) => m.cle === etat.matiere) || {}).nom;
+  const dessous = [];
+  if (etat.niveau) dessous.push(etat.niveau);
+  if (etat.dateControle) dessous.push('contrôle le ' + dateCourte(etat.dateControle));
+  ligne.hidden = false;
+  $('contexte-matiere').textContent = matiere || 'Matière à choisir';
+  $('contexte-detail').textContent = dessous.join(' · ');
 }
 
 /* ------------------------------------------------- étape 1b : photos ----- */
@@ -6287,6 +6320,10 @@ document.addEventListener('DOMContentLoaded', () => {
   $('bouton-reprendre').onclick = () => reprendreLaDerniere();
 
   $('bouton-vers-photos').onclick = validerContexte;
+  // La ligne du contexte, sur l'écran des photos : elle rouvre l'écran
+  // qui ne barre plus le passage, pour la fois où la matière n'est pas la
+  // bonne. « Continuer » y ramène aux photos, d'où l'on vient.
+  $('resume-contexte').onclick = () => montrer('ecran-contexte');
   $('champ-photos').onchange = (evenement) => {
     ajouterPhotos(evenement.target.files);
     evenement.target.value = '';

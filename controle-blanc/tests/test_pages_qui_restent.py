@@ -65,7 +65,8 @@ def test_il_s_affiche_sans_attendre_la_reponse_du_serveur():
     """Les quotas sont redemandés à l'entrée, et la réponse met un aller-retour
     à venir. L'écran s'ouvrirait donc sans son rappel, une fois sur deux, sur un
     réseau de collège."""
-    assert "if (id === 'ecran-photos') { peindreRestePages(); rafraichirQuotas(); }" in CODE_NU
+    entree = CODE_NU[CODE_NU.index("if (id === 'ecran-photos') {"):][:200]
+    assert "peindreRestePages();" in entree and "rafraichirQuotas();" in entree
     # Et il est repeint quand la vraie réponse arrive.
     assert "peindreRestePages()" in bloc("peindreQuotas")
     # Et à chaque photo ajoutée ou retirée.

@@ -71,6 +71,22 @@ Fly.io, Scaleway, ou une petite machine virtuelle. Et, avant d'ouvrir à de vrai
 | 6 | La fiche ciblée, uniquement sur les notions ratées | `POST /api/fiche/ciblee` |
 | 7 | Second contrôle, questions différentes, mêmes notions | `POST /api/controle` avec `notions_ciblees` |
 
+**Rien avant l'appareil photo.** Un écran de contexte ouvrait le parcours —
+« C'est quoi, ce contrôle ? », la classe, la matière, la date. Ses trois champs
+arrivaient déjà remplis : la classe vient du compte, la matière et la date ont leur
+valeur par défaut. C'était donc une porte à pousser qui ne demandait rien que le
+produit ne sache déjà, entre « je veux photographier mon cours » et l'appareil photo.
+Signalé en usage réel depuis le carré « un nouveau cours ». Tous les chemins mènent
+maintenant droit à l'étape 1 — le carré, l'agenda, le bouton d'accueil — et l'écran de
+contexte ne s'ouvre plus que pour corriger.
+
+Le raccourci a un prix, et il est payé sur l'écran des photos : la matière décide du
+classement du cours ET du format du contrôle blanc, donc ce qui est enregistré est
+écrit là, au-dessus du bouton qui ajoute — « Histoire-Géographie / EMC · 4e · contrôle
+le 21 septembre », avec un « Changer » qui rouvre l'écran de contexte. Sautée sans
+rien dire, la matière aurait rangé des cours de maths en histoire sans que personne ne
+le voie.
+
 Les deux chemins de l'étape 3 mènent tous les deux au contrôle blanc. **L'ordre des deux
 boutons est tiré au sort par session** : sans ça, on mesurerait la position du bouton,
 pas la préférence de l'élève.

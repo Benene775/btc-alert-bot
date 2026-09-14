@@ -390,7 +390,10 @@ def test_on_peut_photographier_le_cours_depuis_la_fiche_du_jour():
     assert "ajouterRendezVous(" in lien, "le contrôle n'est pas posé avant de partir"
     assert lien.index("ajouterRendezVous(") < lien.index("demarrerSession("), \
         "on part photographier avant d'avoir enregistré la date"
-    assert "versPhotos: true" in lien
+    # Et il emporte la matière et la date du rendez-vous, au lieu des valeurs
+    # par défaut : c'est tout ce qui distingue encore ce chemin des autres,
+    # depuis que l'écran de contexte ne barre plus le passage de personne.
+    assert "demarrerSession({ matiere:" in lien and "date: jour" in lien
     # La date est relevée avant l'enregistrement : « ajouterRendezVous » relance
     # un dessin, et « jourChoisi » ne vaut plus rien à la ligne suivante.
     assert "const jour = jourChoisi;" in lien
@@ -401,18 +404,26 @@ def test_venir_de_l_agenda_mene_droit_aux_photos():
     trois champs déjà remplis et un bouton. Les trois chemins — le lien de la
     fiche, le bouton d'un rendez-vous, la prochaine échéance — vont au même
     endroit ; deux routes vers le même geste ne peuvent pas mener à deux
-    écrans différents."""
+    écrans différents.
+
+    Ce qui était le privilège de l'agenda vaut maintenant pour tout le monde
+    (voir test_droit_aux_photos.py) : l'agenda garde seulement le soin de
+    reprendre SA matière et SA date au lieu des valeurs par défaut."""
     demarrer = SCRIPT[SCRIPT.index("async function demarrerSession"):]
     demarrer = demarrer[: demarrer.index("\n}\n")]
-    assert "depuisAgenda.versPhotos" in demarrer
-    assert demarrer.index("versPhotos") < demarrer.index("montrer('ecran-contexte')"), \
-        "le raccourci arrive après l'écran de contexte : il ne sert à rien"
+    assert "depuisAgenda.matiere" in demarrer and "depuisAgenda.date" in demarrer
+    assert "montrer('ecran-contexte')" not in demarrer, \
+        "l'écran de contexte est revenu barrer le passage"
+    assert "return validerContexte();" in demarrer
     # Deux chemins depuis l'agenda : le lien de la fiche du jour et le bouton
     # d'un rendez-vous. Il y en avait un troisième, sur le bloc « prochaine
     # échéance » qui occupait le haut de la page perso ; ce bloc est devenu la
     # ligne de la porte d'agenda, et le geste vit maintenant DANS l'agenda, à
     # un doigt de là. Deux routes vers le même geste, un seul écran d'arrivée.
-    assert SCRIPT.count("versPhotos: true") == 2, \
+    # « versPhotos » a disparu avec l'écran qu'il sautait : tous les chemins
+    # mènent à l'appareil photo, il n'y a plus de raccourci à marquer.
+    assert "versPhotos" not in SCRIPT
+    assert SCRIPT.count("demarrerSession({ matiere:") == 2, \
         "les chemins vers l'appareil photo ne sont pas alignés"
 
 

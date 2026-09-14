@@ -749,8 +749,10 @@
 </section>
 
 <!-- ÉTAPE 1a — le contexte -->
+<!-- Plus la première marche du parcours : on va droit aux photos, et cet écran
+     ne s'ouvre que pour corriger ce qui est écrit sur la ligne de contexte. -->
 <section id="ecran-contexte" class="ecran" hidden>
-  <p class="etape">Étape 1 sur 5</p>
+  <p class="etape">La matière et la date</p>
   <h2>C’est quoi, ce contrôle ?</h2>
   <label for="champ-niveau">Ta classe</label>
   <select id="champ-niveau"></select>
@@ -764,9 +766,22 @@
 
 <!-- ÉTAPE 1b — les photos -->
 <section id="ecran-photos" class="ecran" hidden>
-  <p class="etape">Étape 2 sur 5</p>
+  <p class="etape">Étape 1 sur 4</p>
   <h2>Photographie ton cours</h2>
   <p class="chapeau">Toutes les pages qui tombent au contrôle. Écriture à la main, pas de souci.</p>
+
+  <!-- Ce qu'on est en train d'enregistrer. L'écran de contexte ne barre plus le
+       passage : sans cette ligne, la matière deviendrait invisible, et elle
+       décide du classement du cours comme du format du contrôle blanc. -->
+  <button type="button" class="contexte-resume" id="resume-contexte" hidden>
+    <span class="contexte-valeurs" id="contexte-valeurs">
+      <!-- La matière au-dessus : c'est elle qui se trompe, et c'est elle qui
+           décide du classement du cours et du format du contrôle blanc. -->
+      <span class="contexte-matiere" id="contexte-matiere"></span>
+      <span class="contexte-detail" id="contexte-detail"></span>
+    </span>
+    <span class="contexte-changer">Changer</span>
+  </button>
 
   <label for="champ-photos" class="zone-photos" id="zone-photos">
     <span class="zone-photos-icone" aria-hidden="true">＋</span>
@@ -790,7 +805,7 @@
 
 <!-- ÉTAPE 2 — confirmer le périmètre -->
 <section id="ecran-perimetre" class="ecran" hidden>
-  <p class="etape">Étape 3 sur 5</p>
+  <p class="etape">Étape 2 sur 4</p>
   <h2 id="titre-perimetre">J’ai repéré 1 chapitre.</h2>
   <p class="chapeau">C’est bien tout ce qui tombe au contrôle ?</p>
 
@@ -824,7 +839,7 @@
 
 <!-- ÉTAPE 3 — le carrefour -->
 <section id="ecran-carrefour" class="ecran" hidden>
-  <p class="etape">Étape 4 sur 5</p>
+  <p class="etape">Étape 3 sur 4</p>
   <h2>Par quoi tu commences ?</h2>
   <p class="chapeau">Les deux marchent. Dans les deux cas tu finiras par passer le contrôle blanc.</p>
   <div id="cases-carrefour" class="carrefour"></div>
@@ -904,7 +919,7 @@
 
 <!-- ÉTAPE 5 — la correction -->
 <section id="ecran-correction" class="ecran" hidden>
-  <p class="etape">Étape 5 sur 5</p>
+  <p class="etape">Étape 4 sur 4</p>
   <h2>Ta correction</h2>
   <p class="chapeau" id="mot-de-fin"></p>
 
