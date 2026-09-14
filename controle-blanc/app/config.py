@@ -345,6 +345,42 @@ SMTP_EXPEDITEUR = os.environ.get("CB_SMTP_EXPEDITEUR", "Repère <ne-pas-repondre
 AUTH_CODE_EN_CLAIR = _flag("CB_AUTH_CODE_EN_CLAIR", default=DEMO_MODE) and not SMTP_HOTE
 
 
+# --- Les rappels de contrôle ------------------------------------------------
+#
+# « Contrôle d'espagnol demain, pense à réviser. » C'est la seule notification
+# que le produit envoie, et elle ne sort pas de nulle part : elle lit l'agenda
+# que l'élève a rempli lui-même, et qui monte déjà au serveur (PUT /api/agenda).
+# Rien n'est deviné, rien n'est inventé pour faire revenir quelqu'un.
+#
+# Web Push, c'est-à-dire le mécanisme du navigateur : aucun coût par message,
+# aucun appel au modèle, aucun numéro de téléphone. Il demande une paire de clés
+# VAPID, qui signe nos envois auprès d'Apple et de Google. La publique part dans
+# le navigateur ; LA PRIVÉE RESTE DANS L'ENVIRONNEMENT, jamais dans le dépôt —
+# qui est public. Sans les deux, la fonction est simplement absente : pas de
+# bouton, pas de tâche de fond, rien à l'écran.
+#
+# Outil pour les fabriquer : « python -m outils.cles_vapid ».
+VAPID_CLE_PUBLIQUE = os.environ.get("CB_VAPID_CLE_PUBLIQUE", "").strip()
+VAPID_CLE_PRIVEE = os.environ.get("CB_VAPID_CLE_PRIVEE", "").strip()
+# Exigé par la norme : une adresse où le service de push peut nous écrire si nos
+# envois posent problème. Le « mailto: » en fait partie.
+VAPID_CONTACT = os.environ.get("CB_VAPID_CONTACT", "").strip()
+
+RAPPELS_ACTIFS = bool(VAPID_CLE_PUBLIQUE and VAPID_CLE_PRIVEE and VAPID_CONTACT)
+
+# L'heure du rappel, en heure de Paris. 18 h : l'élève est rentré, la soirée est
+# devant lui, et il lui reste le temps de faire quelque chose de l'information.
+# Le matin, il apprendrait la nouvelle dans le bus, trop tard pour agir ; le
+# soir tard, on réveillerait un collégien pour lui rappeler qu'il n'a pas
+# révisé. Bornée entre 7 h et 21 h pour cette raison : ce sont des mineurs, et
+# une erreur de réglage ne doit pas pouvoir sonner la nuit.
+RAPPEL_HEURE = min(21, max(7, _int("CB_RAPPEL_HEURE", 18)))
+# Combien de jours avant. Un seul : la veille, c'est le soir où réviser sert
+# encore. Prévenir une semaine avant fait un rappel qu'on oublie.
+RAPPEL_JOURS_AVANT = min(7, max(1, _int("CB_RAPPEL_JOURS_AVANT", 1)))
+FUSEAU_RAPPELS = os.environ.get("CB_FUSEAU", "Europe/Paris").strip() or "Europe/Paris"
+
+
 # --- Le garde-fou du démarrage ----------------------------------------------
 #
 # Deux réglages sont sans danger en local et catastrophiques en ligne. Le

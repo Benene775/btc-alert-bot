@@ -505,6 +505,47 @@ refuse, avec la vraie raison.
 
 ---
 
+## Les rappels de contrôle
+
+« Contrôle d'espagnol demain, pense à réviser. » La seule notification que le
+produit envoie, et elle ne sort pas de nulle part : elle lit l'agenda que l'élève
+a rempli lui-même et qui monte déjà au serveur (`PUT /api/agenda`). Rien n'est
+deviné, rien n'est fabriqué pour faire revenir quelqu'un — un produit qui écrit à
+des collégiens le soir doit pouvoir dire exactement pourquoi, à chaque fois.
+
+Le transport est **Web Push**, le mécanisme du navigateur : aucun coût par
+message, aucun numéro de téléphone, aucun appel au modèle. Il demande une paire
+de clés VAPID (`python -m outils.cles_vapid`), dont la privée vit dans
+l'environnement et **jamais dans ce dépôt, qui est public**. Sans les clés, la
+fonction n'existe pas : pas de réglage chez l'élève, pas de tâche de fond, pas de
+route qui réponde autre chose que 503.
+
+Trois précautions, parce que ce sont des mineurs et que c'est leur téléphone :
+
+1. **Une heure de jour**, bornée entre 7 h et 21 h dans `config.py` — pas dans un
+   commentaire. Un réglage fautif ne doit pas pouvoir sonner la nuit.
+2. **La veille seulement.** Une semaine avant fait un rappel qu'on oublie ; le
+   matin même fait une mauvaise nouvelle dans le bus.
+3. **Une fois par contrôle.** La table `rappels_envoyes` garde la trace, donc un
+   redémarrage du serveur ne renvoie rien.
+
+Le message annonce et encourage ; il ne compte pas ce qui n'a pas été fait. Un
+test l'empêche de devenir un reproche, un autre vérifie le français — « Contrôle
+de Espagnol » n'est pas une phrase, et une notification se lit en entier ou pas
+du tout. Le dernier monte un faux service de push, capture l'envoi et **le
+déchiffre** : c'est le seul qui prouve qu'un téléphone affiche vraiment la
+phrase, tous les autres passeraient sur du code qui n'envoie rien.
+
+**Sur iPhone, ça n'existe que pour une application posée sur l'écran d'accueil.**
+C'est Apple qui le décide. L'application le dit avant de proposer le réglage,
+plutôt que de laisser toucher un bouton qui ne fera jamais rien.
+
+Le réglage vit **dans l'agenda**, sous le calendrier : c'est ce qu'on y écrit que
+le rappel annonce, et c'est en posant la date d'un contrôle qu'on a envie d'être
+prévenu. La page perso, elle, ne porte que des portes.
+
+---
+
 ## L'application
 
 Repère s'installe sur l'écran d'accueil d'un téléphone : icône, ouverture en

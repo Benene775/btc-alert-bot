@@ -32,6 +32,20 @@ celle de l'élève, demande le prénom du parent et écris-lui par son prénom, 
 envoie-lui un résumé mensuel. Le dernier sert aussi à autre chose : c'est lui
 qui décidera de payer.*
 
+### Et les rappels du soir en font partie
+
+Depuis qu'il existe une notification — « contrôle d'espagnol demain, pense à
+réviser » — ce n'est plus seulement un compte qu'un parent autorise, c'est une
+application qui écrit sur le téléphone de son enfant à 18 h. La permission du
+système est demandée à l'élève, jamais au parent, et aucun navigateur ne sait
+faire autrement.
+
+Ce qui limite les dégâts aujourd'hui : c'est l'élève qui l'active lui-même, ça
+ne parle que de ce qu'il a écrit dans son propre agenda, et l'heure est bornée
+entre 7 h et 21 h par le code. Ce qu'il faudra le jour où un inconnu s'inscrit :
+que le message de consentement mentionne les rappels, et qu'un parent puisse
+les couper depuis son côté — pas seulement depuis le téléphone de l'enfant.
+
 ## 2. « C'est gratuit » est écrit dans le produit
 
 `web/index.html`, dans le bloc que l'élève montre à ses parents, marqué

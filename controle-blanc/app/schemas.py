@@ -201,3 +201,21 @@ class ContexteSession(BaseModel):
     niveau: str = ""
     matiere: str = ""
     date_controle: str = ""
+
+
+class AbonnementPush(BaseModel):
+    """Ce que « PushManager.subscribe » rend au navigateur, tel quel.
+
+    L'endpoint est une URL chez Apple ou Google — elle peut être longue, d'où
+    la borne large. Les deux clés sont du base64url : elles servent à chiffrer
+    le message pour ce navigateur-là, et le serveur ne fait que les relayer à
+    la bibliothèque d'envoi.
+    """
+
+    endpoint: str = Field(min_length=10, max_length=1000)
+    p256dh: str = Field(min_length=10, max_length=200)
+    auth: str = Field(min_length=6, max_length=100)
+
+
+class DesabonnementPush(BaseModel):
+    endpoint: str = Field(min_length=10, max_length=1000)

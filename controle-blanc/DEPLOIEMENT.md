@@ -108,6 +108,35 @@ part dans les journaux du serveur.
 | `CB_SMTP_UTILISATEUR` / `CB_SMTP_MOT_DE_PASSE` | ce que le fournisseur te donne |
 | `CB_SMTP_EXPEDITEUR` | `Repère <ne-pas-repondre@ton-domaine>` |
 
+Les rappels de contrôle, si tu les veux. **Facultatif** : sans ces trois
+lignes, la fonction n'existe pas — aucun réglage n'apparaît chez l'élève, et
+aucune tâche de fond ne démarre. Le reste du produit marche exactement pareil.
+
+Sur ta machine, une fois :
+
+```
+python -m outils.cles_vapid
+```
+
+Il affiche trois lignes à coller dans *Environment*. **La clé privée ne doit
+jamais entrer dans le dépôt**, qui est public — c'est elle qui autorise à
+écrire aux téléphones de tes élèves.
+
+| Nom | Valeur |
+|---|---|
+| `CB_VAPID_CLE_PUBLIQUE` | ce que l'outil affiche |
+| `CB_VAPID_CLE_PRIVEE` | ce que l'outil affiche — **secret** |
+| `CB_VAPID_CONTACT` | `mailto:ton-adresse` — exigé par Apple et Google pour te joindre si tes envois posent problème |
+
+Deux choses à savoir avant de le proposer aux familles :
+
+* **Sur iPhone, ça ne marche que depuis l'écran d'accueil.** Partager → « Sur
+  l'écran d'accueil ». Dans l'onglet Safari, aucune notification n'arrive, et
+  c'est Apple qui le décide. L'application le dit avant de proposer le réglage.
+* **Les régénérer coupe les rappels de tout le monde** : les navigateurs déjà
+  inscrits l'ont été avec l'ancienne clé publique. On ne le fait que si la
+  privée a fuité — et alors il faut le faire tout de suite.
+
 Tout le reste a des valeurs par défaut mesurées : ne les touche pas pour le
 test. Elles sont dans `.env.example`, avec leur raison.
 

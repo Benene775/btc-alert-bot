@@ -6,3 +6,9 @@ python-multipart>=0.0.9
 # dépendance transitive.
 pydantic>=2.0
 anthropic>=1.0
+# Web Push : les rappels de contrôle (app/rappels.py). Aucun coût par message
+# — c'est le mécanisme du navigateur, pas un service tiers.
+pywebpush>=2.0
+# Installée par pywebpush, mais importée directement par outils/cles_vapid.py :
+# une dépendance qu'on importe se déclare.
+cryptography>=42.0

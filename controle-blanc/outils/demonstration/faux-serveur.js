@@ -218,6 +218,14 @@ async function api(chemin, options = {}) {
   if (chemin === '/api/agenda') return { range: true };
   if (chemin.startsWith('/api/classeur/')) return { range: true };
 
+  // Les rappels de contrôle. La démonstration n'a pas de clés d'envoi — donc
+  // « config.vapid_publique » est vide, donc le réglage ne s'affiche même pas.
+  // Ces réponses sont là pour le jour où on essaierait quand même : mieux vaut
+  // un « non » franc qu'un appel qui part dans le vide.
+  if (chemin === '/api/rappels/etat') return { possible: false, appareils: 0 };
+  if (chemin === '/api/rappels/activer') return { abonne: false };
+  if (chemin === '/api/rappels/arreter') return { abonne: false };
+
   // Les plafonds du mois. Dans le produit ils sont comptés côté serveur, seul
   // endroit où le compte est infalsifiable ; ici on les tient en mémoire, pour
   // que le compteur sous chaque outil de la page perso montre autre chose qu'un

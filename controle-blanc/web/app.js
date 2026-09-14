@@ -1311,6 +1311,125 @@ function animerAgenda() {
   minuteurVague = setTimeout(() => { delete bloc.dataset.anime; }, DUREE_VAGUE);
 }
 
+/* --- Le rappel de la veille ------------------------------------------------
+ *
+ * « Contrôle d'espagnol demain, pense à réviser. » Le serveur le sait parce que
+ * l'agenda monte déjà chez lui (garderRendezVous) ; il ne reste qu'à lui donner
+ * une adresse où écrire, et c'est ce que fait la fonction ci-dessous.
+ *
+ * Trois choses qui ne se voient pas dans le code mais décident de tout :
+ *
+ * 1. La permission ne se demande QUE sur un geste de l'élève. Demandée au
+ *    chargement, le navigateur la refuse d'office sur certaines versions, et
+ *    l'élève ne peut plus revenir dessus sans aller dans les réglages du
+ *    téléphone. On ne la demande donc qu'au doigt posé sur cette ligne.
+ *
+ * 2. Sur iPhone, rien de tout ça n'existe hors d'une application POSÉE SUR
+ *    L'ÉCRAN D'ACCUEIL. C'est Apple qui le décide. On le dit avant, plutôt que
+ *    de laisser un élève toucher un bouton qui ne fera jamais rien.
+ *
+ * 3. Un refus est définitif côté navigateur : redemander est impossible, et
+ *    insister est le meilleur moyen de se faire couper le son pour de bon. On
+ *    dit alors où c'est, dans les réglages, et on n'en reparle plus.
+ */
+function rappelsPossibles() {
+  return Boolean(config.vapid_publique) && 'serviceWorker' in navigator
+    && 'PushManager' in window && 'Notification' in window;
+}
+
+function surIPhone() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent)
+    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
+function cleEnOctets(base64) {
+  // La clé publique voyage en base64url ; « subscribe » veut des octets.
+  const normal = (base64 + '='.repeat((4 - base64.length % 4) % 4))
+    .replace(/-/g, '+').replace(/_/g, '/');
+  const brut = atob(normal);
+  return Uint8Array.from([...brut].map((c) => c.charCodeAt(0)));
+}
+
+async function rappelDuNavigateur() {
+  if (!rappelsPossibles()) return null;
+  try {
+    const agent = await navigator.serviceWorker.ready;
+    return await agent.pushManager.getSubscription();
+  } catch (e) { return null; }
+}
+
+async function dessinerRappels() {
+  const bloc = $('bloc-rappels');
+  if (!bloc) return;
+  if (!compte || !rappelsPossibles()) { bloc.hidden = true; return; }
+  bloc.hidden = false;
+
+  const pose = Boolean(await rappelDuNavigateur());
+  const refuse = Notification.permission === 'denied';
+  bloc.dataset.etat = pose ? 'oui' : (refuse ? 'refuse' : 'non');
+  $('rappels-titre').textContent = pose ? 'Tu seras prévenu la veille'
+                                        : 'Me prévenir la veille';
+  $('rappels-etat').textContent = pose ? '✓' : '';
+  if (refuse && !pose) {
+    $('rappels-aide').textContent = 'Les notifications sont bloquées pour Repère. '
+      + 'Ça se rouvre dans les réglages de ton téléphone.';
+  } else if (pose) {
+    $('rappels-aide').textContent = 'Une notification à 18 h, la veille d’un contrôle. '
+      + 'Touche pour arrêter.';
+  } else {
+    $('rappels-aide').textContent = 'Une notification à 18 h, la veille d’un contrôle.';
+  }
+}
+
+async function basculerRappels() {
+  if (!rappelsPossibles()) return;
+  const deja = await rappelDuNavigateur();
+  if (deja) {
+    try {
+      await envoyerJson('/api/rappels/arreter', { endpoint: deja.endpoint });
+      await deja.unsubscribe();
+    } catch (e) { /* le serveur a déjà oublié, ou le réseau est parti */ }
+    message('Tu ne seras plus prévenu la veille.');
+    return dessinerRappels();
+  }
+
+  if (Notification.permission === 'denied') {
+    return message('Les notifications sont bloquées pour Repère, dans les réglages '
+                   + 'de ton téléphone. C’est là qu’il faut les rouvrir.', 'alerte');
+  }
+  // Le cas iPhone, dit AVANT la demande : sans l'application sur l'écran
+  // d'accueil, la permission ne sert à rien et ne se redemande pas.
+  if (surIPhone() && !dejaInstallee()) {
+    return message('Sur iPhone, les rappels demandent d’abord d’ajouter Repère à '
+                   + 'ton écran d’accueil : Partager, puis « Sur l’écran d’accueil ».',
+                   'alerte');
+  }
+
+  try {
+    const accord = await Notification.requestPermission();
+    if (accord !== 'granted') {
+      await dessinerRappels();
+      return message('Sans autorisation, on ne peut rien t’envoyer. Tu peux y revenir '
+                     + 'quand tu veux.');
+    }
+    const agent = await navigator.serviceWorker.ready;
+    const canal = await agent.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: cleEnOctets(config.vapid_publique),
+    });
+    const clefs = canal.toJSON().keys || {};
+    await envoyerJson('/api/rappels/activer', {
+      endpoint: canal.endpoint,
+      p256dh: clefs.p256dh || '',
+      auth: clefs.auth || '',
+    });
+    message('C’est noté : on te préviendra la veille de tes contrôles.');
+  } catch (e) {
+    message('On n’a pas réussi à activer les rappels. Réessaie plus tard.', 'alerte');
+  }
+  dessinerRappels();
+}
+
 function basculerAgenda(ouvre) {
   const bloc = $('agenda-deplie');
   const porte = $('bouton-agenda');
@@ -1337,6 +1456,7 @@ function basculerAgenda(ouvre) {
     // dix semaines au lieu de vingt-six, avec une légende qui promettait
     // novembre. On la redessine une fois le bloc dans le flux.
     dessinerRegularite(sessionsFaites());
+    dessinerRappels();
     animerAgenda();
     requestAnimationFrame(() => requestAnimationFrame(() => {
       bloc.dataset.ouvert = 'oui';
@@ -6285,6 +6405,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   $('embleme').onclick = basculerAtelier;
   $('bouton-agenda').onclick = () => basculerAgenda();
+  $('bouton-rappels').onclick = () => basculerRappels();
 
   $('bouton-fabriquer').onclick = () =>
     ouvrirAtelier(archiveOuverte === 'controles' ? 'controle' : 'fiche');

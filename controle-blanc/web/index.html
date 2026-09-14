@@ -641,6 +641,21 @@
       </div>
       <div class="mois" id="mois-grille"></div>
       <p class="agenda-invite" id="agenda-invite"></p>
+
+      <!-- Le rappel de la veille. Il vit ICI, dans l'agenda, et pas dans un
+           écran de réglages : c'est ce qu'on y écrit qu'il annonce, et c'est en
+           posant la date d'un contrôle qu'on a envie d'être prévenu. La page
+           perso, elle, ne porte que des portes — une case à cocher n'en est
+           pas une. Caché tant que le serveur n'a pas de clés d'envoi. -->
+      <div class="rappels" id="bloc-rappels" hidden>
+        <button type="button" class="rappels-bouton" id="bouton-rappels">
+          <span class="rappels-texte">
+            <span class="rappels-titre" id="rappels-titre">Me prévenir la veille</span>
+            <span class="rappels-aide" id="rappels-aide">Une notification à 18 h, la veille d’un contrôle.</span>
+          </span>
+          <span class="rappels-etat" id="rappels-etat" aria-hidden="true"></span>
+        </button>
+      </div>
     </div>
   </div>
 

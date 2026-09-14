@@ -162,6 +162,30 @@ CREATE TABLE IF NOT EXISTS agenda (
     range_le  TEXT NOT NULL DEFAULT ''
 );
 
+-- À qui envoyer « contrôle d'espagnol demain ». Une ligne par navigateur
+-- abonné : le même élève peut avoir son téléphone et la tablette de la maison.
+-- « endpoint » est l'adresse que le service de push (Apple, Google) nous donne
+-- pour ce navigateur-là ; c'est elle qui identifie l'abonnement, pas le compte.
+CREATE TABLE IF NOT EXISTS abonnements_push (
+    endpoint   TEXT PRIMARY KEY,
+    compte_id  TEXT NOT NULL,
+    p256dh     TEXT NOT NULL,
+    auth       TEXT NOT NULL,
+    cree_le    TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_push_compte ON abonnements_push (compte_id);
+
+-- Ce qui a déjà été annoncé, pour ne pas l'annoncer deux fois. La clé est le
+-- jour du contrôle ET sa matière : deux contrôles le même jour font deux
+-- rappels, et un redémarrage du serveur n'en renvoie aucun.
+CREATE TABLE IF NOT EXISTS rappels_envoyes (
+    compte_id TEXT NOT NULL,
+    jour      TEXT NOT NULL,
+    matiere   TEXT NOT NULL,
+    envoye_le TEXT NOT NULL,
+    PRIMARY KEY (compte_id, jour, matiere)
+);
+
 CREATE TABLE IF NOT EXISTS corriges (
     controle_id TEXT PRIMARY KEY,
     session_id  TEXT NOT NULL,
@@ -817,6 +841,75 @@ def lire_agenda(compte_id: str) -> dict[str, str] | None:
         cur.execute("SELECT contenu, maj_le FROM agenda WHERE compte_id = ?", (compte_id,))
         ligne = cur.fetchone()
         return {"contenu": ligne["contenu"], "maj_le": ligne["maj_le"]} if ligne else None
+
+
+# --- Les rappels de contrôle ------------------------------------------------
+
+def abonner_push(compte_id: str, endpoint: str, p256dh: str, auth: str) -> None:
+    """Un navigateur de plus à prévenir.
+
+    L'endpoint est la clé : se réabonner depuis le même navigateur remplace la
+    ligne au lieu d'en ajouter une, sinon un élève qui rouvre l'application
+    finirait par recevoir le même rappel cinq fois.
+    """
+    with curseur() as cur:
+        cur.execute(
+            "INSERT INTO abonnements_push (endpoint, compte_id, p256dh, auth, cree_le)"
+            " VALUES (?, ?, ?, ?, ?)"
+            " ON CONFLICT(endpoint) DO UPDATE SET compte_id = ?, p256dh = ?, auth = ?",
+            (endpoint, compte_id, p256dh, auth, maintenant(), compte_id, p256dh, auth),
+        )
+
+
+def desabonner_push(endpoint: str) -> None:
+    with curseur() as cur:
+        cur.execute("DELETE FROM abonnements_push WHERE endpoint = ?", (endpoint,))
+
+
+def abonnements_du_compte(compte_id: str) -> list[dict[str, str]]:
+    with curseur() as cur:
+        cur.execute(
+            "SELECT endpoint, p256dh, auth FROM abonnements_push WHERE compte_id = ?",
+            (compte_id,),
+        )
+        return [dict(ligne) for ligne in cur.fetchall()]
+
+
+def comptes_abonnes() -> list[str]:
+    """Les comptes qui ont au moins un navigateur abonné.
+
+    C'est par là que commence la tournée des rappels : inutile de lire l'agenda
+    de quelqu'un qu'on ne peut pas prévenir.
+    """
+    with curseur() as cur:
+        cur.execute("SELECT DISTINCT compte_id FROM abonnements_push")
+        return [ligne["compte_id"] for ligne in cur.fetchall()]
+
+
+def rappel_deja_envoye(compte_id: str, jour: str, matiere: str) -> bool:
+    with curseur() as cur:
+        cur.execute(
+            "SELECT 1 FROM rappels_envoyes WHERE compte_id = ? AND jour = ? AND matiere = ?",
+            (compte_id, jour, matiere),
+        )
+        return cur.fetchone() is not None
+
+
+def noter_rappel(compte_id: str, jour: str, matiere: str) -> None:
+    with curseur() as cur:
+        cur.execute(
+            "INSERT OR IGNORE INTO rappels_envoyes (compte_id, jour, matiere, envoye_le)"
+            " VALUES (?, ?, ?, ?)",
+            (compte_id, jour, matiere, maintenant()),
+        )
+
+
+def purger_rappels(avant_le: str) -> int:
+    """Les rappels d'hier n'ont plus rien à dire. Passé le contrôle, la ligne ne
+    sert qu'à faire grossir la base."""
+    with curseur() as cur:
+        cur.execute("DELETE FROM rappels_envoyes WHERE jour < ?", (avant_le,))
+        return cur.rowcount
 
 
 def poser_agenda(compte_id: str, contenu: str, maj_le: str) -> bool:

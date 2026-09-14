@@ -15,6 +15,7 @@ Trois principes de découpage :
 
 from __future__ import annotations
 
+import asyncio
 import html
 import json
 import logging
@@ -27,8 +28,9 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import config, courrier, formats, llm, schemas, store
+from . import config, courrier, formats, llm, rappels, schemas, store
 from .schemas import (
+    AbonnementPush,
     Connexion,
     ContexteSession,
     DemandeCode,
@@ -36,6 +38,7 @@ from .schemas import (
     DemandeCorrection,
     DemandeFiche,
     DemandeFicheCiblee,
+    DesabonnementPush,
     Evenement,
     Inscription,
     Reinitialisation,
@@ -95,7 +98,20 @@ async def cycle_de_vie(_: FastAPI):
         raise SystemExit(
             "Démarrage refusé : " + " | ".join(fautes)
         )
-    yield
+
+    # La tournée des rappels : une tâche qui dort et se réveille le soir. Elle
+    # ne démarre pas sans clés VAPID — le produit marche très bien sans, et un
+    # déploiement qui n'en veut pas ne doit pas avoir à le dire.
+    veilleuse = None
+    if config.RAPPELS_ACTIFS:
+        veilleuse = asyncio.create_task(rappels.boucle())
+        logger.info("rappels de contrôle actifs : tournée à %s h (%s)",
+                    config.RAPPEL_HEURE, config.FUSEAU_RAPPELS)
+    try:
+        yield
+    finally:
+        if veilleuse:
+            veilleuse.cancel()
 
 
 app = FastAPI(title="Repère", docs_url=None, redoc_url=None, lifespan=cycle_de_vie)
@@ -355,6 +371,9 @@ def configuration() -> dict[str, Any]:
         "mode_demonstration": config.DEMO_MODE,
         "max_photos": config.MAX_PHOTOS_PAR_ANALYSE,
         "max_doutes": config.MAX_DOUTES,
+        # Vide quand les clés VAPID ne sont pas posées : le navigateur n'affiche
+        # alors aucun réglage de rappel, plutôt qu'un bouton qui ne marche pas.
+        "vapid_publique": config.VAPID_CLE_PUBLIQUE if config.RAPPELS_ACTIFS else "",
     }
 
 
@@ -394,6 +413,44 @@ def ranger_agenda(corps: SeanceRangee, compte: dict = Depends(compte_connecte)) 
     except ValueError:
         raise HTTPException(status_code=400, detail="contenu illisible")
     return {"range": store.poser_agenda(compte["id"], corps.contenu, corps.maj_le)}
+
+
+# --- Les rappels de contrôle ------------------------------------------------
+#
+# Les routes disent « rappels » et non « abonnement » : le mot veut dire
+# « payant » pour un élève, et le produit promet qu'il n'y a rien à payer —
+# c'est même tenu par un test (test_age_et_accord). Le terme technique du
+# protocole reste dans store.py, que personne ne lit à quinze ans.
+#
+# Le navigateur s'inscrit, le serveur garde l'adresse, et la tournée du soir
+# (app/rappels.py) lit l'agenda pour savoir quoi dire. Rien d'autre ne part
+# d'ici : pas de message commercial, pas de relance parce qu'on n'est pas venu.
+
+@app.post("/api/rappels/activer")
+def activer_rappels(corps: AbonnementPush,
+                    compte: dict = Depends(compte_connecte)) -> dict[str, Any]:
+    if not config.RAPPELS_ACTIFS:
+        raise HTTPException(status_code=503, detail="les rappels ne sont pas configurés")
+    store.abonner_push(compte["id"], corps.endpoint, corps.p256dh, corps.auth)
+    return {"abonne": True}
+
+
+@app.post("/api/rappels/arreter")
+def arreter_rappels(corps: DesabonnementPush,
+                    compte: dict = Depends(compte_connecte)) -> dict[str, Any]:
+    # Pas de vérification du compte : l'endpoint est un secret que seul ce
+    # navigateur connaît, et refuser un désabonnement est bien pire que
+    # d'en accepter un de trop — on garderait quelqu'un abonné contre son gré.
+    store.desabonner_push(corps.endpoint)
+    return {"abonne": False}
+
+
+@app.get("/api/rappels/etat")
+def etat_rappels(compte: dict = Depends(compte_connecte)) -> dict[str, Any]:
+    return {
+        "possible": config.RAPPELS_ACTIFS,
+        "appareils": len(store.abonnements_du_compte(compte["id"])),
+    }
 
 
 @app.put("/api/classeur/{seance_id}")
