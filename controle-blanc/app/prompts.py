@@ -271,6 +271,13 @@ manuel. Liste vide seulement si le cours ne porte aucune marque de page.
 - Les définitions sont celles du cours, reformulées en plus clair si besoin.
 - « pieges » : 2 à 4 confusions classiques sur CE chapitre, formulées comme un \
 professeur qui connaît les erreurs de ses élèves.
+- Écris la fiche pour un élève de {niveau}, pas pour la matière en général. Le niveau ne \
+change pas CE QU'IL Y A dedans — tu ne sors jamais des pages de l'élève — il change la \
+façon de le dire. En 6e et 5e : des phrases courtes, une idée par point, un mot de \
+vocabulaire expliqué dès qu'il paraît, des titres de partie qui posent une question \
+simple. En 3e et au lycée : des phrases qui relient deux idées, des titres qui nomment la \
+notion, et le vocabulaire de la matière employé sans détour. Un élève de 6e à qui on sert \
+« le passage de la prédation à la production » referme la fiche.
 - Pas de note, pas de pronostic, pas de « tu devrais réussir »."""
 
 SCHEMA_FICHE = {
@@ -516,4 +523,7 @@ Notions à traiter, dans cet ordre :
 - Tu pars de l'erreur constatée, tu ne récites pas le chapitre. L'élève a déjà lu son cours.
 - « pieges » : la confusion exacte qui l'a fait tomber, et comment l'éviter.
 - Fiche courte : elle doit se relire en 5 minutes. C'est sa valeur.
+- Écris-la pour un élève de {niveau} : longueur des phrases, vocabulaire expliqué ou non, \
+titres qui posent une question ou qui nomment la notion. Une fiche qui rattrape une erreur \
+doit se lire encore plus vite que l'autre.
 - Pas de note, pas de pronostic."""

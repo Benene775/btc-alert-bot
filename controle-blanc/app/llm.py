@@ -262,7 +262,10 @@ def fiche_generale(
     return _appel(
         action="fiche_generale",
         blocs_systeme=_systeme_avec_cours(niveau, chapitres, "fiche_generale"),
-        contenu_utilisateur=[{"type": "text", "text": prompts.FICHE_GENERALE_CONSIGNE}],
+        contenu_utilisateur=[
+            {"type": "text",
+             "text": prompts.FICHE_GENERALE_CONSIGNE.format(niveau=niveau)}
+        ],
         schema=prompts.SCHEMA_FICHE,
         max_tokens=16000,
     )
@@ -282,7 +285,8 @@ def fiche_ciblee(
         action="fiche_ciblee",
         blocs_systeme=_systeme_avec_cours(niveau, chapitres, "fiche_ciblee"),
         contenu_utilisateur=[
-            {"type": "text", "text": prompts.FICHE_CIBLEE_CONSIGNE.format(notions=liste)}
+            {"type": "text",
+             "text": prompts.FICHE_CIBLEE_CONSIGNE.format(notions=liste, niveau=niveau)}
         ],
         schema=prompts.SCHEMA_FICHE,
         max_tokens=12000,
