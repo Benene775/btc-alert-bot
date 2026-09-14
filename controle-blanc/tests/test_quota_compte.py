@@ -139,28 +139,24 @@ SCRIPT = (WEB / "app.js").read_text(encoding="utf-8")
 STYLE = (WEB / "styles.css").read_text(encoding="utf-8")
 
 
-def test_chaque_outil_a_sa_ligne_de_reste():
-    for outil in ("controle", "fiche"):
-        assert f'id="reste-{outil}"' in PAGE, outil
-
-
-def test_la_ligne_de_reste_a_sa_place_dans_la_tuile():
-    """Elle vient après le nom et la phrase, en bas du carré, dans la chasse
-    fixe des étiquettes — comme partout ailleurs dans le produit."""
-    assert 'id="reste-controle"' in PAGE and 'id="reste-fiche"' in PAGE
-    for quoi in ("reste-controle", "reste-fiche"):
-        porte = PAGE[PAGE.index(f'id="{quoi}"') - 400 : PAGE.index(f'id="{quoi}"')]
-        assert "tuile-mot" in porte, f"« {quoi} » ne suit pas la phrase de sa porte"
-    bloc = STYLE[STYLE.index(".tuile-reste {"):].split("}")[0]
-    assert "var(--mono)" in bloc
-
-
-def test_le_reste_ne_parait_pas_sous_une_porte_eteinte():
-    """« Il t'en reste douze » sous une porte grise promet ce qu'on ne tient
-    pas : sans cours photographié, elle n'ouvre rien."""
-    bloc = SCRIPT[SCRIPT.index("function peindreQuotas()"):]
+def test_le_reste_du_mois_se_lit_sous_le_bouton_qui_depense():
+    """Il vivait sur les deux carrés de la page perso. On n'y fabrique plus :
+    il est descendu sous le bouton qui dépense vraiment, dans la liste."""
+    assert 'id="aide-fabriquer"' in PAGE
+    bloc = SCRIPT[SCRIPT.index("function dessinerFabriquer()"):]
     bloc = bloc[: bloc.index("\n}\n")]
-    assert "porte.disabled" in bloc
+    assert "Il t’en reste " in bloc and "ce mois-ci" in bloc
+    assert "Plafond atteint" in bloc
+
+
+def test_rien_ne_se_promet_quand_il_n_y_a_rien_a_fabriquer():
+    """« Il t'en reste douze » sous un bouton gris promet ce qu'on ne tient
+    pas : sans cours photographié, il n'y a rien à fabriquer. On dit alors ce
+    qui manque, pas ce qui reste."""
+    bloc = SCRIPT[SCRIPT.index("function dessinerFabriquer()"):]
+    bloc = bloc[: bloc.index("\n}\n")]
+    assert "bouton.disabled = cours === 0;" in bloc
+    assert "Photographie un cours d’abord" in bloc
 
 
 def test_la_page_perso_redemande_le_compteur_a_chaque_passage():
@@ -175,19 +171,20 @@ def test_le_compteur_affiche_ne_bloque_pas_la_tuile():
     """Ce chiffre peut être en retard : l'élève a pu générer depuis un autre
     appareil. C'est le serveur qui refuse, avec la vraie raison — la tuile, elle,
     reste cliquable, sinon un compteur périmé enfermerait dehors."""
-    bloc = SCRIPT[SCRIPT.index("function peindreQuotas()"):]
+    bloc = SCRIPT[SCRIPT.index("function dessinerFabriquer()"):]
     bloc = bloc[: bloc.index("\n}\n")]
-    # « disabled » y paraît, mais en LECTURE seule : le compteur consulte l'état
-    # de la porte, il ne l'éteint jamais lui-même.
-    assert "porte.disabled = " not in bloc and "cible.disabled" not in bloc
-    assert "hidden = true" in bloc, "sans quota connu, il faut n'afficher rien"
+    # Le bouton n'est éteint que par l'absence de cours, jamais par le compteur :
+    # celui-ci peut être en retard (l'élève a pu générer depuis un autre
+    # appareil), et c'est le serveur qui refuse, avec la vraie raison.
+    assert "bouton.disabled = cours === 0;" in bloc
+    assert "etatQuota" in bloc and "bouton.disabled = etatQuota" not in bloc
 
 
-def test_les_tuiles_pointent_vers_de_vraies_actions():
-    """ACTIONS_OUTILS traduit un nom de tuile en nom de quota. Une faute de
-    frappe ici n'affiche simplement jamais rien."""
-    bloc = SCRIPT[SCRIPT.index("const ACTIONS_OUTILS = {"):]
-    bloc = bloc[: bloc.index("}")]
+def test_le_bouton_pointe_vers_un_vrai_quota():
+    """Le nom du quota est écrit à la main dans le script. Une faute de frappe
+    ici n'affiche simplement jamais rien."""
+    bloc = SCRIPT[SCRIPT.index("function dessinerFabriquer()"):]
+    bloc = bloc[: bloc.index("\n}\n")]
     for action in ("controle", "fiche_generale"):
         assert f"'{action}'" in bloc, action
         assert action in config.QUOTAS_MOIS, action

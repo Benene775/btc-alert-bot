@@ -1050,6 +1050,7 @@ TYPES_EVENEMENTS = {
     "transcription_signalee",  # details: {"chapitre": "..."} — le cours a été mal lu
     "correction_vue",
     "impression",           # details: {"type": "generale" | "ciblee"} — la fiche part sur papier
+    "suppression",          # details: {"genre": "fiches" | "controles"} — l'élève fait le ménage
 }
 
 

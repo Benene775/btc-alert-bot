@@ -12,13 +12,14 @@ Ce qui doit tenir :
 1. Une porte par destination, et rien sur la page qui ne soit une porte.
 2. Les six sont le même objet : même carré, même trait, même famille de
    couleurs. C'est de là que vient l'harmonie, pas d'un dégradé.
-3. Ce qui FABRIQUE annonce une durée ; ce qui OUVRE annonce un contenu. C'est
-   ce qui remplace le verbe : un élève a un jour cliqué « Fiche de révision »
-   en croyant y trouver les siennes, et s'en est fabriqué une de plus.
+3. Une porte mène où son nom dit. Deux d'entre elles ont FABRIQUÉ pendant un
+   temps — « Un contrôle blanc », « Une fiche » — et ouvraient le même écran
+   d'atelier au titre près. Signalé en usage réel : « on tombe sur la même
+   page ». C'était vrai, et le fond l'était plus encore : « Une fiche » se lit
+   comme la porte de ses fiches. On fabrique depuis la liste, maintenant.
 4. Ce qu'on revient chercher le plus souvent — ses fiches — est à un doigt.
 5. La page parle à l'élève, pas de lui.
-6. Les six tiennent sous le pli d'un téléphone. Mesuré sur 390 × 844 : carrés
-   de 169 px, la sixième porte finit à 756 px — 88 px avant le pli. La pile
+6. Elles tiennent sous le pli d'un téléphone. Mesuré sur 390 × 844 : la pile
    d'avant faisait 2,4 écrans, et « Photographier un nouveau cours » — l'action
    première du produit — arrivait à 1 681 px, un écran entier SOUS le pli.
 """
@@ -35,7 +36,7 @@ STYLE = (RACINE / "web" / "styles.css").read_text(encoding="utf-8")
 
 ESPACE = PAGE[PAGE.index('id="ecran-espace"') : PAGE.index('id="ecran-matiere"')]
 PORTES = ("porte-photo", "bouton-agenda", "porte-matieres",
-          "outil-controle", "outil-fiche", "porte-travail")
+          "porte-fiches", "porte-controles")
 
 
 def bloc(nom: str) -> str:
@@ -43,7 +44,7 @@ def bloc(nom: str) -> str:
     return SCRIPT[debut:][: SCRIPT[debut:].index("\n}\n")]
 
 
-def test_les_six_portes_sont_la_dans_l_ordre():
+def test_les_portes_sont_la_dans_l_ordre():
     place = [ESPACE.index(f'id="{p}"') for p in PORTES]
     assert place == sorted(place), "l'ordre des portes a changé"
     # La première est celle sans laquelle les cinq autres n'ouvrent rien.
@@ -56,7 +57,7 @@ def test_rien_sur_la_page_qui_ne_soit_une_porte():
     d'être : ce qu'ils contenaient se lit derrière la porte qui le concerne."""
     for disparu in ("pan-fiches", "pan-outils", "pan-choix", "prochain",
                     "carte-annee", "carte-chiffres", "liste-fiches-recentes",
-                    "bouton-espace-nouveau", "frise-porte"):
+                    "bouton-espace-nouveau", "frise-porte", "porte-travail"):
         assert f'id="{disparu}"' not in ESPACE, f"« {disparu} » est revenu sur la page"
     # Il ne reste, hors des portes, que l'identité, l'atelier qu'elle ouvre,
     # l'agenda que sa porte déplie, et le pied de page.
@@ -64,10 +65,10 @@ def test_rien_sur_la_page_qui_ne_soit_une_porte():
     assert not sections, f"des panneaux sont revenus : {sections}"
 
 
-def test_les_six_sont_le_meme_objet():
-    """L'harmonie ne vient pas d'un dégradé : elle vient de ce que les six
-    carrés sont le même carré, dans les six teintes de l'application."""
-    assert ESPACE.count('class="tuile-porte') + ESPACE.count('"tuile-porte ') >= 6
+def test_elles_sont_le_meme_objet():
+    """L'harmonie ne vient pas d'un dégradé : elle vient de ce que les carrés
+    sont le même carré, dans les teintes de l'application."""
+    assert ESPACE.count('class="tuile-porte') + ESPACE.count('"tuile-porte ') >= len(PORTES)
 
     regle = STYLE[STYLE.index(".tuile-porte {"):].split("}")[0]
     assert "aspect-ratio: 1" in regle, "les portes ne sont plus carrées"
@@ -86,32 +87,39 @@ def test_les_six_sont_le_meme_objet():
         assert 'stroke-width="1.7"' in symbole, f"« {signe} » n'a pas la même graisse"
 
 
-def test_fabriquer_annonce_un_geste_ouvrir_annonce_un_contenu():
-    """Ce qui remplace le verbe. « Fiche de révision » posé sur une page où
-    vivaient aussi des fiches se lisait comme la porte de ces fiches-là ; il en
-    fabriquait une de plus. Sous le nom d'une porte qui FABRIQUE, on écrit donc
-    ce qui va se passer — un geste, ou le temps que ça prend ; sous une porte
-    qui OUVRE, ce qu'on va trouver."""
-    def mot(identifiant):
-        porte = ESPACE[ESPACE.index(f'id="{identifiant}"'):]
-        return porte[: porte.index("</button>")] if "</button>" in porte else porte
+def test_une_porte_mene_ou_son_nom_dit():
+    """Le défaut signalé en usage réel. « Un contrôle blanc » et « Une fiche »
+    ouvraient le même écran d'atelier au titre près : deux carrés distincts, une
+    seule destination. Et « Une fiche » se lisait comme la porte de ses fiches,
+    ce qu'elle n'était pas."""
+    assert "$('porte-fiches').onclick = () => ouvrirMatiere(null, 'fiches');" in SCRIPT
+    assert "$('porte-controles').onclick = () => ouvrirMatiere(null, 'controles');" in SCRIPT
+    # Deux portes, deux onglets : elles ne peuvent plus tomber au même endroit.
+    assert "ouvrirMatiere(null, 'fiches')" != "ouvrirMatiere(null, 'controles')"
 
-    assert "à rédiger" in mot("outil-controle"), "le contrôle n'annonce pas le geste"
-    assert "9 min" in mot("outil-fiche"), "la fiche n'annonce pas sa durée"
-
+    # Et chacune annonce ce qu'elle contient avant qu'on l'ouvre.
     portes = bloc("dessinerLesPortes")
-    assert "fiches > 1 ? ' fiches' : ' fiche'" in portes, \
-        "la porte des archives n'annonce pas ce qu'elle contient"
-    assert "Fiches et contrôles" in ESPACE, "la porte des matières n'annonce rien"
+    assert "combien > 1 ? plusieurs : un" in portes
+    assert "'Rien encore'" in portes
+
+
+def test_une_archive_vide_reste_une_porte():
+    """Les éteindre à zéro paraissait honnête et faisait un cul-de-sac : on
+    fabrique depuis la liste, et un élève qui a photographié un cours sans avoir
+    encore passé de contrôle ne pouvait plus en lancer un d'ici."""
+    portes = bloc("dessinerLesPortes")
+    assert "$(porte).disabled" not in portes, "une archive vide redevient un mur"
+    assert "Rien encore" in portes
 
 
 def test_ce_qu_on_revient_chercher_est_a_un_doigt():
     """Une fiche se relit ; un contrôle se passe une fois. Ses fiches étaient à
     trois gestes : ouvrir une matière, descendre, parcourir. Elles sont à un."""
-    assert "$('porte-travail').onclick = () => ouvrirMatiere(null)" in SCRIPT
-    # Et la porte dit combien il y en a avant qu'on l'ouvre.
-    assert 'id="mot-travail"' in ESPACE
-    assert "'Rien encore'" in bloc("dessinerLesPortes")
+    assert 'id="mot-fiches"' in ESPACE and 'id="mot-controles"' in ESPACE
+    # Et l'onglet est déjà du bon côté : arriver sur les contrôles quand on a
+    # touché « Tes fiches » serait un aller-retour pour rien.
+    assert "function ouvrirMatiere(cle, viser)" in SCRIPT
+    assert "basculerArchive(viser)" in bloc("ouvrirMatiere")
 
 
 def test_la_porte_des_matieres_ouvre_une_feuille_a_nous():
@@ -149,7 +157,7 @@ def test_la_page_parle_a_l_eleve_pas_de_lui():
     for tournure in ("'Ses fiches'", "'Ses contrôles blancs'"):
         assert tournure not in SCRIPT, f"{tournure} parle de l'élève à la troisième personne"
     assert "'Tes fiches'" in SCRIPT and "'Tes contrôles blancs'" in SCRIPT
-    for nom in ("Ton agenda", "Tes matières", "Tout ton travail"):
+    for nom in ("Ton agenda", "Tes matières", "Tes fiches", "Tes contrôles"):
         assert f">{nom}<" in ESPACE
 
 

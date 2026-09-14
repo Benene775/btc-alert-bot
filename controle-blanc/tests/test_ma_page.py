@@ -47,7 +47,8 @@ def test_le_calendrier_ne_decale_pas_les_jours():
 def test_l_ecran_existe_avec_ses_sections():
     for identifiant in ("ecran-espace", "tuiles", "mois-grille", "jour-detail",
                         "liste-mes-fiches", "liste-mes-controles", "frise-regularite",
-                        "champ-prenom", "embleme", "porte-photo", "porte-travail"):
+                        "champ-prenom", "embleme", "porte-photo", "porte-fiches",
+                        "porte-controles", "bouton-fabriquer"):
         assert f'id="{identifiant}"' in PAGE, f"« {identifiant} » manque dans la page"
 
 

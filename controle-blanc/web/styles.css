@@ -3343,9 +3343,19 @@ h1 {
 .tuile-porte[data-teinte="4"] { background-color: color-mix(in srgb, var(--t4) 62%, var(--carte)); }
 .tuile-porte[data-teinte="5"] { background-color: color-mix(in srgb, var(--t5) 62%, var(--carte)); }
 
-/* La seule porte pleine. Sans cours photographié, les cinq autres n'ont rien à
-   ouvrir : sa couleur dit par où commencer avant qu'on ait lu son nom. */
-.tuile-phare { background-color: var(--accent); color: var(--sur-accent); }
+/* La seule porte pleine. Sans cours photographié, les quatre autres n'ont rien
+   à ouvrir : sa couleur dit par où commencer avant qu'on ait lu son nom.
+
+   Elle prend la rangée entière depuis qu'il y a cinq portes et non six : une
+   porte orpheline à côté d'un vide se lit comme un oubli, et c'est justement
+   celle qu'on veut voir en premier. */
+.tuile-phare {
+  grid-column: 1 / -1;
+  aspect-ratio: auto;
+  min-height: 132px;
+  background-color: var(--accent);
+  color: var(--sur-accent);
+}
 .tuile-phare .tuile-signe {
   background: color-mix(in srgb, var(--sur-accent) 22%, transparent);
   color: var(--sur-accent);
@@ -3433,6 +3443,47 @@ h1 {
   .tuile-porte { transition: none; }
   .tuile-porte:hover, .tuile-porte:active { transform: none; }
 }
+
+/* --- Fabriquer, depuis sa liste ------------------------------------------
+ *
+ * C'était deux carrés sur la page d'accueil qui ouvraient le même écran. Ici,
+ * le bouton est au bout des commandes de la liste : on cherche une fiche sur
+ * le chapitre 4, on ne la trouve pas, on l'écrit. */
+.fabriquer { display: flex; flex-direction: column; gap: 7px; }
+.fabriquer .secondaire { margin-top: 0; }
+.fabriquer .aide { margin: 0; }
+
+/* --- Supprimer une ligne d'archive ---------------------------------------
+ *
+ * À CÔTÉ de la ligne, jamais dedans : dans la ligne, un doigt qui vise
+ * « ouvrir » tomberait une fois sur dix sur « supprimer ». Discret au repos —
+ * on vient lire ses fiches, pas les jeter — et net dès qu'on l'approche. */
+.ligne-effacer {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  align-self: stretch;
+  border: 0;
+  border-radius: var(--rayon);
+  background: none;
+  color: color-mix(in srgb, var(--encre) 34%, transparent);
+  cursor: pointer;
+  padding: 0;
+  transition: color .16s ease, background .16s ease;
+}
+
+.ligne-effacer svg { width: 19px; height: 19px; }
+
+.ligne-effacer:hover {
+  color: var(--rouge);
+  background: color-mix(in srgb, var(--rouge) 9%, transparent);
+}
+
+/* Le bouton qui supprime dans la boîte de confirmation. Rouge seulement là :
+   sur la ligne, il serait une alarme permanente au bord de chaque fiche. */
+.bouton-danger { color: var(--rouge); }
 
 /* --- La feuille des matières ---------------------------------------------
  *
@@ -4765,6 +4816,10 @@ h1 {
 }
 
 .archive-mois:first-child { margin-top: 0; }
+
+/* La ligne et son bouton de suppression, en rangée. */
+.archive-ligne { display: flex; align-items: stretch; gap: 4px; }
+.archive-ligne > .ligne-archive { flex: 1 1 auto; min-width: 0; }
 
 .ligne-archive {
   display: flex;

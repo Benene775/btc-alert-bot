@@ -24,26 +24,31 @@ PAGE = (RACINE / "web" / "index.html").read_text(encoding="utf-8")
 SCRIPT = (RACINE / "web" / "app.js").read_text(encoding="utf-8")
 
 
-def test_les_deux_outils_sont_visibles_ensemble_sur_sa_page():
-    """Chacun sa porte, côte à côte : ils ne font pas la même chose — le
-    contrôle fait rédiger, la fiche fait relire — et c'est le choix qui est le
-    geste."""
-    espace = PAGE[PAGE.index('id="ecran-espace"') : PAGE.index('id="ecran-matiere"')]
-    for outil in ("outil-controle", "outil-fiche"):
-        assert f'id="{outil}"' in espace, f"« {outil} » manque sur la page perso"
-        porte = espace[espace.index(f'id="{outil}"') - 120 : espace.index(f'id="{outil}"')]
-        assert "tuile-porte" in porte, f"« {outil} » n'est pas une des six portes"
+def test_on_fabrique_depuis_sa_liste():
+    """Les deux outils avaient chacun leur carré sur la page perso, et les deux
+    carrés ouvraient le même écran d'atelier au titre près — d'où le
+    signalement : « on tombe sur la même page ». Ils vivent maintenant au bout
+    des commandes de la liste, où l'on s'aperçoit qu'il manque quelque chose."""
+    matiere = PAGE[PAGE.index('id="ecran-matiere"'):]
+    assert 'id="bouton-fabriquer"' in matiere
+    assert PAGE.index('id="bascule-archives"') < PAGE.index('id="bouton-fabriquer"'), \
+        "le bouton ne suit pas les onglets qu'il écoute"
+    assert "ouvrirAtelier(archiveOuverte === 'controles' ? 'controle' : 'fiche')" in SCRIPT
 
-
-def test_sans_cours_les_deux_portes_sont_eteintes_pas_cachees():
-    """Elles partent des pages de l'élève, pas d'ailleurs : sans cours
-    photographié, elles n'ouvrent rien. Éteintes plutôt que cachées — une porte
-    qui disparaît ne s'explique pas, une porte grise dit ce qui lui manque."""
-    bloc = SCRIPT[SCRIPT.index("function dessinerLesPortes"):]
+    bloc = SCRIPT[SCRIPT.index("function dessinerFabriquer()"):]
     bloc = bloc[: bloc.index("\n}\n")]
-    assert "$(id).disabled = cours === 0;" in bloc
+    assert "Écrire une nouvelle fiche" in bloc and "Passer un contrôle blanc" in bloc
+    assert "dessinerFabriquer()" in SCRIPT[SCRIPT.index("function basculerArchive"):][:700], \
+        "changer d'onglet ne change pas ce que le bouton fabrique"
+
+
+def test_sans_cours_photographie_on_ne_fabrique_rien():
+    """Tout sort des pages de l'élève, pas d'ailleurs. Éteint plutôt que caché —
+    un bouton qui disparaît ne s'explique pas, un bouton gris dit ce qui manque."""
+    bloc = SCRIPT[SCRIPT.index("function dessinerFabriquer()"):]
+    bloc = bloc[: bloc.index("\n}\n")]
+    assert "bouton.disabled = cours === 0;" in bloc
     assert "Photographie un cours d’abord" in bloc
-    assert ".tuile-porte:disabled" in (RACINE / "web" / "styles.css").read_text(encoding="utf-8")
 
 
 def test_les_outils_partagent_un_seul_ecran_de_choix():

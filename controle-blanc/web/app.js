@@ -643,28 +643,24 @@ function dessinerLesPortes(sessions, echeances) {
     $('agenda-mot').textContent = 'Pose ta prochaine date';
   }
 
-  // Les deux fabrications n'ouvrent rien tant qu'aucun cours n'est photographié :
-  // elles partent des pages de l'élève, pas d'ailleurs. Éteintes plutôt que
-  // cachées — une porte qui disparaît ne s'explique pas, une porte grise si.
-  const cours = coursRepassables().size;
-  [['outil-controle', 'mot-controle', 'Un vrai sujet, à rédiger'],
-   ['outil-fiche', 'mot-fiche', 'Ton cours resserré · 9 min']].forEach(([id, mot, dit]) => {
-    $(id).disabled = cours === 0;
-    $(mot).textContent = cours ? dit : 'Photographie un cours d’abord';
-  });
-
-  // Tout le travail, toutes matières confondues.
+  // Les deux archives disent ce qu'elles contiennent avant qu'on les ouvre : une
+  // porte qui annonce « 6 fiches » et une porte qui annonce « rien encore » ne
+  // se touchent pas de la même façon.
+  //
+  // Elles restent VIVES à zéro. Les éteindre paraissait honnête et faisait un
+  // cul-de-sac : on fabrique depuis la liste, et un élève qui a photographié un
+  // cours sans avoir encore passé de contrôle ne pouvait plus en lancer un
+  // d'ici. Une liste vide qui porte « Passer un contrôle blanc » est exactement
+  // l'écran où il faut atterrir.
   const fiches = toutesLesFiches(sessions).length;
   const controles = tousLesControles(sessions).length;
-  const porteTravail = $('porte-travail');
-  porteTravail.disabled = !(fiches || controles);
-  $('mot-travail').textContent = (fiches || controles)
-    ? [fiches && fiches + (fiches > 1 ? ' fiches' : ' fiche'),
-       controles && controles + (controles > 1 ? ' contrôles' : ' contrôle')]
-      .filter(Boolean).join(' · ')
-    : 'Rien encore';
-
-  peindreQuotas();
+  [['mot-fiches', fiches, 'fiche', 'fiches'],
+   ['mot-controles', controles, 'contrôle', 'contrôles'],
+  ].forEach(([mot, combien, un, plusieurs]) => {
+    $(mot).textContent = combien
+      ? combien + ' ' + (combien > 1 ? plusieurs : un)
+      : 'Rien encore';
+  });
 }
 
 /* --- La feuille des matières ---------------------------------------------
@@ -748,6 +744,37 @@ function basculerArchive(quoi) {
   $('onglet-controles').setAttribute('aria-selected', String(!surLesFiches));
   $('pan-mes-fiches').hidden = !surLesFiches;
   $('pan-mes-controles').hidden = surLesFiches;
+  dessinerFabriquer();
+}
+
+/* Fabriquer, depuis sa liste.
+ *
+ * C'était deux carrés sur la page d'accueil, « Un contrôle blanc » et « Une
+ * fiche », qui ouvraient le même écran d'atelier au titre près — d'où le
+ * signalement : « on tombe sur la même page ». Le vrai défaut était en amont :
+ * « Une fiche » se lit comme la porte de ses fiches. Les carrés mènent
+ * maintenant aux listes, et on fabrique d'ici : c'est en cherchant la fiche du
+ * chapitre 4 et en ne la trouvant pas qu'on veut l'écrire.
+ *
+ * Rien à fabriquer tant qu'aucun cours n'est photographié : tout sort des pages
+ * de l'élève, pas d'ailleurs. */
+function dessinerFabriquer() {
+  const surLesFiches = archiveOuverte === 'fiches';
+  const cours = coursRepassables().size;
+  const bouton = $('bouton-fabriquer');
+  bouton.textContent = surLesFiches ? 'Écrire une nouvelle fiche'
+                                    : 'Passer un contrôle blanc';
+  bouton.disabled = cours === 0;
+
+  const action = surLesFiches ? 'fiche_generale' : 'controle';
+  const etatQuota = quotasMois && quotasMois[action];
+  $('aide-fabriquer').textContent = cours === 0
+    ? 'Photographie un cours d’abord : tout sort de tes pages, pas d’ailleurs.'
+    : (etatQuota
+      ? (etatQuota.restant > 0
+        ? 'Il t’en reste ' + etatQuota.restant + ' sur ' + etatQuota.plafond + ' ce mois-ci.'
+        : 'Plafond atteint pour ce mois-ci.')
+      : '');
 }
 
 function dessinerMatiere() {
@@ -1645,7 +1672,9 @@ function dessinerArchive(genre, elements, sousTitre) {
       entete.textContent = mois;
       liste.appendChild(entete);
     }
-    liste.appendChild(ligneArchive(e, sousTitre));
+    const li = ligneArchive(e, sousTitre);
+    li.appendChild(boutonSupprimer(genre, e));
+    liste.appendChild(li);
   });
 
   const reste = retenus.length - visibles.length;
@@ -1728,6 +1757,9 @@ function choisirMatiere(cle) {
 
 function ligneArchive(e, sousTitre, avecCode = !matiereOuverte) {
   const li = document.createElement('li');
+  // Nommée : la liste porte aussi des en-têtes de mois, qui sont des « li » et
+  // ne doivent pas se mettre en rangée avec un bouton de suppression.
+  li.className = 'archive-ligne';
   const bouton = document.createElement('button');
   bouton.type = 'button';
   bouton.className = 'ligne-archive';
@@ -1762,6 +1794,72 @@ function ligneArchive(e, sousTitre, avecCode = !matiereOuverte) {
   bouton.append(pastille, corps);
   li.appendChild(bouton);
   return li;
+}
+
+/* --- Supprimer une fiche, un contrôle ------------------------------------
+ *
+ * Une fiche ratée, un contrôle lancé par erreur, un chapitre qu'on ne révise
+ * plus : il faut pouvoir faire le ménage. Sans ça l'archive ne fait que
+ * grossir, et ce qu'on cherche s'y noie.
+ *
+ * Le bouton est À CÔTÉ de la ligne, jamais dedans : dans la ligne, un doigt qui
+ * vise « ouvrir » tomberait une fois sur dix sur « supprimer ». Et il demande,
+ * parce que supprimer ne se rattrape pas.
+ */
+function boutonSupprimer(genre, e) {
+  const bouton = document.createElement('button');
+  bouton.type = 'button';
+  bouton.className = 'ligne-effacer';
+  bouton.setAttribute('aria-label',
+    (genre === 'fiches' ? 'Supprimer la fiche ' : 'Supprimer le contrôle ') + e.titre);
+  bouton.innerHTML = '<svg aria-hidden="true" focusable="false" viewBox="0 0 24 24">'
+    + '<g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" '
+    + 'stroke-linejoin="round"><path d="M4.6 6.6h14.8M9.7 6.6V4.9a1.3 1.3 0 0 1 1.3-1.3h2a1.3 '
+    + '1.3 0 0 1 1.3 1.3v1.7"/><path d="M6.4 6.6l.9 12.1a1.8 1.8 0 0 0 1.8 1.7h5.8a1.8 1.8 0 0 '
+    + '0 1.8-1.7l.9-12.1"/><path d="M10.3 10.4v6M13.7 10.4v6"/></g></svg>';
+  bouton.onclick = () => demanderSuppression(genre, e);
+  return bouton;
+}
+
+function demanderSuppression(genre, e) {
+  const fiche = genre === 'fiches';
+  const boite = $('dialogue-suppression');
+  $('titre-suppression').textContent = fiche
+    ? 'Supprimer cette fiche ?' : 'Supprimer ce contrôle blanc ?';
+  // On dit ce qui part : une fiche et un contrôle n'emportent pas la même chose.
+  $('mot-suppression').textContent = '« ' + e.titre + ' » — ' + (fiche
+    ? 'elle ne reviendra pas, et la réécrire coûtera une fiche de ton mois.'
+    : 'ses questions, tes réponses et sa correction partent avec lui.');
+  boite.returnValue = '';
+  boite.onclose = () => {
+    if (boite.returnValue === 'oui') supprimerDeLArchive(genre, e);
+  };
+  boite.showModal();
+}
+
+function supprimerDeLArchive(genre, e) {
+  const champ = genre === 'fiches' ? 'fiches' : 'controles';
+  const id = e.session.sessionId;
+  // Si c'est la séance ouverte, on la modifie EN MÉMOIRE et on la sauve par le
+  // chemin habituel : recharger depuis le stockage rendrait une copie, et tout
+  // ce que l'élève ferait ensuite écraserait la suppression.
+  const courante = Boolean(etat && etat.sessionId === id);
+  const session = courante ? etat : charger(id);
+  if (!session || !((session[champ] || [])[e.rang])) return;
+
+  session[champ].splice(e.rang, 1);
+  if (courante) {
+    sauver();
+  } else {
+    session.majLe = new Date().toISOString();
+    try { localStorage.setItem(CLE_ETAT + id, JSON.stringify(session)); }
+    catch (err) { return message('Ton téléphone n’a plus de place.', 'alerte'); }
+    monterPlusTard(id);
+  }
+
+  tracer('suppression', { genre });
+  message(genre === 'fiches' ? 'Fiche supprimée.' : 'Contrôle supprimé.');
+  dessinerMatiere();
 }
 
 /* Dans une liste de fiches, « Fiche de révision — » se répète à chaque ligne
@@ -5029,7 +5127,6 @@ function coursRepassables() {
  * connu est peint tout de suite, puis on redemande. Une page perso qui attend
  * un aller-retour réseau pour s'afficher serait pire que ce léger décalage.
  */
-const ACTIONS_OUTILS = { controle: 'controle', fiche: 'fiche_generale' };
 let quotasMois = null;
 
 async function rafraichirQuotas() {
@@ -5045,25 +5142,10 @@ async function rafraichirQuotas() {
 
 function peindreQuotas() {
   peindreRestePages();
-  Object.entries(ACTIONS_OUTILS).forEach(([outil, action]) => {
-    const cible = $('reste-' + outil);
-    if (!cible) return;
-    const etat = quotasMois && quotasMois[action];
-    const porte = $('outil-' + outil);
-    // Éteinte, la porte n'ouvre rien : annoncer « il t'en reste douze » sous
-    // elle promet ce qu'on ne tient pas tant qu'aucun cours n'est photographié.
-    if (!etat || (porte && porte.disabled)) { cible.hidden = true; return; }
-    cible.hidden = false;
-    if (etat.restant > 0) {
-      cible.textContent = etat.restant + ' sur ' + etat.plafond + ' ce mois-ci';
-      delete cible.dataset.epuise;
-    } else {
-      // Court exprès : sur un écran de téléphone la version longue passait à
-      // la ligne, et un compteur qui prend deux lignes se met à crier.
-      cible.textContent = 'Plus rien avant le 1er';
-      cible.dataset.epuise = 'oui';
-    }
-  });
+  // Le compteur du mois vit maintenant sous le bouton qui fabrique, dans sa
+  // liste. Il n'a plus rien à faire sur la page perso : on n'y fabrique plus.
+  // L'écran d'une matière peut être ouvert quand la réponse du serveur arrive.
+  if (!$('ecran-matiere').hidden) dessinerFabriquer();
 }
 
 function ouvrirAtelier(outil) {
@@ -5800,7 +5882,9 @@ document.addEventListener('DOMContentLoaded', () => {
     montrer('ecran-accueil');
   };
   $('porte-photo').onclick = () => demarrerSession();
-  $('porte-travail').onclick = () => ouvrirMatiere(null);
+  // Chacune ouvre SA liste, toutes matières confondues, sur le bon onglet.
+  $('porte-fiches').onclick = () => ouvrirMatiere(null, 'fiches');
+  $('porte-controles').onclick = () => ouvrirMatiere(null, 'controles');
   $('porte-matieres').onclick = ouvrirLesMatieres;
   $('fermer-matieres').onclick = fermerLesMatieres;
   document.querySelectorAll('[data-apparence]').forEach((bouton) => {
@@ -5844,8 +5928,8 @@ document.addEventListener('DOMContentLoaded', () => {
   $('embleme').onclick = basculerAtelier;
   $('bouton-agenda').onclick = () => basculerAgenda();
 
-  $('outil-controle').onclick = () => ouvrirAtelier('controle');
-  $('outil-fiche').onclick = () => ouvrirAtelier('fiche');
+  $('bouton-fabriquer').onclick = () =>
+    ouvrirAtelier(archiveOuverte === 'controles' ? 'controle' : 'fiche');
   $('atelier-matiere').onchange = dessinerChapitresAtelier;
   $('bouton-lancer-atelier').onclick = lancerAtelier;
   $('atelier-retour').onclick = () => { montrer('ecran-espace'); dessinerEspace(); };

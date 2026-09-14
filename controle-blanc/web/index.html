@@ -581,29 +581,24 @@
       <span class="tuile-mot">Fiches et contrôles</span>
     </button>
 
-    <!-- Les deux fabrications. Elles ne font pas la même chose : le contrôle
-         fait rédiger, la fiche fait relire. -->
-    <button type="button" class="tuile-porte" id="outil-controle" data-teinte="1">
-      <span class="tuile-signe" aria-hidden="true"><svg><use href="#glyphe-controle"/></svg></span>
-      <span class="tuile-nom">Un contrôle blanc</span>
-      <span class="tuile-mot" id="mot-controle">Un vrai sujet, à rédiger</span>
-      <span class="tuile-reste" id="reste-controle" hidden></span>
-    </button>
-
-    <button type="button" class="tuile-porte" id="outil-fiche" data-teinte="0">
+    <!-- LES DEUX ARCHIVES.
+         Ici vivaient deux portes de FABRICATION — « Un contrôle blanc » et
+         « Une fiche » — qui ouvraient le même écran d'atelier, au titre près.
+         Signalé en usage réel : « on tombe sur la même page ». C'était vrai, et
+         c'était pire que ça : « Une fiche » se lit comme la porte de ses fiches,
+         pas comme une commande d'impression. Elles mènent donc où leur nom dit.
+         Fabriquer se fait depuis la liste — c'est là qu'on s'aperçoit qu'il
+         manque quelque chose. -->
+    <button type="button" class="tuile-porte" id="porte-fiches" data-teinte="0">
       <span class="tuile-signe" aria-hidden="true"><svg><use href="#glyphe-fiche"/></svg></span>
-      <span class="tuile-nom">Une fiche</span>
-      <span class="tuile-mot" id="mot-fiche">Ton cours resserré · 9 min</span>
-      <span class="tuile-reste" id="reste-fiche" hidden></span>
+      <span class="tuile-nom">Tes fiches</span>
+      <span class="tuile-mot" id="mot-fiches"></span>
     </button>
 
-    <!-- Tout ce qui a déjà été fait, toutes matières confondues. C'était une
-         liste de trois fiches posée sur la page ; derrière une porte, elle ne
-         coûte plus rien à qui vient pour autre chose. -->
-    <button type="button" class="tuile-porte" id="porte-travail" data-teinte="5">
-      <span class="tuile-signe" aria-hidden="true"><svg><use href="#glyphe-travail"/></svg></span>
-      <span class="tuile-nom">Tout ton travail</span>
-      <span class="tuile-mot" id="mot-travail"></span>
+    <button type="button" class="tuile-porte" id="porte-controles" data-teinte="1">
+      <span class="tuile-signe" aria-hidden="true"><svg><use href="#glyphe-controle"/></svg></span>
+      <span class="tuile-nom">Tes contrôles</span>
+      <span class="tuile-mot" id="mot-controles"></span>
     </button>
 
   </div>
@@ -711,6 +706,15 @@
         Contrôles blancs<span class="bascule-compte" id="compte-onglet-controles"></span>
       </button>
     </div>
+  </div>
+
+  <!-- On fabrique depuis sa liste. C'est là qu'on cherche une fiche sur le
+       chapitre 4, qu'on ne la trouve pas, et qu'on veut l'écrire — pas depuis
+       un carré de la page d'accueil qui promettait de montrer les siennes. Le
+       bouton dit ce qu'il fabrique, selon l'onglet ouvert. -->
+  <div class="fabriquer">
+    <button type="button" class="secondaire" id="bouton-fabriquer"></button>
+    <p class="aide" id="aide-fabriquer"></p>
   </div>
 
   <div class="matiere-listes">
@@ -1027,6 +1031,19 @@
   <div class="feuille-corps">
     <div class="matieres-liste" id="matieres-liste"></div>
   </div>
+</dialog>
+
+<!-- Supprimer ne se rattrape pas : on demande. Et on dit ce qui part, parce
+     qu'une fiche et un contrôle n'emportent pas la même chose avec eux. -->
+<dialog id="dialogue-suppression">
+  <form method="dialog">
+    <h3 id="titre-suppression">Supprimer ?</h3>
+    <p class="aide" id="mot-suppression"></p>
+    <menu>
+      <button value="non" class="discret">Annuler</button>
+      <button value="oui" class="secondaire bouton-danger">Supprimer</button>
+    </menu>
+  </form>
 </dialog>
 
 <dialog id="dialogue-signalement">
