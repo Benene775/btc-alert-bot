@@ -18,6 +18,9 @@ Ce qui doit tenir :
    contrôle qu'on a quitté.
 5. Quitter un contrôle EN COURS se demande : les questions ne sont pas gardées
    et en relancer un coûte un contrôle du mois.
+6. Le bouton retour du téléphone fait la même chose. C'est le geste le plus
+   naturel du système, et il jetait l'élève hors de l'application au milieu
+   d'une fiche.
 """
 
 from __future__ import annotations
@@ -133,3 +136,74 @@ def test_quitter_un_controle_en_cours_se_demande():
     # Et on ne part pas tant qu'on n'a pas dit oui.
     assert "return false;" in revenir
     assert "controleEnCours = null; revenirVraiment();" in revenir
+
+
+def test_le_bouton_du_telephone_recule_au_lieu_de_sortir():
+    """Sur Android il sortait de l'application. Un seul cran d'historique, pas
+    un par écran : deux piles à tenir d'accord divergent au premier raccourci —
+    le menu de la marque saute d'un écran à l'autre sans passer par les
+    précédents. Avec un cran unique, la question posée au navigateur est
+    toujours la même, et « peutRevenir() » y répond seul."""
+    assert "function armerLeRetourDuSysteme()" in SCRIPT
+    assert "armerLeRetourDuSysteme();" in SCRIPT
+    accorder = bloc("accorderLHistorique")
+    assert "history.pushState({ repere: 1 }, '');" in accorder, \
+        "sans URL : l'adresse ne doit pas bouger"
+    assert "let cranPose" in SCRIPT
+    # Il est reposé à chaque fois qu'on s'en sert, et retiré quand il n'y a plus
+    # rien devant : sans ça le premier appui ne ferait rien.
+    assert "} else if (!faut && cranPose) {" in accorder
+    assert "history.back();" in accorder
+    armer = bloc("armerLeRetourDuSysteme")
+    assert "accorderLHistorique();\n    revenir();" in armer
+
+
+def test_un_cran_qu_on_retire_soi_meme_n_est_pas_un_appui():
+    """« history.back() » déclenche « popstate » comme le ferait l'élève. Sans
+    ce compteur, retirer le cran nous-mêmes reculerait d'un écran de plus."""
+    assert "let popsAIgnorer" in SCRIPT
+    armer = bloc("armerLeRetourDuSysteme")
+    assert "popsAIgnorer -= 1;" in armer and "if (popsAIgnorer > 0) {" in armer
+    assert "popsAIgnorer += 1;" in bloc("accorderLHistorique")
+
+
+def test_ce_qui_se_referme_compte_comme_un_pas_en_arriere():
+    """Une boîte ouverte, l'agenda déplié : le bouton retour les ferme partout
+    ailleurs sur le téléphone. Sans cran posé pour eux, il sortait de
+    l'application à la place — vérifié, la page partait pour de bon."""
+    assert "function quelqueChoseAFermer()" in SCRIPT
+    ferme = bloc("quelqueChoseAFermer")
+    assert "dialog[open]" in ferme
+    assert "dataset.agenda === 'ouvert'" in ferme
+    assert "peutRevenir() || quelqueChoseAFermer()" in bloc("accorderLHistorique")
+
+    armer = bloc("armerLeRetourDuSysteme")
+    # On ferme PUIS on réaccorde : l'inverse laissait un cran posé pour une
+    # boîte qui venait de disparaître.
+    assert "boite.close(); accorderLHistorique(); return;" in armer
+    assert "basculerAgenda(false);\n      accorderLHistorique();" in armer
+
+
+def test_a_la_racine_le_retour_sort_vraiment():
+    """Un appui mort apprend à ne plus se servir du bouton, et retenir l'élève
+    dans une application qu'il veut quitter est pire que tout le reste."""
+    armer = bloc("armerLeRetourDuSysteme")
+    assert "if (!peutRevenir()) return;" in armer
+
+
+def test_on_ne_pose_pas_un_cran_pendant_qu_on_en_retire_un():
+    """« history.back() » ne reprend pas la main tout de suite : il programme un
+    « popstate » pour plus tard. Poser un cran entre l'appel et son effet le
+    fait manger par le retrait qui arrive derrière.
+
+    Le cas réel : choisir une matière dans la feuille retirait le cran de la
+    feuille qu'on venait de fermer, puis en posait un pour l'écran de la
+    matière, dans le même tour. Le retrait différé emportait le neuf, et la
+    flèche suivante SORTAIT DE L'APPLICATION."""
+    accorder = bloc("accorderLHistorique")
+    assert "if (retraitEnCours) return;" in accorder, \
+        "on pose encore un cran pendant qu'un retrait est en vol"
+    assert "retraitEnCours = true;" in accorder
+    # Et on réaccorde une fois le retrait atterri : l'écran a pu changer.
+    armer = bloc("armerLeRetourDuSysteme")
+    assert "if (retraitEnCours) { retraitEnCours = false; accorderLHistorique(); }" in armer

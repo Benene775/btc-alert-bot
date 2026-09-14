@@ -706,11 +706,13 @@ function dessinerLesMatieres() {
 function ouvrirLesMatieres() {
   dessinerLesMatieres();
   $('feuille-matieres').showModal();
+  accorderLHistorique();
 }
 
 function fermerLesMatieres() {
   const feuille = $('feuille-matieres');
   if (feuille.open) feuille.close();
+  accorderLHistorique();
 }
 
 /* --- La vue d'une matière ------------------------------------------------ */
@@ -1305,6 +1307,10 @@ function basculerAgenda(ouvre) {
 
   porte.setAttribute('aria-expanded', ouvre ? 'true' : 'false');
   $('agenda-nom').textContent = ouvre ? 'Replier l’agenda' : 'Ton agenda';
+  // L'agenda ouvert est quelque chose à refermer : le bouton retour du
+  // téléphone doit le refermer, pas sortir de l'application. Il lui faut donc
+  // un cran d'historique à consommer, posé ici et retiré au repli.
+  setTimeout(accorderLHistorique, 0);
   // Ouvert, l'agenda est seul : la feuille de style efface tout le reste de la
   // page tant que cet attribut est là. On est venu poser une date.
   if (ouvre) $('ecran-espace').dataset.agenda = 'ouvert';
@@ -1833,6 +1839,7 @@ function confirmer({ titre, mot, libelle }, suite) {
   boite.returnValue = '';
   boite.onclose = () => { if (boite.returnValue === 'oui') suite(); };
   boite.showModal();
+  accorderLHistorique();
 }
 
 function demanderSuppression(genre, e) {
@@ -2885,6 +2892,102 @@ function majBoutonRetour() {
   $('bouton-retour').hidden = !peutRevenir();
 }
 
+/* --- Le bouton retour du téléphone ---------------------------------------
+ *
+ * Sur Android il sort de l'application. C'est le geste le plus naturel du
+ * système, et il jetait l'élève dehors au milieu d'une fiche.
+ *
+ * UN SEUL CRAN D'HISTORIQUE, jamais un par écran. Un cran par écran oblige à
+ * garder deux piles d'accord — la nôtre et celle du navigateur — et elles
+ * divergent au premier raccourci (le menu de la marque saute d'un écran à
+ * l'autre sans passer par les précédents). Avec un cran unique, la question
+ * posée au navigateur est toujours la même : « y a-t-il quelque chose devant ?
+ * » — et c'est « peutRevenir() » qui répond, une seule source de vérité.
+ *
+ * Le cran est reposé à chaque fois qu'on s'en sert. Quand il n'y a plus rien
+ * devant, on le retire nous-mêmes : sans ça le premier appui ne ferait rien et
+ * il en faudrait deux pour sortir.
+ */
+let cranPose = false;
+let popsAIgnorer = 0;
+let retraitEnCours = false;
+
+/* Ce qui se referme au lieu de changer d'écran : une boîte, l'agenda déplié.
+ * Le bouton retour du téléphone les ferme partout ailleurs, et sans cran posé
+ * il sortirait de l'application à la place. */
+function quelqueChoseAFermer() {
+  if (document.querySelector('dialog[open]')) return true;
+  const espace = $('ecran-espace');
+  return Boolean(espace && espace.dataset.agenda === 'ouvert');
+}
+
+/* « history.back() » NE REPREND PAS LA MAIN TOUT DE SUITE : il programme un
+ * « popstate » pour plus tard. Poser un cran entre l'appel et son effet le fait
+ * manger par le retrait qui arrive derrière — et le cran qu'on croyait poser
+ * n'existe pas.
+ *
+ * C'est exactement ce qui est arrivé : choisir une matière dans la feuille
+ * retirait le cran de la feuille (qu'on venait de fermer) puis en posait un
+ * pour l'écran de la matière, dans le même tour. Le retrait différé emportait
+ * le neuf, et la flèche suivante SORTAIT DE L'APPLICATION.
+ *
+ * On ne pose donc rien tant qu'un retrait est en vol, et on réaccorde une fois
+ * qu'il a atterri. */
+function accorderLHistorique() {
+  if (typeof history === 'undefined' || !history.pushState) return;
+  if (retraitEnCours) return;
+  const faut = peutRevenir() || quelqueChoseAFermer();
+  if (faut && !cranPose) {
+    // Sans URL : l'adresse ne bouge pas, seule l'histoire s'allonge d'un cran.
+    history.pushState({ repere: 1 }, '');
+    cranPose = true;
+  } else if (!faut && cranPose) {
+    cranPose = false;
+    retraitEnCours = true;
+    popsAIgnorer += 1;
+    history.back();
+  }
+}
+
+function armerLeRetourDuSysteme() {
+  accorderLHistorique();
+  window.addEventListener('popstate', () => {
+    // Un cran qu'on a retiré soi-même : le navigateur nous le signale, on ne
+    // le prend pas pour un appui de l'élève.
+    if (popsAIgnorer > 0) {
+      popsAIgnorer -= 1;
+      // Le retrait a atterri : on rouvre la pose et on réaccorde, l'écran ayant
+      // pu changer entre-temps.
+      if (retraitEnCours) { retraitEnCours = false; accorderLHistorique(); }
+      return;
+    }
+    cranPose = false;
+
+    // Une boîte ouverte se referme d'abord : c'est ce que le bouton retour fait
+    // partout ailleurs sur le téléphone. On ferme, PUIS on réaccorde — l'inverse
+    // laissait un cran posé pour une boîte qui venait de disparaître.
+    const boite = document.querySelector('dialog[open]');
+    if (boite) { boite.close(); accorderLHistorique(); return; }
+
+    // L'agenda déplié occupe la page entière : le refermer est le pas en
+    // arrière, même si l'écran ne change pas.
+    if ($('ecran-espace') && $('ecran-espace').dataset.agenda === 'ouvert') {
+      basculerAgenda(false);
+      accorderLHistorique();
+      return;
+    }
+
+    // Plus rien devant : on laisse le système faire ce qu'il fait d'habitude,
+    // c'est-à-dire sortir de l'application.
+    if (!peutRevenir()) return;
+
+    // On repose le cran AVANT de partir : si l'élève annule (quitter un
+    // contrôle se demande), rien n'aura bougé.
+    accorderLHistorique();
+    revenir();
+  });
+}
+
 /* Revenir au doigt, depuis le bord gauche.
  *
  * DEPUIS LE BORD, et pas n'importe où : la fiche est un paquet de cartes qu'on
@@ -2989,6 +3092,7 @@ function montrer(id, options = {}) {
   window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
   majBandeau(id);
   majBoutonRetour();
+  accorderLHistorique();
 }
 
 /* Les écrans qui tiennent « --large ». La liste double celle de la feuille de
@@ -5782,8 +5886,10 @@ function ouvrirSignalement(numero, enonce, bouton) {
   signalementEnCours = { numero, enonce, bouton };
   $('motif-signalement').value = '';
   const dialogue = $('dialogue-signalement');
-  if (typeof dialogue.showModal === 'function') dialogue.showModal();
-  else envoyerSignalement('');
+  if (typeof dialogue.showModal === 'function') {
+    dialogue.showModal();
+    accorderLHistorique();
+  } else envoyerSignalement('');
 }
 
 async function envoyerSignalement(motif) {
@@ -6043,6 +6149,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   $('bouton-retour').onclick = () => revenir();
   armerLeGlissementDeRetour();
+  armerLeRetourDuSysteme();
 
   $('bouton-quitter-espace').onclick = () => {
     if (etat) return reprendre();
