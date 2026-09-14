@@ -253,6 +253,44 @@ def test_les_pages_du_mois_et_les_fiches_du_mois_tombent_juste():
     assert cours_possibles == config.QUOTAS_MOIS["controle"], "et autant de contrôles blancs"
 
 
+def test_le_plafond_du_mois_est_bien_de_huit():
+    """Demandé explicitement le 14 septembre 2026 : huit fiches, huit contrôles,
+    huit fiches ciblées par mois et par compte. C'était douze. Le chiffre est
+    lu à l'écran par l'élève et par celui qui paie : il ne doit pas dériver sans
+    qu'on le décide."""
+    for action in ("fiche_generale", "controle", "fiche_ciblee"):
+        assert config.QUOTAS_MOIS[action] == 8, action
+
+
+def test_le_blocage_tombe_des_que_le_compte_est_egale(client, session, photo_factice,
+                                                      large, monkeypatch):
+    """« Dès que c'est égalé », pas une de plus. La huitième fiche passe, la
+    neuvième est refusée — et c'est le mois qu'on annonce, jamais le jour.
+
+    Le test consomme le VRAI plafond, pas un plafond de test : c'est le chiffre
+    du produit qu'on veut voir tenir, et une limite qu'on n'a jamais atteinte
+    pour de bon est une limite qu'on n'a pas vérifiée.
+    """
+    plafond = config.QUOTAS_MOIS["fiche_generale"]
+    assert plafond == 8
+    client.post("/api/analyse",
+                data={"session_id": session, "niveau": "3e",
+                      "matiere": "histoire-geographie"},
+                files=[("photos", ("p.png", photo_factice, "image/png"))])
+
+    corps = {"session_id": session, "niveau": "3e",
+             "chapitres": [{"titre": "Un chapitre", "notions": ["une notion"],
+                            "transcription": "Un cours assez long pour être accepté. " * 8}]}
+
+    for rang in range(1, plafond + 1):
+        reponse = client.post("/api/fiche/generale", json=corps)
+        assert reponse.status_code == 200, f"la fiche {rang} sur {plafond} a été refusée"
+
+    refus = client.post("/api/fiche/generale", json=corps)
+    assert refus.status_code == 429, "la neuvième fiche est passée"
+    assert refus.json()["portee"] == "mois", "le refus parle du jour ou de la séance"
+
+
 def test_une_seance_ne_depasse_pas_un_cours():
     """La fiche se fait sur ce que la séance contient. Si une séance pouvait
     accumuler douze envois de huit pages, la fiche porterait sur un trimestre —

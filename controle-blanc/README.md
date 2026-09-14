@@ -401,10 +401,20 @@ Quotas par défaut, tous réglables par variable d'environnement :
 
 | Action | Par jour | Par séance | Par mois et par compte |
 |---|---|---|---|
-| Analyse de photos **(en pages)** | 48 | 96 | 96 |
+| Analyse de photos **(en pages)** | 48 | 8 | 64 |
 | Fiche générale | 3 | 12 | 8 |
 | Contrôle blanc | 3 | 12 | 8 |
 | Fiche ciblée | 5 | 20 | 8 |
+
+Ce tableau a menti pendant un temps : il annonçait 8 par mois quand la
+configuration en donnait 12, et 96 pages par séance quand elle en donne 8.
+C'est l'écran de l'élève qui a raison, toujours — il lit `app/config.py`. Les
+chiffres ci-dessus en viennent maintenant, et un test vérifie que la
+démonstration autonome annonce les mêmes.
+
+Les trois plafonds du mois tombent sur le même nombre de cours : 64 pages à 8
+par cours font huit cours, soit exactement huit fiches et huit contrôles
+blancs. Changer l'un oblige à regarder les deux autres.
 
 **L'analyse se compte en pages, pas en envois.** Une page photographiée vaut
 ~2 350 tokens d'entrée (le navigateur la réduit à 1568 px, le modèle la découpe en

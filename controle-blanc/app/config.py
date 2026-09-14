@@ -202,32 +202,53 @@ QUOTAS: dict[str, dict[str, int]] = {
 # Une page photographiée revient à 0,0185 $ en Sonnet, 0,0493 $ en Opus. C'est
 # l'unité du quota, et le seul poste où le modèle change vraiment le prix.
 #
-# Au plafond des compteurs (96 pages, 12 de chaque), contre ~6,20 € encaissés :
+# Au plafond des compteurs, contre ~6,20 € encaissés :
 #
-#   tout Sonnet 5      3,11 €   soit 50 % du net
-#   photos en Opus     5,78 €   soit 93 % du net   <- ne tient pas
+#   96 pages, 12 de chaque, tout Sonnet 5      3,11 €   soit 50 % du net
+#   96 pages, 12 de chaque, photos en Opus     5,78 €   soit 93 % du net
+#   96 pages,  8 de chaque, photos en Opus     5,27 €
+#   72 pages,  8 de chaque, photos en Opus     4,21 €
+#   64 pages,  8 de chaque, photos en Opus    ~3,86 €   <- le réglage actuel,
+#                                                         extrapolé des lignes
+#                                                         ci-dessus, non mesuré
 #
-# Ce que ce tableau dit : à 96 pages, le pire cas est confortable tant que les
-# photos restent en Sonnet, et ne l'est plus du tout dès qu'on les passe en
-# Opus. Descendre à 8 de chaque ramènerait ce second cas à 5,27 €, et 72 pages
-# à 4,21 € — c'est le arbitrage à trancher AVANT de poser CB_MODEL=claude-opus-5.
+# CE QUE CE TABLEAU DIT, ET QU'IL FAUT AVOIR EN TÊTE EN TOUCHANT CES CHIFFRES :
+# ce sont les PAGES qui commandent la facture, pas les fiches ni les contrôles.
+# Passer de 12 à 8 de chaque ne rend que 0,51 € ; retirer 24 pages en rend 1,06,
+# soit deux fois plus. Une page photographiée vaut 0,0185 $ en Sonnet et
+# 0,0493 $ en Opus — c'est le seul poste où le choix du modèle change vraiment
+# le prix, et le seul levier qui pèse sur le pire cas.
+#
+# Les fiches, les contrôles et les fiches ciblées sont à 8 par mois depuis le
+# 14 septembre 2026, sur décision de Benjamin. Les pages suivent à 64, pour que
+# les trois compteurs retombent sur le même nombre de cours — sans quoi l'élève
+# pourrait photographier douze chapitres et n'en exploiter que huit.
 #
 # Le pire cas n'est pas la moyenne : un élève ordinaire, quatre parcours dans le
 # mois, coûte ~0,89 € en Sonnet. C'est /admin/metriques qui donnera la vraie
 # moyenne une fois des élèves dessus.
 QUOTAS_MOIS: dict[str, int] = {
-    "analyse": _int("CB_QUOTA_ANALYSE_MOIS", 96),   # en pages : 8 analyses pleines
-    "fiche_generale": _int("CB_QUOTA_FICHE_MOIS", 12),
-    "controle": _int("CB_QUOTA_CONTROLE_MOIS", 12),
-    "fiche_ciblee": _int("CB_QUOTA_CIBLEE_MOIS", 12),
+    "analyse": _int("CB_QUOTA_ANALYSE_MOIS", 64),   # en pages : huit cours de 8
+    "fiche_generale": _int("CB_QUOTA_FICHE_MOIS", 8),
+    "controle": _int("CB_QUOTA_CONTROLE_MOIS", 8),
+    "fiche_ciblee": _int("CB_QUOTA_CIBLEE_MOIS", 8),
 }
 
+# Le blocage tombe dès que le compte est ÉGALÉ, pas dépassé : voir
+# store.verifier_quota, « déjà consommé + ce que l'appel va prendre > plafond ».
+# À 8, la huitième fiche passe et la neuvième est refusée. L'élève en a donc
+# exactement huit, et le message dit le mois — pas « reviens demain », qui
+# l'enverrait se cogner à la même porte.
+
 # Huit pages par cours, et huit par envoi : une fiche de révision se fait à
-# partir d'un chapitre, pas d'un trimestre. Le chiffre n'est pas arbitraire — il
-# met les deux compteurs du mois en phase. À 96 pages et 8 par cours, un élève a
-# droit à douze analyses, soit exactement ses douze fiches et ses douze contrôles
-# blancs. En dessous, il lui resterait des pages sans fiche pour les exploiter ;
-# au-dessus, des fiches sans pages à leur donner.
+# partir d'un chapitre, pas d'un trimestre.
+#
+# Le chiffre n'est pas arbitraire : il met les deux compteurs du mois en phase.
+# À 64 pages et 8 par cours, un élève a droit à huit analyses, soit exactement
+# ses huit fiches et ses huit contrôles blancs. En dessous il lui resterait des
+# pages sans fiche pour les exploiter ; au-dessus, des fiches sans pages à leur
+# donner. Les trois nombres bougent ensemble, et un test le rend impossible à
+# oublier (test_les_pages_du_mois_et_les_fiches_du_mois_tombent_juste).
 MAX_PHOTOS_PAR_ANALYSE = _int("CB_MAX_PHOTOS", 8)
 
 # Combien de mots l'élève peut être appelé à relire après une analyse.
