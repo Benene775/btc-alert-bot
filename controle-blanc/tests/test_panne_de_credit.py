@@ -97,11 +97,43 @@ def test_le_client_sait_que_ca_ne_sert_a_rien_de_reessayer():
     assert "reessayable = not isinstance(exc, llm.CreditEpuise)" in source
 
 
-def test_une_panne_ne_consomme_pas_le_quota_de_l_eleve():
-    """Le quota se compte sur les usages enregistrés, et rien n'est enregistré
-    quand l'appel échoue : un élève ne doit pas payer une panne qui n'est pas la
-    sienne. Vérifié ici pour que ça reste vrai."""
-    source = (RACINE / "app" / "main.py").read_text(encoding="utf-8")
-    bloc = source[source.index("resultat, usage = llm.analyser_photos("):][:300]
-    assert "store.enregistrer_usage" in bloc
-    assert source.index("store.verifier_quota") < source.index("resultat, usage = llm.analyser_photos(")
+@pytest.mark.parametrize("quoi", ["analyse", "controle", "fiche_generale"])
+def test_une_panne_ne_consomme_pas_le_quota_de_l_eleve(client, photo_factice,
+                                                       monkeypatch, quoi):
+    """Un élève ne doit pas payer une panne qui n'est pas la sienne.
+
+    La place est désormais RÉSERVÉE avant l'appel — c'est ce qui empêche deux
+    requêtes simultanées de passer le même dernier crédit. Le revers serait de
+    facturer les échecs : on vérifie donc que la place est bien rendue, en
+    comptant ce qui reste au compte avant et après une panne.
+    """
+    from app import llm as module_llm
+
+    def tombe(*_a, **_k):
+        raise module_llm.CreditEpuise("Le service est en panne : ce n’est ni ta photo ni ta connexion.")
+
+    session = client.post("/api/session").json()["session_id"]
+    avant = client.get("/api/compte/quotas").json()["quotas"][quoi]["restant"]
+
+    chapitres = [{"titre": "La Première Guerre mondiale", "notions": ["Verdun"], "pages": [1]}]
+    if quoi == "analyse":
+        monkeypatch.setattr(module_llm, "analyser_photos", tombe)
+        reponse = client.post(
+            "/api/analyse",
+            data={"session_id": session, "niveau": "3e", "matiere": "histoire-geographie"},
+            files=[("photos", ("p.png", photo_factice, "image/png"))],
+        )
+    elif quoi == "controle":
+        monkeypatch.setattr(module_llm, "generer_controle", tombe)
+        reponse = client.post("/api/controle", json={
+            "session_id": session, "niveau": "3e", "matiere": "histoire-geographie",
+            "chapitres": chapitres})
+    else:
+        monkeypatch.setattr(module_llm, "fiche_generale", tombe)
+        reponse = client.post("/api/fiche/generale", json={
+            "session_id": session, "niveau": "3e", "matiere": "histoire-geographie",
+            "chapitres": chapitres})
+
+    assert reponse.status_code >= 500, "la panne devrait remonter comme une panne"
+    apres = client.get("/api/compte/quotas").json()["quotas"][quoi]["restant"]
+    assert apres == avant, f"la panne a mangé un crédit de {quoi}"

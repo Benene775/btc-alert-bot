@@ -348,3 +348,67 @@ def test_le_seul_plafond_de_seance_atteignable_a_son_message():
             f"le plafond de séance de « {action} » est devenu atteignable : "
             "il lui faut son propre message"
         )
+
+
+# --- Deux requêtes en même temps --------------------------------------------
+
+def test_deux_appels_simultanes_ne_passent_pas_le_meme_dernier_credit(client, monkeypatch):
+    """Le trou qui rendait le plafond poreux.
+
+    Vérifier puis enregistrer ne faisait pas un geste : entre les deux il y a
+    l'appel au modèle, qui dure des secondes. Mesuré sur le vrai serveur avant
+    la correction : six contrôles blancs acceptés sur un plafond d'UN, et six
+    pages sur un plafond de trois dès que les photos dépassent 1 Mo — au-dessus,
+    le corps de la requête passe par le disque, ce qui rend la main entre les
+    deux. Un double appui sur un réseau lent suffisait.
+
+    Le sommeil ci-dessous rouvre cette fenêtre en grand : sans réservation
+    atomique, les huit fils liraient le même compteur à zéro et passeraient tous.
+    """
+    import threading
+    import time
+
+    monkeypatch.setitem(config.QUOTAS_MOIS, "controle", 2)
+    monkeypatch.setitem(config.QUOTAS, "controle", {"jour": 999, "session": 999})
+    session = client.post("/api/session").json()["session_id"]
+
+    vraie = store.verifier_quota
+
+    def lente(*args, **kwargs):
+        vraie(*args, **kwargs)
+        time.sleep(0.02)  # le temps de l'appel au modèle, en raccourci
+
+    monkeypatch.setattr(store, "verifier_quota", lente)
+
+    obtenus: list[int] = []
+
+    def essayer() -> None:
+        try:
+            obtenus.append(store.reserver_quota(session, "controle"))
+        except store.QuotaDepasse:
+            pass
+
+    fils = [threading.Thread(target=essayer) for _ in range(8)]
+    for fil in fils:
+        fil.start()
+    for fil in fils:
+        fil.join()
+
+    assert len(obtenus) == 2, f"{len(obtenus)} places prises pour un plafond de 2"
+    # Et le compteur du compte est d'accord : pas de place fantôme.
+    assert client.get("/api/compte/quotas").json()["quotas"]["controle"]["restant"] == 0
+
+
+def test_la_place_rendue_redevient_disponible(client, monkeypatch):
+    """Réserver avant l'appel ne doit pas faire payer les échecs."""
+    monkeypatch.setitem(config.QUOTAS_MOIS, "controle", 1)
+    monkeypatch.setitem(config.QUOTAS, "controle", {"jour": 999, "session": 999})
+    session = client.post("/api/session").json()["session_id"]
+
+    place = store.reserver_quota(session, "controle")
+    with pytest.raises(store.QuotaDepasse):
+        store.reserver_quota(session, "controle")
+
+    store.liberer_quota(place)
+    autre = store.reserver_quota(session, "controle")  # la place est revenue
+    assert autre != place

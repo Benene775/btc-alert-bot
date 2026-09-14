@@ -445,6 +445,21 @@ Le plafond du mois est le seul qui tienne l'abonnement. Les deux autres se compt
 par séance : en ouvrir une nouvelle les remet à zéro, ce qui est gratuit et se fait
 en un clic. Le mensuel, lui, passe par `sessions.compte_id`, donc il suit l'élève.
 
+**La place est réservée, pas seulement vérifiée.** Vérifier puis enregistrer ne fait
+pas un geste : entre les deux il y a l'appel au modèle, qui dure des secondes. Deux
+requêtes lancées en même temps lisaient donc le même compteur avant que l'une ait
+écrit sa ligne, et passaient toutes les deux. Mesuré sur le serveur, avant
+correction : **six contrôles blancs acceptés sur un plafond d'un**, et six pages sur
+un plafond de trois dès que les photos dépassent 1 Mo — au-dessus de cette taille
+Starlette pose le corps de la requête sur disque, ce qui rend la main entre la
+vérification et l'écriture. Un double appui sur un réseau lent suffisait, et chaque
+fuite était payée. `store.reserver_quota` fait désormais les deux sans lâcher le
+verrou : la ligne d'usage est posée **avant** l'appel, puis complétée avec les tokens
+(`completer_usage`) ou rendue si l'appel échoue (`liberer_quota`) — un élève ne paie
+pas une panne. Re-mesuré après : un accepté sur six, trois pages sur huit, à chaque
+essai. Ce verrou suppose le processus unique que lance le `Procfile` ; ajouter
+`--workers` obligerait à descendre la réservation dans le SQL.
+
 Il est calibré sur un abonnement à 7,99 € TTC (~6,20 € net de TVA et de frais de
 paiement). Ce n'est pas le **pire cas** qu'on budgète : saturer les quatre compteurs
 le même mois demande un acharnement que presque personne n'a, et dimensionner dessus

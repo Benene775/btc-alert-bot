@@ -1018,6 +1018,70 @@ def verifier_quota(session_id: str, action: str, quantite: int = 1) -> None:
         )
 
 
+# Vérifier puis enregistrer ne fait pas UN geste : entre les deux il y a l'appel
+# au modèle, qui dure des secondes. Deux requêtes lancées en même temps lisaient
+# donc le même compteur avant que l'une ait écrit sa ligne, et passaient toutes
+# les deux. Mesuré : six contrôles blancs acceptés sur un plafond d'UN, et six
+# pages sur un plafond de trois dès que les photos dépassent 1 Mo (au-dessus,
+# Starlette pose le corps sur disque, ce qui rend la main entre la vérification
+# et l'écriture). Ce n'est pas théorique : c'est un double appui sur un réseau
+# lent, ou deux appareils ouverts en même temps — et chaque fuite est payée.
+#
+# La réservation ferme le trou : on vérifie ET on pose la ligne sans lâcher le
+# verrou. La place est prise avant l'appel au modèle ; si l'appel échoue, on la
+# rend (liberer_quota), et l'élève n'est pas débité d'un échec.
+#
+# Ce verrou suffit parce que le Procfile lance UN processus uvicorn. Le jour où
+# on ajoute « --workers », il faudra descendre la réservation dans le SQL (un
+# INSERT ... SELECT conditionnel), un verrou Python ne traversant pas les
+# processus.
+_verrou_quota = threading.Lock()
+
+
+def reserver_quota(session_id: str, action: str, quantite: int = 1) -> int:
+    """Vérifie le quota et retient la place d'un seul tenant.
+
+    Rend l'identifiant de la ligne d'usage, à compléter après l'appel
+    (completer_usage) ou à rendre s'il échoue (liberer_quota).
+    """
+    with _verrou_quota:
+        verifier_quota(session_id, action, quantite)
+        return _ouvrir_usage(session_id, action, quantite)
+
+
+def _ouvrir_usage(session_id: str, action: str, quantite: int) -> int:
+    """La ligne d'usage, posée avant de savoir ce qu'elle aura coûté."""
+    with curseur() as cur:
+        cur.execute(
+            "INSERT INTO usages (session_id, action, jour, horodatage, tokens_entree,"
+            " tokens_sortie, cache_ecriture, cache_lecture, modele, quantite)"
+            " VALUES (?, ?, ?, ?, 0, 0, 0, 0, '', ?)",
+            (session_id, action, aujourdhui(), maintenant(), max(1, quantite)),
+        )
+        return int(cur.lastrowid)
+
+
+def completer_usage(usage_id: int, usage: dict[str, Any] | None = None) -> None:
+    """Les tokens, une fois le modèle revenu. La place, elle, était déjà prise."""
+    usage = usage or {}
+    with curseur() as cur:
+        cur.execute(
+            "UPDATE usages SET tokens_entree = ?, tokens_sortie = ?, cache_ecriture = ?,"
+            " cache_lecture = ?, modele = ? WHERE id = ?",
+            (
+                usage.get("tokens_entree", 0), usage.get("tokens_sortie", 0),
+                usage.get("cache_ecriture", 0), usage.get("cache_lecture", 0),
+                usage.get("modele", ""), usage_id,
+            ),
+        )
+
+
+def liberer_quota(usage_id: int) -> None:
+    """L'appel a échoué : l'élève n'a rien reçu, il ne doit rien payer."""
+    with curseur() as cur:
+        cur.execute("DELETE FROM usages WHERE id = ?", (usage_id,))
+
+
 def enregistrer_usage(session_id: str, action: str, usage: dict[str, Any] | None = None,
                       quantite: int = 1) -> None:
     usage = usage or {}

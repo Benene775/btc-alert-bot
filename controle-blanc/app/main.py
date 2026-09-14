@@ -486,7 +486,8 @@ async def analyser(
             detail=f"{config.MAX_PHOTOS_PAR_ANALYSE} photos au maximum en une fois",
         )
     # L'analyse se compte en pages : on vérifie ce que cet envoi VA consommer,
-    # une fois qu'on sait combien de photos il porte.
+    # une fois qu'on sait combien de photos il porte. Un premier refus ici évite
+    # de lire pour rien quarante mégaoctets ; la place, elle, se prend plus bas.
     store.verifier_quota(session_id, "analyse", len(photos))
 
     images: list[tuple[str, bytes]] = []
@@ -499,9 +500,17 @@ async def analyser(
             raise HTTPException(status_code=413, detail="photo trop lourde après compression")
         images.append((mime, octets))
 
-    # Les octets ne sortent pas d'ici : envoyés au modèle, jamais écrits sur disque.
-    resultat, usage = llm.analyser_photos(images, formats.nom_niveau(niveau), matiere)
-    store.enregistrer_usage(session_id, "analyse", usage, quantite=len(images))
+    # La place est prise ICI, juste avant la dépense, et d'un seul tenant : la
+    # lecture des fichiers ci-dessus rend la main dès qu'une photo dépasse 1 Mo,
+    # et deux envois simultanés passaient tous les deux (voir store.reserver_quota).
+    usage_id = store.reserver_quota(session_id, "analyse", len(images))
+    try:
+        # Les octets ne sortent pas d'ici : envoyés au modèle, jamais écrits sur disque.
+        resultat, usage = llm.analyser_photos(images, formats.nom_niveau(niveau), matiere)
+    except Exception:
+        store.liberer_quota(usage_id)
+        raise
+    store.completer_usage(usage_id, usage)
     store.enregistrer_evenement(
         session_id,
         "photos_analysees",
@@ -517,11 +526,15 @@ async def analyser(
 def creer_fiche_generale(corps: DemandeFiche,
                          compte: dict = Depends(compte_connecte)) -> dict[str, Any]:
     _session_valide(corps.session_id, compte)
-    store.verifier_quota(corps.session_id, "fiche_generale")
-    fiche, usage = llm.fiche_generale(
-        _chapitres_en_dicts(corps.chapitres), formats.nom_niveau(corps.niveau)
-    )
-    store.enregistrer_usage(corps.session_id, "fiche_generale", usage)
+    usage_id = store.reserver_quota(corps.session_id, "fiche_generale")
+    try:
+        fiche, usage = llm.fiche_generale(
+            _chapitres_en_dicts(corps.chapitres), formats.nom_niveau(corps.niveau)
+        )
+    except Exception:
+        store.liberer_quota(usage_id)
+        raise
+    store.completer_usage(usage_id, usage)
     store.enregistrer_evenement(corps.session_id, "fiche_generee", {"type": "generale"})
     fiche["type"] = "generale"
     return fiche
@@ -531,13 +544,17 @@ def creer_fiche_generale(corps: DemandeFiche,
 def creer_fiche_ciblee(corps: DemandeFicheCiblee,
                        compte: dict = Depends(compte_connecte)) -> dict[str, Any]:
     _session_valide(corps.session_id, compte)
-    store.verifier_quota(corps.session_id, "fiche_ciblee")
-    fiche, usage = llm.fiche_ciblee(
-        _chapitres_en_dicts(corps.chapitres),
-        formats.nom_niveau(corps.niveau),
-        [n.model_dump() for n in corps.notions],
-    )
-    store.enregistrer_usage(corps.session_id, "fiche_ciblee", usage)
+    usage_id = store.reserver_quota(corps.session_id, "fiche_ciblee")
+    try:
+        fiche, usage = llm.fiche_ciblee(
+            _chapitres_en_dicts(corps.chapitres),
+            formats.nom_niveau(corps.niveau),
+            [n.model_dump() for n in corps.notions],
+        )
+    except Exception:
+        store.liberer_quota(usage_id)
+        raise
+    store.completer_usage(usage_id, usage)
     store.enregistrer_evenement(corps.session_id, "fiche_generee", {"type": "ciblee"})
     fiche["type"] = "ciblee"
     return fiche
@@ -559,22 +576,26 @@ CHAMPS_INTERNES = ("duree_minutes",)
 def creer_controle(corps: DemandeControle,
                    compte: dict = Depends(compte_connecte)) -> dict[str, Any]:
     _session_valide(corps.session_id, compte)
-    store.verifier_quota(corps.session_id, "controle")
+    usage_id = store.reserver_quota(corps.session_id, "controle")
 
     fmt = formats.format_matiere(corps.matiere)
-    brut, usage = llm.generer_controle(
-        _chapitres_en_dicts(corps.chapitres),
-        formats.nom_niveau(corps.niveau),
-        fmt["nom"],
-        fmt["structure"],
-        fmt["duree_minutes"],
-        notions_ciblees=corps.notions_ciblees or None,
-        enonces_deja_poses=corps.enonces_deja_poses or None,
-    )
-
-    questions = brut.get("questions", [])
-    if not questions:
-        raise HTTPException(status_code=502, detail="contrôle vide")
+    try:
+        brut, usage = llm.generer_controle(
+            _chapitres_en_dicts(corps.chapitres),
+            formats.nom_niveau(corps.niveau),
+            fmt["nom"],
+            fmt["structure"],
+            fmt["duree_minutes"],
+            notions_ciblees=corps.notions_ciblees or None,
+            enonces_deja_poses=corps.enonces_deja_poses or None,
+        )
+        questions = brut.get("questions", [])
+        if not questions:
+            # Rien à passer : le contrôle n'est pas décompté.
+            raise HTTPException(status_code=502, detail="contrôle vide")
+    except Exception:
+        store.liberer_quota(usage_id)
+        raise
 
     controle_id = uuid.uuid4().hex
     # Le corrigé reste ici. Le navigateur reçoit les énoncés, pas les réponses.
@@ -583,7 +604,7 @@ def creer_controle(corps: DemandeControle,
         corps.session_id,
         {"questions": questions, "titre": brut.get("titre", "")},
     )
-    store.enregistrer_usage(corps.session_id, "controle", usage)
+    store.completer_usage(usage_id, usage)
     store.enregistrer_evenement(
         corps.session_id,
         "controle_commence",
