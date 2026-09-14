@@ -3082,7 +3082,7 @@ function montrer(id, options = {}) {
   // sur la section, qui porte un transform. Elle ne se cache donc pas avec eux :
   // on la referme à la main en quittant sa page.
   if ($('menu-marque') && !$('menu-marque').hidden) ouvrirMenuMarque(false);
-  if (id === 'ecran-photos') rafraichirQuotas();
+  if (id === 'ecran-photos') { peindreRestePages(); rafraichirQuotas(); }
   if (id !== 'ecran-espace') {
     if (!$('fiche-jour').hidden) { jourChoisi = null; fermerFicheJour(); }
     if ($('ecran-espace').dataset.agenda) basculerAgenda(false);
@@ -3583,32 +3583,62 @@ function reduirePhoto(fichier) {
  * pareil quatre pages et cinquante. C'est aussi l'unité qu'un élève comprend
  * sans explication — il voit ses feuilles.
  *
- * Il ne s'affiche qu'à l'approche de la limite : un compteur permanent
- * transformerait « photographie ton cours » en « attention à ta consommation ».
+ * Il ne s'affichait qu'à l'approche de la limite, de peur qu'un compteur
+ * permanent ne transforme « photographie ton cours » en « attention à ta
+ * consommation ». Demandé dans l'autre sens : rappeler ici, au moment de
+ * photographier, ce qu'il reste à l'élève. Il est donc là dès l'arrivée sur
+ * l'écran, et il le dit aussi en COURS, parce que c'est en cours qu'on pense
+ * quand on pose ses feuilles sur la table — « 64 pages » ne se traduit pas
+ * tout seul.
+ *
+ * Ce nombre de cours est un plancher : il suppose des cours pleins (huit
+ * pages). Qui photographie trois pages à la fois en fera bien plus. D'où « de
+ * quoi photographier huit cours », jamais « il te reste huit cours », qui
+ * serait faux. Les pages restent le chiffre exact, et le seul qui bouge photo
+ * par photo.
+ *
+ * Le futur porte le reste : « il te RESTERA » dit sans y insister que les pages
+ * déjà posées sur l'écran sont comptées dedans.
  */
-const SEUIL_RESTE_PAGES = 20;
+function phrasePages(n) {
+  return n === 1 ? 'une page' : n + ' pages';
+}
+
+function phraseCours(pages) {
+  const cours = Math.floor(pages / (config.max_photos || 8));
+  if (cours < 1) return '';
+  return ', de quoi photographier '
+    + (cours === 1 ? 'un cours entier' : cours + ' cours entiers');
+}
 
 function peindreRestePages() {
   const cible = $('reste-pages');
   if (!cible) return;
-  const etat = quotasMois && quotasMois.analyse;
-  const restant = etat ? etat.restant - photosEnAttente.length : null;
-  if (restant === null || etat.restant > SEUIL_RESTE_PAGES) {
+  const compteur = quotasMois && quotasMois.analyse;
+  if (!compteur) {
+    // Hors ligne, ou sans compte : rien plutôt qu'un chiffre faux.
     cible.hidden = true;
     return;
   }
+  const enAttente = photosEnAttente.length;
+  const restant = compteur.restant - enAttente;
   cible.hidden = false;
+
   if (restant > 0) {
-    cible.textContent = 'Il te reste ' + restant + (restant > 1 ? ' pages' : ' page')
-      + ' à rentrer ce mois-ci.';
+    cible.textContent = (enAttente ? 'Il te restera ' : 'Il te reste ')
+      + phrasePages(restant) + ' ce mois-ci' + phraseCours(restant) + '.';
     delete cible.dataset.epuise;
-  } else {
-    cible.textContent = restant === 0
-      ? 'Avec celles-ci, tu auras rentré toutes tes pages du mois.'
-      : 'Ça fait ' + (-restant) + ' page(s) de trop pour ce mois-ci. Retires-en, '
-        + 'ou garde le reste pour le 1er.';
-    cible.dataset.epuise = 'oui';
+    return;
   }
+  cible.dataset.epuise = 'oui';
+  if (restant === 0) {
+    cible.textContent = enAttente
+      ? 'Avec celles-ci, tu auras rentré toutes tes pages du mois.'
+      : 'Tu as rentré toutes tes pages du mois. Le compteur repart le 1er.';
+    return;
+  }
+  cible.textContent = 'Ça fait ' + phrasePages(-restant) + ' de trop pour ce mois-ci. '
+    + 'Retires-en, ou garde le reste pour le 1er.';
 }
 
 function dessinerPhotos() {
