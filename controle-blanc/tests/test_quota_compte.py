@@ -283,7 +283,7 @@ def test_un_refus_de_quota_ne_s_efface_pas_tout_seul():
 
 
 def test_il_peut_l_ecarter_et_il_ne_suit_pas_d_ecran_en_ecran():
-    montrer = SCRIPT[SCRIPT.index("function montrer(id)"):]
+    montrer = SCRIPT[SCRIPT.index("function montrer(id"):]
     montrer = montrer[: montrer.index("\n}\n")]
     assert "dataset.persistant" in montrer, (
         "un reproche qui suit l'élève de page en page"

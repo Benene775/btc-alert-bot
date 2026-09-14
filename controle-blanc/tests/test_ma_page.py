@@ -344,7 +344,7 @@ def test_un_jour_cliqué_ouvre_sa_fiche_sur_le_cote():
     assert 'id="fiche-jour"' not in espace, \
         "la fiche est dans l'écran : « position: fixed » se calera sur lui"
     # Et donc rien ne la cache au changement d'écran : le script s'en charge.
-    montrer = SCRIPT[SCRIPT.index("function montrer(id)"):]
+    montrer = SCRIPT[SCRIPT.index("function montrer(id"):]
     montrer = montrer[: montrer.index("\n}\n")]
     assert "fermerFicheJour" in montrer, "la fiche survit au changement d'écran"
 
@@ -419,7 +419,7 @@ def test_venir_de_l_agenda_mene_droit_aux_photos():
 def test_quitter_sa_page_referme_l_agenda():
     """Revenir de l'appareil photo sur une page où les matières et les chiffres
     restent cachés est désorientant : on croit avoir perdu son classeur."""
-    montrer = SCRIPT[SCRIPT.index("function montrer(id)"):]
+    montrer = SCRIPT[SCRIPT.index("function montrer(id"):]
     montrer = montrer[: montrer.index("\n}\n")]
     assert "basculerAgenda(false)" in montrer, "l'agenda reste en mode « seul »"
     # La bascule accepte donc une direction, sans casser le clic du bouton.

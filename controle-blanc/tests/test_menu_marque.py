@@ -101,7 +101,7 @@ def test_le_menu_se_referme_de_trois_facons():
 
 def test_changer_d_ecran_referme_le_menu():
     """Sinon il flotte au-dessus du nouvel écran, ancré à rien."""
-    montrer = SCRIPT[SCRIPT.index("function montrer(id)"):]
+    montrer = SCRIPT[SCRIPT.index("function montrer(id"):]
     montrer = montrer[: montrer.index("\n}\n")]
     assert "ouvrirMenuMarque(false)" in montrer
 

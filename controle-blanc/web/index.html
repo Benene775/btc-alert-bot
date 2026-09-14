@@ -160,6 +160,17 @@
 
 <main id="scene">
 
+<!-- REVENIR, PARTOUT ET AU MÊME ENDROIT.
+     Deux écrans sur treize portaient un retour, chacun le sien, avec son propre
+     libellé. Ailleurs on était pris : il fallait passer par le menu de la
+     marque, et savoir que c'était par là. Un seul bouton, toujours à la même
+     place, qui rend l'écran d'où l'on vient — et le même geste au doigt, en
+     balayant depuis le bord gauche. -->
+<div class="barre-retour">
+  <button type="button" class="retour" id="bouton-retour" hidden>← Retour</button>
+</div>
+
+
 <!-- ÉTAPE 0 — accueil -->
 <section id="ecran-accueil" class="ecran ecran-accueil" hidden>
 
@@ -660,8 +671,6 @@
 <!-- LA VUE D'UNE MATIÈRE — tout ce qu'elle contient, sans onglet à deviner.
      Sert aussi de vue « tout », quand aucune matière n'est choisie. -->
 <section id="ecran-matiere" class="ecran ecran-matiere" hidden>
-  <button type="button" class="retour" id="retour-etagere">← Ma page</button>
-
   <div class="matiere-tete" id="matiere-tete"></div>
 
   <section class="pan" id="pan-matiere-revoir" hidden>
@@ -852,7 +861,6 @@
      posent la même question, et deux copies auraient divergé à la première
      retouche. Le titre, la phrase et le bouton changent selon l'outil. -->
 <section id="ecran-atelier" class="ecran ecran-atelier" hidden>
-  <button type="button" class="retour" id="atelier-retour">← Ma page</button>
   <p class="etape" id="atelier-etiquette"></p>
   <h2 id="atelier-titre"></h2>
   <p class="chapeau" id="atelier-chapeau"></p>
@@ -1033,15 +1041,17 @@
   </div>
 </dialog>
 
-<!-- Supprimer ne se rattrape pas : on demande. Et on dit ce qui part, parce
-     qu'une fiche et un contrôle n'emportent pas la même chose avec eux. -->
-<dialog id="dialogue-suppression">
+<!-- Ce qui ne se rattrape pas se demande. Une seule boîte pour tous ces cas —
+     supprimer une fiche, quitter un contrôle en cours — parce qu'ils posent la
+     même question et méritent la même forme. Ce qui change, c'est ce qu'on dit
+     PARTIR : un contrôle et une fiche n'emportent pas la même chose. -->
+<dialog id="dialogue-confirmer">
   <form method="dialog">
-    <h3 id="titre-suppression">Supprimer ?</h3>
-    <p class="aide" id="mot-suppression"></p>
+    <h3 id="titre-confirmer"></h3>
+    <p class="aide" id="mot-confirmer"></p>
     <menu>
       <button value="non" class="discret">Annuler</button>
-      <button value="oui" class="secondaire bouton-danger">Supprimer</button>
+      <button value="oui" class="secondaire bouton-danger" id="oui-confirmer">Confirmer</button>
     </menu>
   </form>
 </dialog>

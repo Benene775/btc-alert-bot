@@ -338,7 +338,24 @@ body {
    ordinateur autrement qu'en bande de 620 px au milieu du vide. */
 #scene {
   padding: var(--e4) var(--gouttiere) calc(var(--e6) + env(safe-area-inset-bottom));
+  /* Le balayage de retour déplace la scène entière. La transition ramène en
+     douceur quand le geste n'est pas allé assez loin ; pendant le geste, elle
+     est coupée, sinon la page traîne derrière le doigt. */
+  transition: transform .22s cubic-bezier(.2, .7, .3, 1), opacity .22s ease;
 }
+
+#scene[data-glisse] { transition: none; }
+
+/* La barre du retour garde sa place même quand le bouton est caché : sans ça,
+   toute la page saute de quarante pixels à chaque changement d'écran. */
+.barre-retour {
+  max-width: var(--colonne);
+  margin-inline: auto;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+}
+
 
 .ecran {
   max-width: var(--colonne);
@@ -4164,11 +4181,20 @@ h1 {
   align-self: flex-start;
   border: 0;
   background: none;
-  padding: 6px 0;
+  padding: 6px 10px 6px 0;
   min-height: 40px;
   font-size: .86rem;
   font-weight: 700;
   color: var(--encre-douce);
+  cursor: pointer;
+  transition: color .16s ease, transform .16s cubic-bezier(.2, .7, .3, 1);
+}
+
+.retour:hover { color: var(--encre); transform: translateX(-3px); }
+
+@media (prefers-reduced-motion: reduce) {
+  #scene, .retour { transition: none; }
+  .retour:hover { transform: none; }
 }
 
 .matiere-tete {

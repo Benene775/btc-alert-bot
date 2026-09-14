@@ -1821,20 +1821,30 @@ function boutonSupprimer(genre, e) {
   return bouton;
 }
 
+/* Demander avant ce qui ne se rattrape pas.
+ *
+ * Une seule boîte pour tous ces cas : ils posent la même question et méritent
+ * la même forme. Ce qui change, c'est ce qu'on annonce comme perdu. */
+function confirmer({ titre, mot, libelle }, suite) {
+  const boite = $('dialogue-confirmer');
+  $('titre-confirmer').textContent = titre;
+  $('mot-confirmer').textContent = mot;
+  $('oui-confirmer').textContent = libelle;
+  boite.returnValue = '';
+  boite.onclose = () => { if (boite.returnValue === 'oui') suite(); };
+  boite.showModal();
+}
+
 function demanderSuppression(genre, e) {
   const fiche = genre === 'fiches';
-  const boite = $('dialogue-suppression');
-  $('titre-suppression').textContent = fiche
-    ? 'Supprimer cette fiche ?' : 'Supprimer ce contrôle blanc ?';
-  // On dit ce qui part : une fiche et un contrôle n'emportent pas la même chose.
-  $('mot-suppression').textContent = '« ' + e.titre + ' » — ' + (fiche
-    ? 'elle ne reviendra pas, et la réécrire coûtera une fiche de ton mois.'
-    : 'ses questions, tes réponses et sa correction partent avec lui.');
-  boite.returnValue = '';
-  boite.onclose = () => {
-    if (boite.returnValue === 'oui') supprimerDeLArchive(genre, e);
-  };
-  boite.showModal();
+  confirmer({
+    titre: fiche ? 'Supprimer cette fiche ?' : 'Supprimer ce contrôle blanc ?',
+    // On dit ce qui part : une fiche et un contrôle n'emportent pas la même chose.
+    mot: '« ' + e.titre + ' » — ' + (fiche
+      ? 'elle ne reviendra pas, et la réécrire coûtera une fiche de ton mois.'
+      : 'ses questions, tes réponses et sa correction partent avec lui.'),
+    libelle: 'Supprimer',
+  }, () => supprimerDeLArchive(genre, e));
 }
 
 function supprimerDeLArchive(genre, e) {
@@ -2804,7 +2814,160 @@ function envoyerJson(chemin, corps, methode = 'POST') {
 
 /* --------------------------------------------------------------- écrans --- */
 
-function montrer(id) {
+/* --- Revenir -------------------------------------------------------------
+ *
+ * Deux écrans sur treize portaient un retour, chacun le sien. Ailleurs on était
+ * pris : il fallait repasser par le menu de la marque, et savoir que c'était
+ * par là — ce qui n'est écrit nulle part. Un seul bouton, toujours à la même
+ * place, et le même geste au doigt depuis le bord gauche.
+ *
+ * Une pile, pas une table de destinations : « revenir » veut dire l'écran d'où
+ * l'on vient, et la fiche se rejoint de quatre endroits différents.
+ */
+const PILE_MAX = 12;
+
+/* Ce sont les racines : on n'a pas à en sortir par une flèche. La page perso
+ * porte déjà « Revenir » en bas, qui rend la séance ou l'accueil. */
+const RACINES = new Set(['ecran-accueil', 'ecran-connexion', 'ecran-espace']);
+
+/* Et ceux où l'on ne revient jamais : un contrôle qu'on a quitté n'existe plus
+ * en mémoire, et l'écran de connexion une fois entré n'a plus de sens. */
+const JAMAIS_REVENIR_VERS = new Set(['ecran-controle', 'ecran-connexion']);
+
+/* Ce qu'il faut redessiner en y revenant : un écran rendu tel qu'on l'a laissé
+ * montrerait une fiche qu'on vient de supprimer. */
+const AU_RETOUR = {
+  'ecran-espace': () => dessinerEspace(),
+  'ecran-matiere': () => dessinerMatiere(),
+};
+
+let pileEcrans = [];
+
+function ecranCourant() {
+  // « ecrans() » rend une NodeList : elle a « forEach », pas « find ».
+  const vu = [...ecrans()].find((section) => !section.hidden);
+  return vu ? vu.id : '';
+}
+
+function peutRevenir() {
+  return pileEcrans.length > 0 && !RACINES.has(ecranCourant());
+}
+
+function revenir() {
+  if (!peutRevenir()) return false;
+
+  // Un contrôle quitté n'existe plus : les questions ne sont pas gardées, et en
+  // relancer un coûte un contrôle du mois. Ce n'est pas un geste qu'on fait du
+  // pouce sans le vouloir — donc on demande, et on dit ce que ça coûte.
+  if (ecranCourant() === 'ecran-controle') {
+    confirmer({
+      titre: 'Quitter le contrôle ?',
+      mot: 'Tes réponses et les questions ne seront pas gardées. En relancer un '
+        + 'coûtera un contrôle de ton mois.',
+      libelle: 'Quitter',
+    }, () => { controleEnCours = null; revenirVraiment(); });
+    return false;
+  }
+  return revenirVraiment();
+}
+
+function revenirVraiment() {
+  const precedent = pileEcrans.pop();
+  if (!precedent) return false;
+  // Sans ce drapeau, montrer() repousserait l'écran qu'on vient de quitter et
+  // la flèche ferait aller-retour entre deux pages sans jamais remonter.
+  montrer(precedent, { retour: true });
+  if (AU_RETOUR[precedent]) AU_RETOUR[precedent]();
+  return true;
+}
+
+function majBoutonRetour() {
+  $('bouton-retour').hidden = !peutRevenir();
+}
+
+/* Revenir au doigt, depuis le bord gauche.
+ *
+ * DEPUIS LE BORD, et pas n'importe où : la fiche est un paquet de cartes qu'on
+ * fait glisser horizontalement. Un balayage vers la droite au milieu de l'écran
+ * veut dire « carte précédente », et doit continuer à le vouloir dire. C'est la
+ * règle du système sur un téléphone, et c'est celle que le pouce connaît déjà.
+ *
+ * On n'arme rien tant que le geste n'est pas clairement horizontal : sinon le
+ * moindre défilement vertical commencé près du bord ferait partir la page.
+ */
+const BORD_RETOUR = 26;      // largeur de la zone sensible, en pixels
+const COURSE_RETOUR = 70;    // distance à parcourir pour que ça parte
+let glissementRetour = null;
+
+function armerLeGlissementDeRetour() {
+  const scene = $('scene');
+
+  const finir = (partir) => {
+    delete scene.dataset.glisse;
+    scene.style.transform = '';
+    scene.style.opacity = '';
+    glissementRetour = null;
+    if (partir) revenir();
+  };
+
+  document.addEventListener('touchstart', (evenement) => {
+    glissementRetour = null;
+    if (evenement.touches.length !== 1) return;
+    if (!peutRevenir()) return;
+    // Une boîte de dialogue ouverte prend le geste : on ne navigue pas derrière.
+    if (document.querySelector('dialog[open]')) return;
+    const doigt = evenement.touches[0];
+    if (doigt.clientX > BORD_RETOUR) return;
+    glissementRetour = { x: doigt.clientX, y: doigt.clientY, arme: false, alle: 0 };
+  }, { passive: true });
+
+  document.addEventListener('touchmove', (evenement) => {
+    if (!glissementRetour || evenement.touches.length !== 1) return;
+    const doigt = evenement.touches[0];
+    const dx = doigt.clientX - glissementRetour.x;
+    const dy = doigt.clientY - glissementRetour.y;
+
+    if (!glissementRetour.arme) {
+      // Vertical : c'est un défilement, on rend la main pour de bon.
+      if (Math.abs(dy) > Math.abs(dx)) { glissementRetour = null; return; }
+      if (dx < 12) return;
+      glissementRetour.arme = true;
+      scene.dataset.glisse = 'oui';
+    }
+
+    if (evenement.cancelable) evenement.preventDefault();
+    glissementRetour.alle = Math.max(0, Math.min(dx, 170));
+    scene.style.transform = 'translateX(' + glissementRetour.alle + 'px)';
+    scene.style.opacity = String(Math.max(0.45, 1 - glissementRetour.alle / 420));
+  }, { passive: false });
+
+  document.addEventListener('touchend', () => {
+    if (!glissementRetour) return;
+    finir(glissementRetour.arme && glissementRetour.alle >= COURSE_RETOUR);
+  });
+
+  document.addEventListener('touchcancel', () => {
+    if (glissementRetour) finir(false);
+  });
+}
+
+function montrer(id, options = {}) {
+  const quitte = ecranCourant();
+  if (!options.retour && quitte && quitte !== id && !JAMAIS_REVENIR_VERS.has(quitte)) {
+    // Revenir sur ses pas efface les pas : sans ça, page → matière → page →
+    // matière empilerait quatre écrans pour deux endroits.
+    const deja = pileEcrans.lastIndexOf(id);
+    if (deja >= 0) pileEcrans.length = deja;
+    else {
+      pileEcrans.push(quitte);
+      if (pileEcrans.length > PILE_MAX) pileEcrans.shift();
+    }
+  }
+  if (RACINES.has(id) && id !== 'ecran-matiere') {
+    // Arriver sur une racine remet les compteurs à zéro : on est chez soi.
+    if (id === 'ecran-espace' || id === 'ecran-accueil') pileEcrans = [];
+  }
+
   ecrans().forEach((section) => { section.hidden = section.id !== id; });
   // Un message persistant appartient à l'écran où il est né : le traîner
   // ailleurs, c'est un reproche qui suit l'élève de page en page.
@@ -2825,6 +2988,7 @@ function montrer(id) {
   document.documentElement.dataset.ecran = id.replace('ecran-', '');
   window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
   majBandeau(id);
+  majBoutonRetour();
 }
 
 /* Les écrans qui tiennent « --large ». La liste double celle de la feuille de
@@ -5877,6 +6041,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('ecran-espace').hidden) return ouvrirEspace();
     if (etat) reprendre();
   };
+  $('bouton-retour').onclick = () => revenir();
+  armerLeGlissementDeRetour();
+
   $('bouton-quitter-espace').onclick = () => {
     if (etat) return reprendre();
     montrer('ecran-accueil');
@@ -5897,7 +6064,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   $('onglet-fiches').onclick = () => basculerArchive('fiches');
   $('onglet-controles').onclick = () => basculerArchive('controles');
-  $('retour-etagere').onclick = () => { montrer('ecran-espace'); dessinerEspace(); };
 
   const changerMois = (pas) => {
     moisAffiche = new Date(moisAffiche.getFullYear(), moisAffiche.getMonth() + pas, 1);
@@ -5932,7 +6098,6 @@ document.addEventListener('DOMContentLoaded', () => {
     ouvrirAtelier(archiveOuverte === 'controles' ? 'controle' : 'fiche');
   $('atelier-matiere').onchange = dessinerChapitresAtelier;
   $('bouton-lancer-atelier').onclick = lancerAtelier;
-  $('atelier-retour').onclick = () => { montrer('ecran-espace'); dessinerEspace(); };
 
   // Un seul écouteur sur la grille, pas un par case : le mois se redessine à
   // chaque ajout, à chaque changement de mois, et des écouteurs posés case par

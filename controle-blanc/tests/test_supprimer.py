@@ -45,14 +45,19 @@ def test_le_bouton_est_a_cote_de_la_ligne_pas_dedans():
 
 
 def test_on_demande_avant_et_on_dit_ce_qui_part():
-    assert 'id="dialogue-suppression"' in PAGE
+    """Une seule boîte pour tout ce qui ne se rattrape pas — supprimer une
+    fiche, quitter un contrôle en cours : ils posent la même question et
+    méritent la même forme. Ce qui change, c'est ce qu'on annonce comme perdu."""
+    assert 'id="dialogue-confirmer"' in PAGE
     demander = bloc("demanderSuppression")
-    assert "boite.showModal()" in demander
     assert "elle ne reviendra pas" in demander, "on ne dit pas ce que coûte une fiche"
     assert "tes réponses et sa correction partent avec lui" in demander, \
         "on ne dit pas ce qu'emporte un contrôle"
     # Rien ne part tant qu'on n'a pas dit oui.
-    assert "if (boite.returnValue === 'oui') supprimerDeLArchive(genre, e);" in demander
+    assert "() => supprimerDeLArchive(genre, e)" in demander
+    confirme = bloc("confirmer")
+    assert "boite.showModal()" in confirme
+    assert "if (boite.returnValue === 'oui') suite();" in confirme
 
 
 def test_la_suppression_tient_au_rechargement():
