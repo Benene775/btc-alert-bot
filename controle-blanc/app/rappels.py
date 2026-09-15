@@ -214,25 +214,38 @@ async def tournee(jour: str | None = None) -> dict[str, int]:
 
 
 async def boucle() -> None:
-    """Une fois par jour, à l'heure dite. Dort le reste du temps.
+    """Le soir venu, et tant que la soirée dure. Dort le reste du temps.
 
     Pas de cron ni d'ordonnanceur externe : le service tourne déjà en continu
     (offre payante, disque persistant — voir DEPLOIEMENT.md), et une tâche qui
-    dort ne coûte rien. Elle se réveille toutes les quinze minutes pour ne pas
-    rater son heure après une mise en veille de la machine.
+    dort ne coûte rien.
+
+    Elle repasse toutes les quinze minutes APRÈS l'heure dite, et pas une fois
+    par jour. La version d'avant retenait « la tournée de ce jour est faite » :
+    un contrôle noté à 19 h pour le lendemain n'était donc jamais annoncé, et un
+    redémarrage à 18 h 01 consommait la tournée du jour pour un agenda encore
+    vide. Trouvé en configurant le service pour de vrai : le rappel d'essai
+    n'est jamais arrivé, parce que le contrôle avait été posé APRÈS le
+    redémarrage.
+
+    Repasser souvent ne risque rien : c'est la table « rappels_envoyes » qui
+    empêche le doublon, pas le rythme de la boucle. Une tournée qui n'a rien à
+    dire ne fait qu'une lecture d'agendas.
     """
     fuseau = ZoneInfo(config.FUSEAU_RAPPELS)
-    dernier_jour = ""
+    dernier_menage = ""
     while True:
         try:
             ici = datetime.now(fuseau)
-            if ici.hour >= config.RAPPEL_HEURE and ici.date().isoformat() != dernier_jour:
-                dernier_jour = ici.date().isoformat()
+            if ici.hour >= config.RAPPEL_HEURE:
                 bilan = await tournee()
                 if bilan["envoyes"] or bilan["morts"]:
                     logger.info("rappels : %s envoyé(s), %s abonnement(s) périmé(s)",
                                 bilan["envoyes"], bilan["morts"])
-                store.purger_rappels(ici.date().isoformat())
+                # Le ménage, lui, n'a besoin de passer qu'une fois par jour.
+                if ici.date().isoformat() != dernier_menage:
+                    dernier_menage = ici.date().isoformat()
+                    store.purger_rappels(dernier_menage)
         except asyncio.CancelledError:
             raise
         except Exception as exc:  # une tournée qui tombe ne doit pas tuer la boucle

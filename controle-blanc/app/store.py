@@ -904,6 +904,18 @@ def noter_rappel(compte_id: str, jour: str, matiere: str) -> None:
         )
 
 
+def oublier_rappels_du_jour(jour: str) -> int:
+    """Efface les marques « déjà annoncé » d'une date, pour pouvoir retester.
+
+    Sert à l'outil d'essai : sans ça, la deuxième tentative sur le même contrôle
+    ne part pas, et on croit à une panne alors que c'est la protection contre
+    les doublons qui fait son travail.
+    """
+    with curseur() as cur:
+        cur.execute("DELETE FROM rappels_envoyes WHERE jour = ?", (jour,))
+        return cur.rowcount
+
+
 def purger_rappels(avant_le: str) -> int:
     """Les rappels d'hier n'ont plus rien à dire. Passé le contrôle, la ligne ne
     sert qu'à faire grossir la base."""
