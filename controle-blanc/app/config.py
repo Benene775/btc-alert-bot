@@ -273,6 +273,20 @@ RETENTION_CORRIGES_JOURS = _int("CB_RETENTION_JOURS", 30)
 # CES CHIFFRES SONT À VÉRIFIER sur la page de tarifs avant de s'y fier. Ils ne
 # sont pas lus depuis l'API — rien ne les corrige tout seuls s'ils vieillissent.
 #
+# CE SONT DES TARIFS HORS TAXES, en dollars. Tout ce que /admin/metriques
+# affiche est donc du HT : la facture réelle peut porter 20 % de plus, et elle
+# est en euros. Deux choses décident de l'écart, et aucune n'est dans ce code :
+#
+#   - le statut de l'exploitant. Un particulier paie la TVA française ; une
+#     entreprise avec numéro de TVA intracommunautaire autoliquide (neutre si
+#     elle la déduit) ; une micro-entreprise en franchise en base autoliquide
+#     AUSSI mais ne déduit pas — les 20 % sont alors un coût réel ;
+#   - le taux de change du jour, et les frais de conversion de la carte.
+#
+# La facture du fournisseur tranche, pas cette table. Ne pas la « corriger » en
+# y glissant une TVA : on comparerait alors des tarifs affichés à des tarifs
+# maison, et le premier changement de prix passerait inaperçu.
+#
 # La clé doit être assez précise pour ne pas attraper un voisin moins cher ou
 # plus cher : « sonnet » tout court ramasserait Sonnet 4.6, qui n'est pas au
 # tarif de Sonnet 5. Un modèle absent d'ici n'est pas deviné — il est signalé.

@@ -1003,6 +1003,9 @@ d'où vient sa dépense — elle ne dit rien que les chiffres de la ligne ne dis
 <h2>Où va l’argent, et ce que coûte une unité</h2>
 <p class='n'>La colonne « l’unité » est celle qui sert à décider : c'est le prix d'UNE page
 photographiée, d'UN contrôle blanc, d'UNE fiche. Les plafonds du mois se règlent là-dessus.</p>
+<p class='n'><b>Tout est en dollars et hors taxes</b> — ce sont les tarifs affichés du
+fournisseur. Selon ton statut, la facture peut porter 20 % de TVA en plus, et elle est
+en euros : c'est elle qui fait foi, pas cette page.</p>
 <div class='large'><table>
  <thead><tr><th>Poste</th><th class='v'>Coût</th><th class='v'>Volume</th>
  <th class='v'>À l’unité</th><th class='v'>Par élève</th></tr></thead>
