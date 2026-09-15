@@ -128,6 +128,18 @@ jamais entrer dans le dépôt**, qui est public — c'est elle qui autorise à
 | `CB_VAPID_CLE_PRIVEE` | ce que l'outil affiche — **secret** |
 | `CB_VAPID_CONTACT` | `https://ton-site.onrender.com` — par où Apple et Google te joindraient si tes envois posaient problème. L'adresse du site suffit ; `mailto:une-adresse` marche aussi, mais une adresse personnelle n'apporte rien ici |
 
+Puis, dans le Shell, une fois le service redémarré :
+
+```
+python -m outils.verifier_rappels
+```
+
+Il dit en une ligne si c'est bon. Le journal de démarrage, lui, annonce
+seulement que les trois variables **existent** : une clé tronquée au
+copier-coller, ou une publique et une privée venues de deux exécutions
+différentes, passent ce contrôle-là et ne se voient qu'à l'envoi, le soir, chez
+l'élève. Cet outil attrape les trois fautes, sans rien afficher de secret.
+
 Deux choses à savoir avant de le proposer aux familles :
 
 * **Sur iPhone, ça ne marche que depuis l'écran d'accueil.** Partager → « Sur

@@ -33,6 +33,7 @@ PAQUET = {
     "multipart": "python-multipart",
     "yaml": "pyyaml",
     "dateutil": "python-dateutil",
+    "py_vapid": "py-vapid",
 }
 
 
