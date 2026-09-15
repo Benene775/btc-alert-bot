@@ -52,10 +52,18 @@ def verifier() -> list[str]:
         return fautes
 
     # La privée doit se relire et signer pour de vrai.
+    #
+    # On signe avec un contact FACTICE mais valide, jamais avec celui de la
+    # configuration : py_vapid refuse un « sub » mal formé en levant la même
+    # exception qu'une clé illisible. Signalé en usage réel — un contact auquel
+    # il manquait « https:// » a fait accuser une clé parfaitement bonne, et
+    # envoyait l'exploitant régénérer une paire qui n'avait rien. Un outil de
+    # diagnostic qui désigne le mauvais coupable est pire que pas d'outil.
     signataire = None
     try:
         signataire = Vapid.from_string(private_key=config.VAPID_CLE_PRIVEE)
-        signataire.sign({"sub": config.VAPID_CONTACT, "aud": "https://exemple.test"})
+        signataire.sign({"sub": "mailto:verification@exemple.test",
+                         "aud": "https://exemple.test"})
     except Exception as exc:
         fautes.append("CB_VAPID_CLE_PRIVEE ne signe pas — recopiée en entier ? "
                       f"({type(exc).__name__})")
@@ -82,8 +90,20 @@ def verifier() -> list[str]:
                           "de deux exécutions différentes. Relance « python -m "
                           "outils.cles_vapid » et reprends LES DEUX lignes du même coup")
 
+    # Le contact, à part — et en montrant ce qu'on a lu : neuf fois sur dix il
+    # manque juste « https:// » devant, et on le voit tout de suite.
     if not config.VAPID_CONTACT.startswith(("https://", "mailto:")):
-        fautes.append("CB_VAPID_CONTACT doit commencer par « https:// » ou « mailto: »")
+        fautes.append(
+            f"CB_VAPID_CONTACT vaut « {config.VAPID_CONTACT} » : il lui manque le début. "
+            f"Mets « https://{config.VAPID_CONTACT} » si c'est l'adresse de ton site, "
+            "ou « mailto:… » si c'est une adresse mail"
+        )
+    elif signataire is not None:
+        # Bien formé : on vérifie qu'il passe vraiment la signature.
+        try:
+            signataire.sign({"sub": config.VAPID_CONTACT, "aud": "https://exemple.test"})
+        except Exception as exc:
+            fautes.append(f"CB_VAPID_CONTACT est refusé à la signature : {exc}")
 
     return fautes
 

@@ -267,3 +267,53 @@ def test_le_message_part_signe_chiffre_et_lisible(client, monkeypatch):
 
     # Et la tournée a noté son passage : elle ne renverra rien demain matin.
     assert rappels.a_prevenir(demain) == []
+
+
+# --- L'outil de vérification, qui doit désigner le BON coupable --------------
+
+@pytest.mark.parametrize("contact, cle_juste, attendu", [
+    # Le cas rencontré en configurant le service : un contact auquel il manque
+    # « https:// ». py_vapid refuse un « sub » mal formé avec la même exception
+    # qu'une clé illisible — l'outil accusait donc une clé parfaitement bonne,
+    # et envoyait régénérer une paire qui n'avait rien. Un diagnostic qui
+    # désigne le mauvais coupable coûte plus cher que pas de diagnostic.
+    ("repere.example.test", True, ["CB_VAPID_CONTACT"]),
+    ("https://repere.example.test", True, []),
+    ("mailto:contact@example.test", True, []),
+    # Et une clé vraiment abîmée doit rester détectée, elle.
+    ("https://repere.example.test", False, ["CB_VAPID_CLE_PRIVEE"]),
+])
+def test_le_verificateur_ne_se_trompe_pas_de_coupable(monkeypatch, contact, cle_juste,
+                                                      attendu):
+    pytest.importorskip("py_vapid")
+    from outils.cles_vapid import fabriquer
+    from outils.verifier_rappels import verifier
+
+    publique, privee = fabriquer()
+    monkeypatch.setattr(config, "VAPID_CLE_PUBLIQUE", publique)
+    monkeypatch.setattr(config, "VAPID_CLE_PRIVEE", privee if cle_juste else privee[:20])
+    monkeypatch.setattr(config, "VAPID_CONTACT", contact)
+
+    fautes = verifier()
+    assert len(fautes) == len(attendu), fautes
+    for variable, faute in zip(attendu, fautes):
+        assert variable in faute, faute
+    # Et quand c'est le contact, l'outil montre la valeur lue et la correction :
+    # « il lui manque https:// » se répare sans rien comprendre au reste.
+    if attendu == ["CB_VAPID_CONTACT"]:
+        assert contact in fautes[0] and "https://" + contact in fautes[0]
+
+
+def test_le_verificateur_n_affiche_aucun_secret(monkeypatch):
+    """Il tourne dans un shell dont on envoie parfois des captures."""
+    pytest.importorskip("py_vapid")
+    from outils.cles_vapid import fabriquer
+    from outils.verifier_rappels import verifier
+
+    publique, privee = fabriquer()
+    monkeypatch.setattr(config, "VAPID_CLE_PUBLIQUE", publique)
+    monkeypatch.setattr(config, "VAPID_CLE_PRIVEE", privee[:20])  # abîmée : il va se plaindre
+    monkeypatch.setattr(config, "VAPID_CONTACT", "https://repere.example.test")
+
+    tout = " ".join(verifier())
+    assert privee[:20] not in tout, "la clé privée se retrouve dans un message d'erreur"
