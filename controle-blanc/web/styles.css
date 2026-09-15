@@ -4509,6 +4509,17 @@ h1 {
   padding: 14px;
 }
 
+/* Ce que le contrôle EST, quand il vient d'un cours : rappelé, pas modifiable.
+   Sa matière appartient au classeur — la changer d'ici reclasserait tout un
+   cours depuis un calendrier. */
+.ajout-rv-quoi {
+  margin: 0 0 var(--e2);
+  font-size: .88rem;
+  font-weight: 700;
+}
+
+.ajout-rv-aide { margin: 6px 0 0; }
+
 .ajout-rv-effacer {
   display: block;
   width: 100%;

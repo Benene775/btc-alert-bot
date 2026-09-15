@@ -986,6 +986,44 @@ function modifierRendezVous(id, champs) {
   ));
 }
 
+/* La date d'un contrôle qui vient d'un COURS PHOTOGRAPHIÉ, et non d'une note
+ * de l'agenda.
+ *
+ * Les deux se ressemblent dans le calendrier et n'ont rien à voir dessous : la
+ * note vit dans l'agenda et s'efface, le cours vit dans le classeur avec ses
+ * photos, ses fiches et ses contrôles blancs. Retirer celui-ci de l'agenda ne
+ * doit donc RIEN effacer — juste lui enlever sa date d'échéance. Signalé en
+ * usage réel : « je ne vois pas comment faire quand un cours est déjà là ».
+ *
+ * Une date vide vaut « plus d'échéance » : evenementsDuJour compare
+ * « s.dateControle === jour », et rien n'égale la chaîne vide.
+ */
+function changerDateDeSeance(sessionId, date) {
+  // Même précaution que pour supprimerDeLArchive : si c'est la séance ouverte,
+  // on la modifie EN MÉMOIRE, sinon tout ce que l'élève fera ensuite écrasera
+  // le changement avec une copie périmée.
+  const courante = Boolean(etat && etat.sessionId === sessionId);
+  const session = courante ? etat : charger(sessionId);
+  if (!session) return false;
+
+  session.dateControle = date || '';
+  if (courante) {
+    sauver();
+  } else {
+    session.majLe = new Date().toISOString();
+    try { localStorage.setItem(CLE_ETAT + sessionId, JSON.stringify(session)); }
+    catch (err) { message('Ton téléphone n’a plus de place.', 'alerte'); return false; }
+    monterPlusTard(sessionId);
+  }
+  return true;
+}
+
+/* Ce qui identifie un événement du jour, note ou cours confondus : le
+ * formulaire du bas doit savoir lequel des deux il est en train de modifier. */
+function cleEvenement(e) {
+  return e.source === 'session' ? 's:' + e.sessionId : 'r:' + e.id;
+}
+
 function cleJour(d) {
   // Pas toISOString : il bascule en UTC et décale d'un jour le soir en France.
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')
@@ -1177,20 +1215,18 @@ function dessinerJourChoisi(sessions) {
     // signes identiques pour « ferme cette feuille » et « efface ce contrôle »,
     // dont l'un est irréversible. Signalé en usage réel — « je voudrais qu'on
     // ait la possibilité de supprimer » —, c'est-à-dire pas trouvé du tout.
-    if (e.source === 'saisi') {
-      const changer = document.createElement('button');
-      changer.type = 'button';
-      changer.className = 'rendez-vous-changer';
-      changer.textContent = 'Modifier';
-      changer.setAttribute('aria-label', 'Modifier ou supprimer ce contrôle');
-      changer.onclick = () => { rvModifie = e.id; dessinerEspace(); };
-      corps.appendChild(changer);
-    }
+    const changer = document.createElement('button');
+    changer.type = 'button';
+    changer.className = 'rendez-vous-changer';
+    changer.textContent = 'Modifier';
+    changer.setAttribute('aria-label', 'Modifier la date ou retirer ce contrôle');
+    changer.onclick = () => { rvModifie = cleEvenement(e); dessinerEspace(); };
+    corps.appendChild(changer);
     boite.appendChild(ligne);
   });
 
   const enCours = rvModifie
-    ? evenements.find((e) => e.source === 'saisi' && e.id === rvModifie)
+    ? evenements.find((e) => cleEvenement(e) === rvModifie)
     : null;
   boite.appendChild(formulaireRendezVous(enCours || null));
 }
@@ -1212,6 +1248,11 @@ function dessinerJourChoisi(sessions) {
  * auraient fini par diverger sur ce qui tombe, qui n'est saisissable qu'ici.
  */
 function formulaireRendezVous(existant) {
+  // Un contrôle qui vient d'un COURS ne se modifie pas comme une note : sa
+  // matière et son contenu appartiennent au classeur, pas à l'agenda. On n'y
+  // touche donc qu'à la date — et au fait qu'il y figure ou non.
+  if (existant && existant.source === 'session') return formulaireSeance(existant);
+
   const forme = document.createElement('form');
   forme.className = 'ajout-rv';
   if (existant) forme.dataset.modifie = 'oui';
@@ -1251,23 +1292,8 @@ function formulaireRendezVous(existant) {
   // vient de toucher dans le calendrier, et le redemander serait absurde.
   let quand = null;
   if (existant) {
-    const etiquetteDate = document.createElement('label');
-    etiquetteDate.setAttribute('for', 'rv-date');
-    etiquetteDate.textContent = 'La date';
-    quand = document.createElement('input');
-    quand.type = 'date';
-    quand.id = 'rv-date';
-    quand.value = existant.date;
-    // Le champ date s'affiche dans le format du téléphone — 20/09 ici, 09/20
-    // ailleurs — et rien dans la page ne peut le changer. La date en toutes
-    // lettres lève le doute, et dit au passage à quoi sert ce champ : un
-    // contrôle se décale aussi souvent qu'il s'annule.
-    const aideDate = document.createElement('p');
-    aideDate.className = 'aide ajout-rv-aide';
-    aideDate.textContent = 'Actuellement le ' + dateCourte(existant.date)
-      + '. Change-la pour décaler le contrôle.';
-    forme.append(titre, etiquetteMatiere, choix, etiquetteNote, note,
-                 etiquetteDate, quand, aideDate);
+    forme.append(titre, etiquetteMatiere, choix, etiquetteNote, note);
+    quand = champDate(forme, existant.date);
   } else {
     forme.append(titre, etiquetteMatiere, choix, etiquetteNote, note);
   }
@@ -1279,25 +1305,15 @@ function formulaireRendezVous(existant) {
 
   if (existant) {
     forme.appendChild(valider);
-
-    const effacer = document.createElement('button');
-    effacer.type = 'button';
-    effacer.className = 'ajout-rv-effacer';
-    effacer.textContent = 'Supprimer ce contrôle';
-    effacer.onclick = () => {
-      retirerRendezVous(existant.id);
-      rvModifie = null;
-      message('Contrôle supprimé de ton agenda.');
-      dessinerEspace();
-    };
-
-    const renoncer = document.createElement('button');
-    renoncer.type = 'button';
-    renoncer.className = 'ajout-rv-renoncer';
-    renoncer.textContent = 'Annuler';
-    renoncer.onclick = () => { rvModifie = null; dessinerEspace(); };
-
-    forme.append(effacer, renoncer);
+    forme.append(
+      boutonEffacer('Supprimer ce contrôle', () => {
+        retirerRendezVous(existant.id);
+        rvModifie = null;
+        message('Contrôle supprimé de ton agenda.');
+        dessinerEspace();
+      }),
+      boutonRenoncer()
+    );
   } else {
     // Dire ce qui tombe et le photographier sont le même geste, à une minute
     // près : le cours est ouvert sur la table quand on note la date. Le lien
@@ -1328,16 +1344,119 @@ function formulaireRendezVous(existant) {
       note: note.value.trim(),
     });
     rvModifie = null;
-    // La fiche suit le contrôle à sa nouvelle date : c'est la preuve qu'il a
-    // bien bougé, et on y est déjà si on veut le rouvrir.
-    if (nouvelleDate !== existant.date) {
-      jourChoisi = nouvelleDate;
-      message('Contrôle déplacé au ' + dateCourte(nouvelleDate) + '.');
-    }
+    suivreLaDate(existant.date, nouvelleDate);
     dessinerEspace();
   };
 
   return forme;
+}
+
+/* Le même formulaire pour un contrôle né d'un cours photographié — réduit à ce
+ * qui lui appartient vraiment.
+ *
+ * Sa matière et son contenu viennent du classeur : les rendre modifiables ici
+ * reviendrait à reclasser tout un cours depuis un calendrier. Restent la date,
+ * et la possibilité de le sortir de l'agenda sans rien perdre. */
+function formulaireSeance(existant) {
+  const forme = document.createElement('form');
+  forme.className = 'ajout-rv';
+  forme.dataset.modifie = 'oui';
+  forme.dataset.seance = 'oui';
+
+  const titre = document.createElement('p');
+  titre.className = 'ajout-rv-titre';
+  titre.textContent = 'Modifier ce contrôle';
+
+  const quoi = document.createElement('p');
+  quoi.className = 'ajout-rv-quoi';
+  quoi.textContent = nomMatiere(existant.matiere) + ' · ' + resumeEvenement(existant);
+
+  forme.append(titre, quoi);
+  const quand = champDate(forme, existant.date);
+
+  const valider = document.createElement('button');
+  valider.type = 'submit';
+  valider.className = 'principal ajout-rv-valider';
+  valider.textContent = 'Enregistrer';
+
+  forme.append(
+    valider,
+    boutonEffacer('Retirer de l’agenda', () => {
+      if (!changerDateDeSeance(existant.sessionId, '')) return;
+      rvModifie = null;
+      message('Retiré de ton agenda. Ton cours et tes fiches sont toujours là.');
+      dessinerEspace();
+    }),
+    aide('Ton cours, tes fiches et tes contrôles blancs restent dans ta matière : '
+         + 'seule l’échéance disparaît.'),
+    boutonRenoncer()
+  );
+
+  forme.onsubmit = (evenement) => {
+    evenement.preventDefault();
+    const nouvelleDate = quand.value || existant.date;
+    if (!changerDateDeSeance(existant.sessionId, nouvelleDate)) return;
+    rvModifie = null;
+    suivreLaDate(existant.date, nouvelleDate);
+    dessinerEspace();
+  };
+
+  return forme;
+}
+
+/* --- Les morceaux communs aux deux formulaires ---------------------------- */
+
+function champDate(forme, valeur) {
+  const etiquette = document.createElement('label');
+  etiquette.setAttribute('for', 'rv-date');
+  etiquette.textContent = 'La date';
+
+  const quand = document.createElement('input');
+  quand.type = 'date';
+  quand.id = 'rv-date';
+  quand.value = valeur;
+
+  // Le champ date s'affiche dans le format du téléphone — 20/09 ici, 09/20
+  // ailleurs — et rien dans la page ne peut le changer. La date en toutes
+  // lettres lève le doute, et dit au passage à quoi sert ce champ : un
+  // contrôle se décale aussi souvent qu'il s'annule.
+  forme.append(etiquette, quand,
+               aide('Actuellement le ' + dateCourte(valeur)
+                    + '. Change-la pour décaler le contrôle.'));
+  return quand;
+}
+
+function aide(texte) {
+  const ligne = document.createElement('p');
+  ligne.className = 'aide ajout-rv-aide';
+  ligne.textContent = texte;
+  return ligne;
+}
+
+function boutonEffacer(libelle, suite) {
+  const bouton = document.createElement('button');
+  bouton.type = 'button';
+  bouton.className = 'ajout-rv-effacer';
+  bouton.textContent = libelle;
+  bouton.onclick = suite;
+  return bouton;
+}
+
+function boutonRenoncer() {
+  const bouton = document.createElement('button');
+  bouton.type = 'button';
+  bouton.className = 'ajout-rv-renoncer';
+  bouton.textContent = 'Annuler';
+  bouton.onclick = () => { rvModifie = null; dessinerEspace(); };
+  return bouton;
+}
+
+/* La fiche du jour suit le contrôle à sa nouvelle date : c'est la preuve qu'il
+ * a bien bougé, et on y est déjà si on veut le rouvrir. */
+function suivreLaDate(avant, apres) {
+  if (apres === avant) return;
+  jourChoisi = apres;
+  message('Contrôle déplacé au ' + dateCourte(apres) + '.');
 }
 
 /* --- L'atelier : choisir son emblème et sa couleur -----------------------
