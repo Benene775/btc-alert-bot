@@ -412,3 +412,66 @@ def test_la_place_rendue_redevient_disponible(client, monkeypatch):
     store.liberer_quota(place)
     autre = store.reserver_quota(session, "controle")  # la place est revenue
     assert autre != place
+
+
+# --- Le seul appel payant qui n'avait pas de plafond ------------------------
+
+def test_une_copie_ne_se_corrige_qu_une_fois(client, photo_factice):
+    """La correction n'est pas décomptée : elle fait partie du contrôle déjà
+    compté, et faire payer un contrôle sans résultat n'aurait pas de sens.
+
+    Mais « pas décomptée » ne voulait pas dire « sans limite » : rien
+    n'empêchait de rejouer /api/correction sur le même contrôle, à 0,06 $
+    l'appel, autant de fois qu'on voulait. Un navigateur qui réessaie tout seul
+    sur un réseau de collège suffisait — sans la moindre mauvaise intention.
+
+    Trouvé en chiffrant ce qu'un élève peut coûter au maximum : la réponse était
+    « sans maximum ».
+    """
+    chapitres = [{"titre": "La Première Guerre mondiale", "notions": ["Verdun"], "pages": [1]}]
+    session = client.post("/api/session").json()["session_id"]
+    controle = client.post("/api/controle", json={
+        "session_id": session, "niveau": "3e", "matiere": "histoire-geographie",
+        "chapitres": chapitres}).json()
+
+    demande = {"session_id": session, "controle_id": controle["controle_id"],
+               "niveau": "3e", "matiere": "histoire-geographie", "chapitres": chapitres,
+               "reponses": [{"numero": 1, "texte": "Verdun, en 1916."}]}
+
+    premiere = client.post("/api/correction", json=demande)
+    assert premiere.status_code == 200, premiere.text
+
+    seconde = client.post("/api/correction", json=demande)
+    assert seconde.status_code == 409, "la même copie s'est corrigée deux fois"
+    assert "déjà été corrigée" in seconde.text
+
+    # Et une seule correction a été facturée.
+    with store.curseur() as cur:
+        cur.execute("SELECT COUNT(*) AS n FROM usages WHERE action = 'correction'"
+                    " AND session_id = ?", (session,))
+        assert cur.fetchone()["n"] == 1
+
+
+def test_une_panne_rend_le_droit_a_sa_correction(client, monkeypatch):
+    """Sinon une panne du modèle enfermerait l'élève devant une copie qu'il ne
+    verra jamais — et c'est sa copie, pas la nôtre."""
+    from app import llm as module_llm
+
+    chapitres = [{"titre": "La Première Guerre mondiale", "notions": ["Verdun"], "pages": [1]}]
+    session = client.post("/api/session").json()["session_id"]
+    controle = client.post("/api/controle", json={
+        "session_id": session, "niveau": "3e", "matiere": "histoire-geographie",
+        "chapitres": chapitres}).json()
+    demande = {"session_id": session, "controle_id": controle["controle_id"],
+               "niveau": "3e", "matiere": "histoire-geographie", "chapitres": chapitres,
+               "reponses": [{"numero": 1, "texte": "Verdun."}]}
+
+    def tombe(*_a, **_k):
+        raise module_llm.ErreurModele("le correcteur est en panne")
+
+    monkeypatch.setattr(module_llm, "corriger", tombe)
+    assert client.post("/api/correction", json=demande).status_code == 503
+
+    monkeypatch.undo()
+    reprise = client.post("/api/correction", json=demande)
+    assert reprise.status_code == 200, "la panne a mangé le droit à la correction"

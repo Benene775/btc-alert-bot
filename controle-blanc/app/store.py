@@ -190,7 +190,11 @@ CREATE TABLE IF NOT EXISTS corriges (
     controle_id TEXT PRIMARY KEY,
     session_id  TEXT NOT NULL,
     contenu     TEXT NOT NULL,
-    cree_le     TEXT NOT NULL
+    cree_le     TEXT NOT NULL,
+    -- Quand la copie a été corrigée. Vide tant qu'elle ne l'a pas été : c'est
+    -- ce qui empêche de corriger deux fois le même contrôle (voir
+    -- marquer_corrige) — la correction est le seul appel payant sans plafond.
+    rendu_le    TEXT NOT NULL DEFAULT ''
 );
 """
 
@@ -243,6 +247,12 @@ def _init(conn: sqlite3.Connection) -> None:
     # Les comptes ouverts avant le mot de passe n'en ont pas. Ils gardent une
     # empreinte vide : impossible à deviner (aucun mot de passe ne s'y compare),
     # et « mot de passe oublié » leur en donne un.
+    # Les corrigés d'avant ne savent pas si leur copie a déjà été corrigée. Ils
+    # partent de « pas encore » : au pire une copie déjà rendue peut l'être une
+    # seconde fois, ce qui est exactement ce qui se passait avant.
+    corriges = {ligne[1] for ligne in conn.execute("PRAGMA table_info(corriges)")}
+    if corriges and "rendu_le" not in corriges:
+        conn.execute("ALTER TABLE corriges ADD COLUMN rendu_le TEXT NOT NULL DEFAULT ''")
     comptes = {ligne[1] for ligne in conn.execute("PRAGMA table_info(comptes)")}
     for colonne in ("mot_de_passe", "prenom", "niveau", "accord_le"):
         if comptes and colonne not in comptes:
@@ -1262,6 +1272,41 @@ def lire_corrige(controle_id: str, session_id: str) -> dict[str, Any] | None:
         )
         ligne = cur.fetchone()
     return json.loads(ligne["contenu"]) if ligne else None
+
+
+def marquer_corrige(controle_id: str, session_id: str) -> bool:
+    """Prend le droit de corriger cette copie, une fois.
+
+    La correction est le seul appel payant sans plafond : elle fait partie du
+    contrôle déjà compté, et faire payer un contrôle sans résultat n'aurait pas
+    de sens. Mais « sans plafond » veut dire sans plafond — rien n'empêchait de
+    rejouer /api/correction sur le même contrôle, à 0,06 $ l'appel, autant de
+    fois qu'on voulait. Un navigateur qui réessaie tout seul sur un réseau de
+    collège suffit à le faire sans mauvaise intention.
+
+    Corriger une fois par contrôle garde la règle (rien de décompté) et ferme le
+    trou : le nombre de corrections d'un mois ne peut plus dépasser le nombre de
+    contrôles, qui est plafonné.
+
+    Rend True si la place était libre — l'UPDATE conditionnel est atomique, donc
+    deux requêtes simultanées ne peuvent pas la prendre toutes les deux.
+    """
+    with curseur() as cur:
+        cur.execute(
+            "UPDATE corriges SET rendu_le = ? WHERE controle_id = ? AND session_id = ?"
+            " AND rendu_le = ''",
+            (maintenant(), controle_id, session_id),
+        )
+        return cur.rowcount > 0
+
+
+def liberer_correction(controle_id: str, session_id: str) -> None:
+    """L'appel a échoué : l'élève n'a pas eu sa correction, il y a encore droit."""
+    with curseur() as cur:
+        cur.execute(
+            "UPDATE corriges SET rendu_le = '' WHERE controle_id = ? AND session_id = ?",
+            (controle_id, session_id),
+        )
 
 
 def purger_corriges_anciens() -> int:

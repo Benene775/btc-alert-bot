@@ -702,14 +702,30 @@ def corriger(corps: DemandeCorrection,
     reponses = {r.numero: r.texte for r in corps.reponses}
     signales = set(corps.numeros_signales)
 
-    # La correction n'est pas décomptée : elle fait partie du contrôle déjà compté.
-    resultat, usage = llm.corriger(
-        _chapitres_en_dicts(corps.chapitres),
-        formats.nom_niveau(corps.niveau),
-        corrige["questions"],
-        reponses,
-        signales,
-    )
+    # La correction n'est pas décomptée : elle fait partie du contrôle déjà
+    # compté, et faire payer un contrôle sans résultat n'aurait pas de sens.
+    # Mais « pas décomptée » ne veut pas dire « sans limite » : rien n'empêchait
+    # de rejouer cet appel sur le même contrôle, à 0,06 $ la fois, indéfiniment.
+    # Une copie se corrige une fois — le nombre de corrections d'un mois ne peut
+    # alors pas dépasser celui des contrôles, qui est plafonné.
+    if not store.marquer_corrige(corps.controle_id, corps.session_id):
+        raise HTTPException(
+            status_code=409,
+            detail="Cette copie a déjà été corrigée. Ta correction est sur ta page.",
+        )
+    try:
+        resultat, usage = llm.corriger(
+            _chapitres_en_dicts(corps.chapitres),
+            formats.nom_niveau(corps.niveau),
+            corrige["questions"],
+            reponses,
+            signales,
+        )
+    except Exception:
+        # Pas de correction, donc le droit d'en redemander une : sinon une panne
+        # du modèle enfermerait l'élève devant une copie qu'il ne verra jamais.
+        store.liberer_correction(corps.controle_id, corps.session_id)
+        raise
     store.enregistrer_usage(corps.session_id, "correction", usage)
     store.enregistrer_evenement(corps.session_id, "controle_termine", {"questions": len(reponses)})
     store.enregistrer_evenement(corps.session_id, "correction_vue", {})
