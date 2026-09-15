@@ -3527,6 +3527,7 @@ function montrer(id, options = {}) {
   // sur la section, qui porte un transform. Elle ne se cache donc pas avec eux :
   // on la referme à la main en quittant sa page.
   if ($('menu-marque') && !$('menu-marque').hidden) ouvrirMenuMarque(false);
+  if (id === 'ecran-contexte') dessinerContexte();
   if (id === 'ecran-photos') {
     dessinerResumeContexte();
     peindreRestePages();
@@ -3765,7 +3766,10 @@ async function demarrerSession(depuisAgenda = null) {
       etat.matiere = depuisAgenda.matiere || '';
       etat.dateControle = depuisAgenda.date || '';
       if (etat.matiere) $('champ-matiere').value = etat.matiere;
+      // Venir de l'agenda, c'est venir avec un contrôle : la case se coche.
       if (etat.dateControle) $('champ-date').value = etat.dateControle;
+      $('champ-a-controle').checked = Boolean(etat.dateControle);
+      montrerLaDate();
     }
     sauver();
     fermerAttente();
@@ -3954,10 +3958,33 @@ function reprendreLaDerniere() {
 
 /* ----------------------------------------------- étape 1 : le contexte --- */
 
+/* Le formulaire, remis à ce que la séance dit vraiment.
+ *
+ * Il ne se remplissait que de valeurs par défaut, et gardait ensuite ce qu'on y
+ * avait tapé : rouvrir « Changer » deux fois de suite montrait la première
+ * saisie, pas l'état courant. Ça marchait par accident tant que rien ne pouvait
+ * être vide ; la case du contrôle, elle, doit dire la vérité. */
+function dessinerContexte() {
+  if (!etat) return;
+  if (etat.niveau) $('champ-niveau').value = etat.niveau;
+  if (etat.matiere) $('champ-matiere').value = etat.matiere;
+  const prevu = Boolean(etat.dateControle);
+  $('champ-a-controle').checked = prevu;
+  $('champ-date').value = etat.dateControle || dateParDefaut();
+  montrerLaDate();
+}
+
+function montrerLaDate() {
+  $('bloc-date').hidden = !$('champ-a-controle').checked;
+}
+
 async function validerContexte() {
   etat.niveau = $('champ-niveau').value;
   etat.matiere = $('champ-matiere').value;
-  etat.dateControle = $('champ-date').value;
+  // Pas de contrôle annoncé, pas de date : une échéance que l'élève n'a pas
+  // choisie entrerait dans son agenda et le ferait prévenir la veille d'un
+  // contrôle qui n'existe pas.
+  etat.dateControle = $('champ-a-controle').checked ? $('champ-date').value : '';
   etat.etape = 'photos';
   sauver();
   envoyerJson('/api/session/contexte', {
@@ -3984,7 +4011,9 @@ function dessinerResumeContexte() {
   const matiere = (config.matieres.find((m) => m.cle === etat.matiere) || {}).nom;
   const dessous = [];
   if (etat.niveau) dessous.push(etat.niveau);
-  if (etat.dateControle) dessous.push('contrôle le ' + dateCourte(etat.dateControle));
+  dessous.push(etat.dateControle
+    ? 'contrôle le ' + dateCourte(etat.dateControle)
+    : 'aucun contrôle prévu');
   ligne.hidden = false;
   $('contexte-matiere').textContent = matiere || 'Matière à choisir';
   $('contexte-detail').textContent = dessous.join(' · ');
@@ -6756,6 +6785,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('bouton-reprendre').onclick = () => reprendreLaDerniere();
 
   $('bouton-vers-photos').onclick = validerContexte;
+  $('champ-a-controle').onchange = montrerLaDate;
   // La ligne du contexte, sur l'écran des photos : elle rouvre l'écran
   // qui ne barre plus le passage, pour la fois où la matière n'est pas la
   // bonne. « Continuer » y ramène aux photos, d'où l'on vient.

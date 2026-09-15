@@ -736,6 +736,37 @@ select {
   color: var(--accent);
 }
 
+/* « Il y a un contrôle prévu ».
+ *
+ * Une case à cocher dont la ligne entière se touche : sur un téléphone, viser
+ * un carré de 24 px est un pari. Le <label for> rend toute la bande cliquable,
+ * et le rembourrage lui donne la hauteur d'un doigt. */
+.coche {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: var(--e3) 0 0;
+  padding: 12px 14px;
+  min-height: 48px;
+  border: 1px solid var(--trait);
+  border-radius: var(--rayon);
+  background: var(--carte);
+  cursor: pointer;
+  font-weight: 700;
+  font-size: .9rem;
+}
+
+.coche input[type="checkbox"] {
+  width: 22px;
+  height: 22px;
+  min-height: 0;
+  margin: 0;
+  flex: 0 0 auto;
+  accent-color: var(--accent);
+}
+
+.coche:has(input:checked) { border-color: var(--accent); }
+
 .zone-photos {
   display: flex;
   flex-direction: column;

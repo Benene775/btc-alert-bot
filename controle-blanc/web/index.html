@@ -772,15 +772,30 @@
 <!-- Plus la première marche du parcours : on va droit aux photos, et cet écran
      ne s'ouvre que pour corriger ce qui est écrit sur la ligne de contexte. -->
 <section id="ecran-contexte" class="ecran" hidden>
-  <p class="etape">La matière et la date</p>
-  <h2>C’est quoi, ce contrôle ?</h2>
+  <p class="etape">Ce cours</p>
+  <!-- « C'est quoi, ce contrôle ? » supposait qu'il y en avait un, et posait
+       d'office une date à sept jours que personne n'avait choisie. On
+       photographie aussi un cours pour en avoir la fiche, sans rien qui tombe :
+       l'échéance fantôme entrait alors dans l'agenda et déclenchait un rappel
+       la veille d'un contrôle qui n'existe pas. La question porte donc sur le
+       COURS, et le contrôle est une chose qu'on ajoute si elle est vraie. -->
+  <h2>C’est quoi, ce cours ?</h2>
   <label for="champ-niveau">Ta classe</label>
   <select id="champ-niveau"></select>
   <label for="champ-matiere">La matière</label>
   <select id="champ-matiere"></select>
-  <label for="champ-date">La date du contrôle</label>
-  <input type="date" id="champ-date">
-  <p class="aide" id="aide-date">C’est elle qui rythme tout le reste.</p>
+
+  <label class="coche" for="champ-a-controle">
+    <input type="checkbox" id="champ-a-controle">
+    <span>Il y a un contrôle prévu</span>
+  </label>
+
+  <div id="bloc-date" hidden>
+    <label for="champ-date">La date du contrôle</label>
+    <input type="date" id="champ-date">
+    <p class="aide" id="aide-date">Elle sert à l’agenda, au décompte des jours et au rappel de la veille.</p>
+  </div>
+
   <button type="button" class="principal" id="bouton-vers-photos">Continuer</button>
 </section>
 
