@@ -1221,7 +1221,14 @@ TYPES_EVENEMENTS = {
     "espace",               # la page perso a été ouverte
     "photos_analysees",
     "perimetre_confirme",
-    "chemin_choisi",        # details: {"chemin": "revise" | "teste"}
+    # Le carrefour « je révise / je me teste » a été retiré : la fiche vient
+    # maintenant avec le cours. Le type reste connu pour que les mesures déjà
+    # enregistrées gardent un sens ; plus rien ne l'émet.
+    "chemin_choisi",        # details: {"chemin": "revise" | "teste"} — retiré
+    # Ce qui le remplace : combien passent au contrôle blanc en sortant de leur
+    # fiche. C'est la même question — est-ce que la lecture appelle l'épreuve —
+    # posée après coup plutôt qu'avant que l'élève sache ce qu'il choisit.
+    "teste_depuis_fiche",
     "fiche_generee",        # details: {"type": "generale" | "ciblee", "rang": n}
     "controle_commence",    # details: {"rang": n}
     "controle_termine",

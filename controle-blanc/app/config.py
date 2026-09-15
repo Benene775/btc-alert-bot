@@ -172,7 +172,13 @@ PUBLIC_BASE_URL = os.environ.get("CB_PUBLIC_BASE_URL", "").strip().rstrip("/")
 # pareil quatre pages et cinquante. C'est aussi l'unité que l'élève comprend.
 QUOTAS: dict[str, dict[str, int]] = {
     "analyse": {"jour": _int("CB_QUOTA_ANALYSE_JOUR", 48), "session": _int("CB_QUOTA_ANALYSE_SESSION", 8)},
-    "fiche_generale": {"jour": _int("CB_QUOTA_FICHE_JOUR", 3), "session": _int("CB_QUOTA_FICHE_SESSION", 12)},
+    # Huit par jour, pas trois : depuis que la fiche vient avec le cours, ce
+    # plafond ne limite plus une envie de fiches, il limite le nombre de COURS
+    # qu'on peut photographier dans la journée. À trois, un élève qui révise un
+    # samedi après-midi butait au quatrième cours, sur un refus qui ne parlait
+    # même pas de photos. Le plafond du MOIS (8) tient le coût : ce réglage-ci
+    # ne change que la répartition dans le mois, pas la facture.
+    "fiche_generale": {"jour": _int("CB_QUOTA_FICHE_JOUR", 8), "session": _int("CB_QUOTA_FICHE_SESSION", 12)},
     "controle": {"jour": _int("CB_QUOTA_CONTROLE_JOUR", 3), "session": _int("CB_QUOTA_CONTROLE_SESSION", 12)},
     "fiche_ciblee": {"jour": _int("CB_QUOTA_CIBLEE_JOUR", 5), "session": _int("CB_QUOTA_CIBLEE_SESSION", 20)},
 }

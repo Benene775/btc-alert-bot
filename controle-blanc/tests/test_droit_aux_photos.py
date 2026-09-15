@@ -87,12 +87,13 @@ def test_elle_se_change_d_un_doigt():
 
 def test_les_etapes_sont_renumerotees():
     """« Étape 2 sur 5 » sur le premier écran du parcours se lit comme un pas
-    manqué. Il y en a quatre, et photographier est le premier."""
-    assert "Étape 1 sur 4" in PHOTOS
-    for reste in ("Étape 2 sur 4", "Étape 3 sur 4", "Étape 4 sur 4"):
+    manqué. Il y en a trois depuis que le carrefour a disparu — la fiche vient
+    avec le cours au lieu de se choisir — et photographier est la première."""
+    assert "Étape 1 sur 3" in PHOTOS
+    for reste in ("Étape 2 sur 3", "Étape 3 sur 3"):
         assert reste in PAGE, reste
     # « Question 1 sur 5 » compte les questions d'un contrôle, pas les étapes.
-    assert not re.search(r"Étape \d+ sur 5", PAGE), "une étape annonce encore l'ancien parcours"
+    assert not re.search(r"Étape \d+ sur [45]", PAGE), "une étape annonce encore l'ancien parcours"
     # L'écran de contexte n'est plus une marche : c'est un réglage qu'on rouvre.
     contexte = PAGE[PAGE.index('id="ecran-contexte"') : PAGE.index('id="ecran-photos"')]
     assert "Étape" not in contexte

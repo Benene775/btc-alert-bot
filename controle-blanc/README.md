@@ -65,8 +65,8 @@ Fly.io, Scaleway, ou une petite machine virtuelle. Et, avant d'ouvrir à de vrai
 |---|-------|----------|
 | 1 | Photographier le cours (plusieurs pages, écriture manuscrite, ajout ultérieur possible) | `POST /api/analyse` |
 | 2 | Confirmer le périmètre : « j'ai repéré N chapitres, c'est bien tout ? » | écran `ecran-perimetre` |
-| 3 | Deux boutons de poids strictement égal : **je révise d'abord** / **je me teste tout de suite** | écran `ecran-carrefour` |
-| 4 | Le contrôle blanc : format réel, une question à l'écran, libre d'y revenir | `POST /api/controle` |
+| 3 | **La fiche générale, d'office** : elle vient avec le cours, on ne la demande pas | `POST /api/fiche/generale` |
+| 4 | Le contrôle blanc, au bout de la fiche en un geste | `POST /api/controle` |
 | 5 | La correction commentée : ce qui manquait, et **où c'est dans son cours à lui** | `POST /api/correction` |
 | 6 | La fiche ciblée, uniquement sur les notions ratées | `POST /api/fiche/ciblee` |
 | 7 | Second contrôle, questions différentes, mêmes notions | `POST /api/controle` avec `notions_ciblees` |
@@ -87,13 +87,31 @@ le 21 septembre », avec un « Changer » qui rouvre l'écran de contexte. Saut�
 rien dire, la matière aurait rangé des cours de maths en histoire sans que personne ne
 le voie.
 
-Les deux chemins de l'étape 3 mènent tous les deux au contrôle blanc. **L'ordre des deux
-boutons est tiré au sort par session** : sans ça, on mesurerait la position du bouton,
-pas la préférence de l'élève.
+**La fiche ne se choisit plus.** Il y avait à l'étape 3 un carrefour — « je révise
+d'abord » / « je me teste tout de suite », deux boutons de poids égal, dans un ordre
+tiré au sort pour ne pas mesurer la position du bouton — et le second chemin ne donnait
+jamais de fiche.
+
+Les premiers élèves ont tranché : ce qu'ils préfèrent, ce sont les fiches, et un sur
+deux ne les voyait jamais. Un produit ne cache pas ce qu'il fait de mieux derrière un
+choix posé avant que l'élève sache ce qu'il choisit. La fiche arrive donc avec le cours,
+et le contrôle blanc est au bout d'elle, sur un bouton — la fiche était par ailleurs un
+cul-de-sac, où il fallait deviner par où passer pour se tester.
+
+Ce que ça coûte : une fiche par cours, soit environ 0,03 $, y compris pour l'élève qui
+serait allé droit au contrôle. Et le plafond de fiches du jour est passé de 3 à 8, parce
+qu'il ne limite plus une envie de fiches mais le nombre de **cours** photographiables
+dans la journée — un test tient cette contrainte (`test_la_fiche_vient_avec_le_cours.py`).
+Le plafond du mois, lui, ne bouge pas : la facture non plus.
+
+Ce qu'on perd : la mesure des deux chemins. Elle avait une question — « faut-il garder
+les deux entrées ? » — et cette question a reçu sa réponse autrement. `chemin_choisi`
+n'est plus émis ; `teste_depuis_fiche` le remplace et pose la même question après coup :
+combien passent au contrôle en sortant de leur fiche.
 
 Deux types de fiches, à ne pas confondre :
 
-* **fiche générale** (étape 3) — tout le chapitre, pour relire avant de se tester ;
+* **fiche générale** (étape 3, automatique) — tout le chapitre, pour relire avant de se tester ;
 * **fiche ciblée** (étape 6) — uniquement les notions ratées, cinq minutes de lecture.
   C'est celle qui a le plus de valeur.
 
@@ -755,8 +773,9 @@ Puis, dans cet ordre :
    de prix : il est nommé, et le total est annoncé comme un plancher.
 5. **Est-ce que ça sert vraiment** : élèves actifs, revenus un autre jour,
    **revenus une semaine après** — mise en avant, c'est la seule qui décide — puis
-   les chiffres par cours et la répartition « je révise » / « je me teste » avec le
-   taux de retour de chacun des deux chemins.
+   les chiffres par cours. La répartition « je révise » / « je me teste » y figure
+   encore : c'est une mesure arrêtée, gardée pour ce qu'elle a enregistré avant que le
+   carrefour disparaisse.
 6. **Ce qui cloche** : les tarifs inconnus, et les questions signalées par les
    élèves — à relire avant chaque itération sur les prompts.
 

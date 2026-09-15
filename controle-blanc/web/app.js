@@ -4414,7 +4414,7 @@ function armerCopie() {
  * un test vérifie qu'elles ne divergent pas, faute de quoi on ajouterait une
  * carte d'un côté sans l'autre et elle resterait mate sans qu'on le voie.
  */
-const ECLAIRABLES = '.copie, .case-carrefour, .argument, .chapitres li,'
+const ECLAIRABLES = '.copie, .argument, .chapitres li,'
   + ' .carte-fiche, .tuile, .carte-correction, .fragiles, .document,'
   + ' .rappel, .lien-reprise, .zone-photos';
 
@@ -4966,53 +4966,24 @@ function confirmerPerimetre() {
     return;
   }
   tracer('perimetre_confirme', { chapitres: chapitresRetenus().length });
-  etat.etape = 'carrefour';
-  sauver();
-  dessinerCarrefour();
-  montrer('ecran-carrefour');
+  demanderFicheGenerale();
 }
 
-/* --------------------------------------------- étape 3 : le carrefour ---- */
+/* --------------------------------------------- étape 3 : la fiche, d'office
 
-const CHOIX = {
-  revise: {
-    titre: 'Je révise d’abord',
-    detail: 'Une fiche sur tout le chapitre, à relire tranquillement. Ensuite tu te testes.',
-  },
-  teste: {
-    titre: 'Je me teste tout de suite',
-    detail: 'Le contrôle blanc maintenant, dans le vrai format. Tu verras vite où tu en es.',
-  },
-};
+   Il y avait ici un carrefour : « je révise d'abord » ou « je me teste tout de
+   suite ». Les deux marchaient, et le second ne donnait jamais de fiche.
 
-function dessinerCarrefour() {
-  // Ordre tiré au sort et mémorisé : sans ça, on mesurerait surtout la position
-  // du bouton, pas la préférence de l’élève.
-  if (!etat.ordreCarrefour || etat.ordreCarrefour.length !== 2) {
-    etat.ordreCarrefour = Math.random() < 0.5 ? ['revise', 'teste'] : ['teste', 'revise'];
-    sauver();
-  }
-  const cases = $('cases-carrefour');
-  cases.innerHTML = '';
-  etat.ordreCarrefour.forEach((cle, position) => {
-    const bouton = document.createElement('button');
-    bouton.type = 'button';
-    bouton.className = 'case-carrefour';
-    bouton.innerHTML = '<strong></strong><span></span>';
-    bouton.querySelector('strong').textContent = CHOIX[cle].titre;
-    bouton.querySelector('span').textContent = CHOIX[cle].detail;
-    bouton.onclick = () => choisirChemin(cle, position);
-    cases.appendChild(bouton);
-  });
-}
+   Les premiers élèves ont tranché à notre place : ce qu'ils préfèrent, ce sont
+   les fiches — et un sur deux ne les voyait jamais. Un produit ne cache pas ce
+   qu'il fait de mieux derrière un choix posé avant que l'élève sache ce qu'il
+   choisit. La fiche vient donc avec le cours, et le contrôle blanc est au bout
+   d'elle, en un geste.
 
-function choisirChemin(chemin, position) {
-  etat.chemin = chemin;
-  sauver();
-  tracer('chemin_choisi', { chemin, position });
-  if (chemin === 'revise') demanderFicheGenerale();
-  else lancerControle();
-}
+   Ce qu'on perd : la mesure des deux chemins, que le carrefour servait à faire.
+   Elle avait une question — « faut-il garder les deux entrées ? » — et cette
+   question a reçu sa réponse autrement.
+*/
 
 /* ---------------------------------------------------------- les fiches --- */
 
@@ -5048,7 +5019,25 @@ async function demanderFicheGenerale(chapitres = null) {
     etat.etape = 'fiche';
     sauver();
     afficherFiche(fiche, 'generale');
-  } catch (e) { gererErreur(e); }
+  } catch (e) {
+    // Depuis que la fiche vient d'office, son refus tombe au milieu du
+    // parcours : sans rattrapage, l'élève reste sur l'écran des chapitres,
+    // devant un bouton qui vient de ne rien faire. Son cours est photographié
+    // et enregistré — on l'emmène là où il peut s'en servir.
+    const coince = e instanceof ErreurApi && e.genre === 'quota'
+      && ecranCourant() === 'ecran-perimetre';
+    if (!coince) return gererErreur(e);
+
+    // On emmène D'ABORD, on explique ENSUITE : changer d'écran efface les
+    // messages persistants, et le refus arrivait sur une page où il n'était
+    // plus lisible. L'élève se retrouvait sur sa page sans savoir pourquoi —
+    // mesuré dans un navigateur, invisible à la lecture du code.
+    fermerAttente();
+    dessinerEspace();
+    montrer('ecran-espace');
+    message(e.message + ' Ton cours est enregistré : tu peux quand même passer'
+            + ' le contrôle blanc, et ta fiche t\'attendra.', 'neutre', 0);
+  }
 }
 
 async function demanderFicheCiblee(chapitres = null) {
@@ -5848,7 +5837,24 @@ function afficherFiche(fiche, type, options = {}) {
   suivreCartes();
   majRubansMarques();
   majCarteFin();
+  majSuiteDeLaFiche(secondTour);
   montrer('ecran-fiche');
+}
+
+/* Le contrôle blanc, au bout de la fiche.
+ *
+ * Il ne paraît que s'il a de quoi être fabriqué : une séance ouverte, avec des
+ * chapitres. Une fiche relue depuis l'archive, hors séance, n'a rien à tester —
+ * un bouton qui échouerait là ferait passer l'archive pour cassée.
+ *
+ * Pas non plus au second tour : on vient d'y mettre ce qui n'était pas acquis
+ * après un contrôle, et l'y renvoyer tout de suite ne mesurerait qu'une lecture
+ * de trente secondes.
+ */
+function majSuiteDeLaFiche(secondTour) {
+  const bloc = $('fiche-suite');
+  if (!bloc) return;
+  bloc.hidden = Boolean(secondTour) || !etat || !chapitresRetenus().length;
 }
 
 /* La fiche vue de dessus : les cartes en petit, avec leur couleur, leur numéro
@@ -6972,6 +6978,10 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   $('bouton-imprimer').onclick = () => imprimerFiche();
+  $('bouton-tester-depuis-fiche').onclick = () => {
+    tracer('teste_depuis_fiche', {});
+    lancerControle();
+  };
   $('bouton-tout-afficher').onclick = () => {
     const paquet = $('paquet');
     const colonne = paquet.dataset.vue === 'colonne';

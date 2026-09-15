@@ -370,7 +370,7 @@ La question est « est-ce qu'un élève revient », pas « est-ce qu'un cours es
  {ligne("Contrôles terminés", nombre(m["controles_termines"]))}
 </table>
 <table>
- <thead><tr><th>Chemin choisi à l’étape 3</th><th class='v'>Cours</th><th></th></tr></thead>
+ <thead><tr><th>Chemin choisi — mesure arrêtée</th><th class='v'>Cours</th><th></th></tr></thead>
  {chemins}</table>
 </div>"""
 

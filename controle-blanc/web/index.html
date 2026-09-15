@@ -837,7 +837,7 @@
 
 <!-- ÉTAPE 1b — les photos -->
 <section id="ecran-photos" class="ecran" hidden>
-  <p class="etape">Étape 1 sur 4</p>
+  <p class="etape">Étape 1 sur 3</p>
   <h2>Photographie ton cours</h2>
   <p class="chapeau">Toutes les pages qui tombent au contrôle. Écriture à la main, pas de souci.</p>
 
@@ -876,7 +876,7 @@
 
 <!-- ÉTAPE 2 — confirmer le périmètre -->
 <section id="ecran-perimetre" class="ecran" hidden>
-  <p class="etape">Étape 2 sur 4</p>
+  <p class="etape">Étape 2 sur 3</p>
   <h2 id="titre-perimetre">J’ai repéré 1 chapitre.</h2>
   <p class="chapeau">C’est bien tout ce qui tombe au contrôle ?</p>
 
@@ -908,14 +908,6 @@
   <button type="button" class="discret" id="bouton-plus-de-photos">Il manque des pages, j’en ajoute</button>
 </section>
 
-<!-- ÉTAPE 3 — le carrefour -->
-<section id="ecran-carrefour" class="ecran" hidden>
-  <p class="etape">Étape 3 sur 4</p>
-  <h2>Par quoi tu commences ?</h2>
-  <p class="chapeau">Les deux marchent. Dans les deux cas tu finiras par passer le contrôle blanc.</p>
-  <div id="cases-carrefour" class="carrefour"></div>
-</section>
-
 <!-- Fiche (générale ou ciblée) -->
 <section id="ecran-fiche" class="ecran ecran-fiche" hidden>
   <p class="etape" id="etiquette-fiche">Fiche de révision</p>
@@ -934,6 +926,15 @@
   <div class="vue-ensemble" id="vue-ensemble" hidden></div>
 
   <div class="paquet" id="paquet"></div>
+
+  <!-- LA SUITE. La fiche était un cul-de-sac : on la lisait, et il fallait
+       deviner par où passer pour se tester. Le contrôle blanc est ce qui dit
+       si la lecture a pris — il ne se cherche pas dans un menu. -->
+  <div class="fiche-suite" id="fiche-suite" hidden>
+    <p class="fiche-suite-mot">Lire, c’est reconnaître. Le contrôle blanc dira ce qui est
+      vraiment acquis — et ne te laissera à travailler que ce qui ne l’est pas.</p>
+    <button type="button" class="principal" id="bouton-tester-depuis-fiche">Je me teste maintenant</button>
+  </div>
 
   <div class="fiche-pied">
     <button type="button" class="lien-outil" id="bouton-tout-afficher">Tout afficher d’un coup</button>
@@ -990,7 +991,7 @@
 
 <!-- ÉTAPE 5 — la correction -->
 <section id="ecran-correction" class="ecran" hidden>
-  <p class="etape">Étape 4 sur 4</p>
+  <p class="etape">Étape 3 sur 3</p>
   <h2>Ta correction</h2>
   <p class="chapeau" id="mot-de-fin"></p>
 
