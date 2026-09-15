@@ -1441,6 +1441,110 @@ def metriques() -> dict[str, Any]:
     }
 
 
+# L'ordre des postes, du plus cher au moins cher dans un parcours ordinaire.
+# Il décide de l'ordre des colonnes ET des couleurs : une teinte suit un poste,
+# jamais son rang du jour, sinon deux captures d'écran prises à une semaine
+# d'écart ne se comparent plus.
+POSTES = ("analyse", "controle", "correction", "fiche_generale", "fiche_ciblee")
+
+NOM_DU_POSTE = {
+    "analyse": "Photos",
+    "controle": "Contrôles",
+    "correction": "Corrections",
+    "fiche_generale": "Fiches",
+    "fiche_ciblee": "Fiches ciblées",
+}
+
+# Ce qu'une ligne d'usage COMPTE, selon le poste. L'analyse se compte en pages
+# (colonne « quantite ») ; tout le reste se compte en appels. Les deux formes,
+# parce qu'un tableau qui affiche « 1 fiches » se lit comme un tableau négligé —
+# et on croit alors moins ses chiffres.
+UNITE_DU_POSTE = {
+    "analyse": ("page", "pages"),
+    "controle": ("contrôle", "contrôles"),
+    "correction": ("correction", "corrections"),
+    "fiche_generale": ("fiche", "fiches"),
+    "fiche_ciblee": ("fiche ciblée", "fiches ciblées"),
+}
+
+
+def unite(poste: str, combien: int) -> str:
+    singulier, pluriel = UNITE_DU_POSTE[poste]
+    return singulier if combien == 1 else pluriel
+
+
+def cout_par_eleve() -> dict[str, Any]:
+    """Ce que chaque élève a consommé, poste par poste, et ce que ça coûte.
+
+    Le tableau de bord donnait la moyenne, la médiane et le maximum par compte :
+    trois nombres qui disent COMBIEN et jamais POURQUOI. Quand l'un d'eux dérape,
+    on ne sait pas s'il faut baisser les pages, les contrôles ou les fiches — or
+    ce sont trois plafonds différents, et les photos font l'essentiel de la note.
+
+    Rendu : une ligne par élève, chaque poste avec sa quantité et son coût, plus
+    les totaux par poste pour savoir où va l'argent dans l'ensemble.
+    """
+    inconnus: set[str] = set()
+    par_compte: dict[str, dict[str, Any]] = {}
+    with curseur() as cur:
+        cur.execute(
+            "SELECT s.compte_id AS compte, u.action AS action, u.modele AS modele,"
+            " COUNT(*) AS appels, SUM(u.quantite) AS quantite,"
+            " SUM(u.tokens_entree) AS e, SUM(u.tokens_sortie) AS s,"
+            " SUM(u.cache_ecriture) AS ce, SUM(u.cache_lecture) AS cl"
+            " FROM usages u JOIN sessions s ON s.id = u.session_id"
+            " WHERE s.compte_id IS NOT NULL"
+            " GROUP BY s.compte_id, u.action, u.modele"
+        )
+        lignes = [dict(ligne) for ligne in cur.fetchall()]
+
+    for ligne in lignes:
+        compte = ligne["compte"]
+        fiche = par_compte.setdefault(compte, {
+            "compte": compte,
+            "postes": {poste: {"quantite": 0, "appels": 0, "cout_usd": 0.0}
+                       for poste in POSTES},
+            "cout_usd": 0.0,
+        })
+        poste = ligne["action"] if ligne["action"] in fiche["postes"] else None
+        if poste is None:
+            continue
+        cout = _cout_usd(ligne, inconnus)
+        # L'analyse se compte en pages : c'est son plafond, et c'est ce qu'un
+        # élève reconnaît. Les autres se comptent en appels.
+        compte_de = (ligne["quantite"] or 0) if poste == "analyse" else ligne["appels"]
+        fiche["postes"][poste]["quantite"] += int(compte_de or 0)
+        fiche["postes"][poste]["appels"] += int(ligne["appels"] or 0)
+        fiche["postes"][poste]["cout_usd"] += cout
+        fiche["cout_usd"] += cout
+
+    eleves = []
+    for compte, fiche in par_compte.items():
+        qui = profil(compte) or {}
+        eleves.append({
+            **fiche,
+            # Le prénom, pas l'adresse : le tableau sert à reconnaître un élève,
+            # pas à l'identifier au-delà de ce qui est nécessaire.
+            "prenom": nettoyer_prenom(qui.get("prenom") or "") or "Sans prénom",
+            "niveau": qui.get("niveau") or "",
+        })
+    eleves.sort(key=lambda e: -e["cout_usd"])
+
+    totaux = {poste: {"quantite": 0, "appels": 0, "cout_usd": 0.0} for poste in POSTES}
+    for eleve in eleves:
+        for poste in POSTES:
+            for cle in ("quantite", "appels", "cout_usd"):
+                totaux[poste][cle] += eleve["postes"][poste][cle]
+    total_general = sum(t["cout_usd"] for t in totaux.values())
+
+    return {
+        "eleves": eleves,
+        "totaux": totaux,
+        "cout_usd_total": total_general,
+        "tarifs_inconnus": sorted(inconnus),
+    }
+
+
 def _cout_usd(ligne: Any, inconnus: set[str] | None = None) -> float:
     """Le coût d'un paquet d'appels, au tarif du modèle qui les a servis."""
     prix, connu = config.prix_du_modele(ligne["modele"] or "")

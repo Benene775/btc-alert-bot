@@ -18,6 +18,8 @@ from app import config, store
 from app.main import app
 from tests.conftest import inscrire
 
+RACINE = Path(__file__).resolve().parent.parent
+
 TARIF = {"entree": 5.0, "sortie": 25.0, "cache_ecriture": 6.25, "cache_lecture": 0.50}
 
 
@@ -34,11 +36,12 @@ def usage_nu(monkeypatch):
         cur.execute("DELETE FROM usages")
 
 
-def _poser(session_id: str, action: str, modele: str, entree=0, sortie=0, ce=0, cl=0):
+def _poser(session_id: str, action: str, modele: str, entree=0, sortie=0, ce=0, cl=0,
+           quantite=1):
     store.enregistrer_usage(session_id, action, {
         "tokens_entree": entree, "tokens_sortie": sortie,
         "cache_ecriture": ce, "cache_lecture": cl, "modele": modele,
-    })
+    }, quantite=quantite)
 
 
 def test_le_modele_qui_a_servi_est_enregistre(client, session, usage_nu):
@@ -117,8 +120,39 @@ def test_le_cout_se_rapporte_au_compte_et_au_mois(usage_nu):
 def test_le_tableau_de_bord_montre_le_cout_par_compte(client, session, usage_nu):
     _poser(session, "analyse", "claude-opus-5", entree=1_000_000)
     page = client.get("/admin/metriques", params={"token": "jeton-de-test"}).text
-    assert "Coût par compte et par mois" in page
+    assert "Le chiffre qui décide de l’abonnement" in page
     assert "Médiane" in page
+
+
+def test_le_tableau_de_bord_dit_ce_que_coute_QUOI_par_eleve(client, session, usage_nu):
+    """Trois nombres — moyenne, médiane, maximum — disent COMBIEN et jamais
+    POURQUOI. Quand l'un d'eux dérape, il faut savoir s'il faut baisser les
+    pages, les contrôles ou les fiches : trois plafonds différents, et les
+    photos font l'essentiel de la note."""
+    _poser(session, "analyse", "claude-opus-5", entree=1_000_000, quantite=8)
+    _poser(session, "controle", "claude-opus-5", entree=200_000)
+    page = client.get("/admin/metriques", params={"token": "jeton-de-test"}).text
+
+    assert "Ce que coûte chaque élève" in page
+    # Le prénom, pour reconnaître l'élève — pas l'adresse mail.
+    assert "Lina" in page
+    assert "@" not in page.split("Ce que coûte chaque élève")[1].split("<h2>")[0]
+    # Les deux postes, chacun avec son volume.
+    assert "Photos" in page and "Contrôles" in page
+    assert "8 pages" in page
+
+    # Et le prix d'UNE unité, qui est ce qui sert à régler un plafond.
+    assert "Où va l’argent" in page
+    assert "l’unité" in page
+
+
+def test_un_tableau_de_bord_sans_le_moindre_appel_ne_tombe_pas(client):
+    """L'état d'une base neuve, et celui de la démonstration : du volume sans
+    coût. Une part de « x / 0 » renverrait une erreur 500 au lieu du tableau."""
+    page = client.get("/admin/metriques", params={"token": "jeton-de-test"})
+    assert page.status_code == 200
+    assert "Aucun appel facturé pour l’instant" in page.text \
+        or "Aucun appel facturé pour l'instant" in page.text
 
 
 # --- La table de tarifs elle-même -------------------------------------------
@@ -169,3 +203,61 @@ def test_le_prix_d_ecriture_suit_la_duree_de_cache_demandee():
     attendu = 2.0 if '"ttl": "1h"' in source else 1.25
     for modele, prix in config.PRIX_USD_PAR_MTOK_PAR_MODELE.items():
         assert prix["cache_ecriture"] == pytest.approx(prix["entree"] * attendu), modele
+
+
+# --- La lisibilité du tableau de bord, qui est le sujet ----------------------
+
+def test_chaque_poste_a_un_nom_une_unite_et_une_couleur():
+    """Un poste ajouté sans son nom afficherait une colonne vide ; sans son
+    unité, « 8 » sans dire huit quoi ; sans sa couleur, une barre trouée."""
+    source = (RACINE / "app" / "main.py").read_text(encoding="utf-8")
+    for poste in store.POSTES:
+        assert poste in store.NOM_DU_POSTE, poste
+        assert poste in store.UNITE_DU_POSTE, poste
+        assert len(store.UNITE_DU_POSTE[poste]) == 2, f"{poste} : singulier et pluriel"
+        assert f'"{poste}": "#' in source, f"{poste} n'a pas de teinte"
+
+
+@pytest.mark.parametrize("poste, combien, attendu", [
+    ("analyse", 1, "page"),
+    ("analyse", 8, "pages"),
+    ("fiche_ciblee", 1, "fiche ciblée"),
+    ("fiche_ciblee", 4, "fiches ciblées"),
+    ("controle", 1, "contrôle"),
+])
+def test_les_unites_savent_compter(poste, combien, attendu):
+    """« 1 fiches » se lit comme un tableau négligé — et on croit alors moins
+    ses chiffres."""
+    assert store.unite(poste, combien) == attendu
+
+
+def test_le_total_ne_se_trouve_pas_au_bout_du_defilement():
+    """Le tableau est plus large qu'un téléphone : il défile. Le total est le
+    chiffre qu'on vient chercher, il doit donc être le premier après le prénom
+    — mesuré sur une capture, où il tombait hors de l'écran."""
+    source = (RACINE / "app" / "main.py").read_text(encoding="utf-8")
+    entete = source[source.index("<thead><tr><th>Élève</th>"):][:120]
+    assert entete.index("Total") < entete.index("{entetes}")
+
+
+def test_les_teintes_suivent_le_poste_et_pas_son_rang():
+    """Deux captures prises à une semaine d'écart doivent se comparer. Une
+    couleur attribuée par rang repeindrait tout dès qu'un élève change d'ordre.
+    """
+    source = (RACINE / "app" / "main.py").read_text(encoding="utf-8")
+    bloc = source[source.index("TEINTES = {"):]
+    bloc = bloc[: bloc.index("}")]
+    for poste in store.POSTES:
+        assert f'"{poste}"' in bloc
+    # Les cinq teintes validées pour le daltonisme sur ce fond, dans cet ordre.
+    for teinte in ("#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4"):
+        assert teinte in bloc
+
+
+def test_un_prenom_hostile_ne_sort_pas_du_tableau(client, session, usage_nu):
+    """Le prénom est écrit par l'élève et arrive maintenant dans la page."""
+    _poser(session, "analyse", "claude-opus-5", entree=1000, quantite=2)
+    with store.curseur() as cur:
+        cur.execute("UPDATE comptes SET prenom = ?", ("<script>alert(1)</script>",))
+    page = client.get("/admin/metriques", params={"token": "jeton-de-test"}).text
+    assert "<script>alert(1)</script>" not in page
