@@ -95,8 +95,17 @@ jamais de fiche.
 Les premiers élèves ont tranché : ce qu'ils préfèrent, ce sont les fiches, et un sur
 deux ne les voyait jamais. Un produit ne cache pas ce qu'il fait de mieux derrière un
 choix posé avant que l'élève sache ce qu'il choisit. La fiche arrive donc avec le cours,
-et le contrôle blanc est au bout d'elle, sur un bouton — la fiche était par ailleurs un
-cul-de-sac, où il fallait deviner par où passer pour se tester.
+et le contrôle blanc est au bout d'elle : la dernière carte du paquet le propose, avec un
+libellé qui s'adapte — « Me tester sur ces 3 notions » quand il reste des notions à revoir.
+
+**Et elle s'ouvre entière.** Le paquet de cartes reste le meilleur objet pour réviser —
+une notion à l'écran, la phrase à retenir masquée derrière un « tu te souviens ? » — mais
+il s'ouvrait par défaut, et un paquet qui défile à l'horizontale se prend pour une carte
+unique quand on ne l'a pas demandé. La fiche s'ouvre donc en colonne, tout est là, et
+`Voir carte par carte` rend le paquet. Le choix de l'élève est retenu
+(`cb.vue-fiche` dans le navigateur). En colonne, la position de lecture n'est pas
+retenue : l'observateur suit les cartes *dans* le paquet, et en colonne toutes seraient
+vues en même temps — la position gardée serait la dernière, donc toujours la fin.
 
 Ce que ça coûte : une fiche par cours, soit environ 0,03 $, y compris pour l'élève qui
 serait allé droit au contrôle. Et le plafond de fiches du jour est passé de 3 à 8, parce

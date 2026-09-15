@@ -1190,25 +1190,6 @@ select {
 
 /* --- Carrefour : deux choix de poids strictement égal -------------------- */
 
-/* La suite de la fiche. Elle était un cul-de-sac : on la lisait, et il fallait
-   deviner par où passer pour se tester — le contrôle blanc se cherchait dans un
-   menu. Il est maintenant au bout de la lecture, là où la question se pose. */
-.fiche-suite {
-  margin: var(--e4) 0 var(--e3);
-  padding: var(--e3);
-  border: 1px solid var(--trait);
-  border-radius: var(--rayon);
-  background: var(--t3);
-  text-align: center;
-}
-
-.fiche-suite-mot {
-  margin: 0 auto var(--e3);
-  max-width: 44ch;
-  font-size: .9rem;
-  line-height: 1.5;
-  color: var(--encre-douce);
-}
 
 /* --- Fiches -------------------------------------------------------------
  *

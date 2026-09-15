@@ -47,23 +47,62 @@ def test_confirmer_ses_chapitres_demande_la_fiche():
 
 
 def test_le_controle_blanc_est_au_bout_de_la_fiche():
-    """La fiche était un cul-de-sac : on la lisait, et il fallait deviner par où
-    passer pour se tester — le contrôle se cherchait dans le menu de la marque."""
-    assert 'id="fiche-suite"' in PAGE
-    assert 'id="bouton-tester-depuis-fiche"' in PAGE
-    assert "$('bouton-tester-depuis-fiche').onclick" in SCRIPT
+    """Il l'était déjà : la dernière carte du paquet porte « Passer au contrôle
+    blanc », et son libellé s'adapte — « Me tester sur ces 3 notions » quand il
+    reste des notions à revoir. Un second bouton avait été ajouté sous le paquet
+    sans qu'on ait vu celui-là : deux appels au même geste, l'un moins bien
+    écrit que l'autre. Il a été retiré."""
+    assert "bouton-apres-fiche" in SCRIPT
+    assert "fiche-suite" not in PAGE, "le doublon est revenu"
+    assert "fiche-suite" not in SCRIPT
+    assert "fiche-suite" not in STYLE
 
 
-def test_le_bouton_ne_parait_pas_quand_il_n_a_rien_a_tester():
-    """Une fiche relue depuis l'archive, hors séance, n'a pas de cours derrière
-    elle : un bouton qui échouerait là ferait passer l'archive pour cassée. Et
-    pas au second tour non plus — on vient d'y mettre ce qui n'était pas acquis,
-    y renvoyer tout de suite ne mesurerait qu'une lecture de trente secondes."""
-    bloc = SCRIPT[SCRIPT.index("function majSuiteDeLaFiche("):]
+def test_le_passage_au_controle_depuis_la_fiche_se_mesure():
+    """La mesure des deux chemins est partie avec le carrefour. Celle-ci pose la
+    même question après coup : combien passent au contrôle en sortant de leur
+    fiche. Elle doit être posée sur TOUTES les portes de la carte de fin, sinon
+    elle ne compte qu'une partie des élèves."""
+    bloc = SCRIPT[SCRIPT.index("function testerDepuisLaFiche("):]
     bloc = bloc[: bloc.index("\n}\n")]
-    assert "secondTour" in bloc
-    assert "!etat" in bloc
-    assert "chapitresRetenus().length" in bloc
+    assert "tracer('teste_depuis_fiche'" in bloc
+    assert "lancerControle(notions)" in bloc
+    # Aucune des portes de la carte de fin ne doit court-circuiter la mesure.
+    fin = SCRIPT[SCRIPT.index("function majCarteFin()"):]
+    fin = fin[: fin.index("\n/* --- La fiche sur papier")]
+    assert "lancerControle(" not in fin, "une porte de la carte de fin ne se mesure pas"
+
+
+def test_la_fiche_s_ouvre_entiere():
+    """Le paquet de cartes reste le meilleur objet pour réviser, mais il
+    s'ouvrait par défaut : depuis que la fiche arrive AVEC le cours au lieu
+    d'être demandée, l'élève tombe dessus sans l'avoir cherchée, et un paquet
+    horizontal se prend pour une carte unique."""
+    bloc = SCRIPT[SCRIPT.index("function vueDeLaFiche()"):]
+    bloc = bloc[: bloc.index("\n}\n")]
+    assert "return 'colonne'" in bloc, "le défaut n'est pas la fiche entière"
+    assert "'paquet' : 'colonne'" in bloc, "le choix de l'élève doit pouvoir gagner"
+    assert "appliquerVueFiche(vueDeLaFiche())" in SCRIPT, "la fiche s'ouvre sans consulter la vue"
+
+
+def test_le_bouton_dit_ou_il_mene_depuis_les_deux_vues():
+    """« Revenir aux cartes » supposait qu'on en venait. Ce n'est plus vrai."""
+    bloc = SCRIPT[SCRIPT.index("function appliquerVueFiche("):]
+    bloc = bloc[: bloc.index("\n}\n")]
+    assert "Voir carte par carte" in bloc
+    assert "Tout afficher d’un coup" in bloc
+    assert "Revenir aux cartes" not in SCRIPT
+
+
+def test_la_position_de_lecture_ne_se_retient_pas_en_colonne():
+    """L'observateur suit les cartes DANS le paquet. En colonne le paquet n'est
+    plus ce qui défile : toutes les cartes seraient vues en même temps, et la
+    position retenue serait la dernière — donc « Reprendre à » renverrait
+    toujours à la fin de la fiche."""
+    bloc = SCRIPT[SCRIPT.index("function appliquerVueFiche("):]
+    bloc = bloc[: bloc.index("\n}\n")]
+    assert "observateurCartes.disconnect()" in bloc
+    assert bloc.index("if (colonne)") < bloc.index("else suivreCartes()")
 
 
 def test_une_fiche_refusee_ne_laisse_pas_l_eleve_en_plan():
@@ -104,3 +143,16 @@ def test_le_parcours_annonce_le_bon_nombre_d_etapes():
     qui ne viendra pas."""
     assert "Étape 1 sur 3" in PAGE
     assert "sur 4" not in PAGE
+
+
+def test_on_ne_dit_pas_fais_glisser_a_une_fiche_qui_ne_glisse_pas():
+    """Envoyer l'élève chercher un geste qui ne répond pas, c'est lui faire
+    douter de son téléphone — et la fiche s'ouvre maintenant en colonne."""
+    bloc = SCRIPT[SCRIPT.index("function appliquerVueFiche("):]
+    bloc = bloc[: bloc.index("\n}\n")]
+    assert "fais glisser" in bloc, "la mention doit être posée par la vue"
+    assert "colonne ? '' :" in bloc, "elle reste en colonne"
+    # Et posée à un seul endroit : deux sources pour la même ligne, et l'une
+    # repasserait devant l'autre selon l'ordre des appels. On compte le texte
+    # écrit, pas les commentaires qui le citent.
+    assert SCRIPT.count("' · fais glisser'") == 1

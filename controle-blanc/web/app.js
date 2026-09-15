@@ -5352,6 +5352,16 @@ function majRubansMarques() {
 }
 
 /* La dernière carte reflète ce que l’élève vient de mettre de côté. */
+/* Combien passent au contrôle en sortant de leur fiche. C'est ce qui remplace
+ * la mesure des deux chemins, que le carrefour faisait avant de disparaître : la
+ * même question — est-ce que la lecture appelle l'épreuve — posée après coup
+ * plutôt qu'avant que l'élève sache ce qu'il choisit. */
+function testerDepuisLaFiche(notions) {
+  tracer('teste_depuis_fiche', {});
+  lancerControle(notions);
+}
+
+
 function majCarteFin() {
   const carte = $('paquet').querySelector('.carte-fin');
   if (!carte) return;
@@ -5375,13 +5385,14 @@ function majCarteFin() {
     bouton.textContent = aRevoir.length > 1
       ? 'Me tester sur ces ' + aRevoir.length + ' notions'
       : 'Me tester sur cette notion';
-    bouton.onclick = () => lancerControle(aRevoir);
+    bouton.onclick = () => testerDepuisLaFiche(aRevoir);
   } else {
     second.hidden = true;
     titre.textContent = carte.dataset.titreParDefaut;
     mot.textContent = carte.dataset.motParDefaut;
     bouton.textContent = carte.dataset.boutonParDefaut;
-    bouton.onclick = () => lancerControle(carte.dataset.cible === 'oui' ? notionsFragiles() : []);
+    bouton.onclick = () => testerDepuisLaFiche(
+      carte.dataset.cible === 'oui' ? notionsFragiles() : []);
   }
 }
 
@@ -5654,8 +5665,9 @@ function afficherFiche(fiche, type, options = {}) {
   if (!secondTour && fiche.duree_lecture_minutes) souffle.push(fiche.duree_lecture_minutes + ' min');
   souffle.push(sections.length + (sections.length > 1 ? ' notions' : ' notion'));
   if (pieges.length) souffle.push(pieges.length + (pieges.length > 1 ? ' pièges' : ' piège'));
-  $('fiche-souffle').textContent = souffle.join(' · ')
-    + (secondTour ? ' · à revoir' : ' · fais glisser');
+  // « fais glisser » ne vaut que pour le paquet de cartes : la queue de cette
+  // ligne dépend donc de la vue, et c'est appliquerVueFiche() qui la pose.
+  $('fiche-souffle').dataset.base = souffle.join(' · ');
 
   const paquet = $('paquet');
   paquet.innerHTML = '';
@@ -5795,7 +5807,7 @@ function afficherFiche(fiche, type, options = {}) {
   suivant.className = 'principal';
   suivant.id = 'bouton-apres-fiche';
   suivant.textContent = type === 'ciblee' ? 'Me retester sur ces notions' : 'Passer au contrôle blanc';
-  suivant.onclick = () => lancerControle(type === 'ciblee' ? notionsFragiles() : []);
+  suivant.onclick = () => testerDepuisLaFiche(type === 'ciblee' ? notionsFragiles() : []);
   finale.dataset.titreParDefaut = titreFin.textContent;
   finale.dataset.motParDefaut = motFin.textContent;
   finale.dataset.boutonParDefaut = suivant.textContent;
@@ -5834,27 +5846,57 @@ function afficherFiche(fiche, type, options = {}) {
   paquet.dataset.fiche = titreFiche;
   paquet.dataset.tour = secondTour ? 'second' : 'premier';
   paquet.scrollLeft = 0;
-  suivreCartes();
   majRubansMarques();
   majCarteFin();
-  majSuiteDeLaFiche(secondTour);
+  appliquerVueFiche(vueDeLaFiche());
   montrer('ecran-fiche');
 }
 
-/* Le contrôle blanc, au bout de la fiche.
+/* --- Comment la fiche s'ouvre ---------------------------------------------
  *
- * Il ne paraît que s'il a de quoi être fabriqué : une séance ouverte, avec des
- * chapitres. Une fiche relue depuis l'archive, hors séance, n'a rien à tester —
- * un bouton qui échouerait là ferait passer l'archive pour cassée.
+ * Entière, et non en paquet de cartes à faire glisser.
  *
- * Pas non plus au second tour : on vient d'y mettre ce qui n'était pas acquis
- * après un contrôle, et l'y renvoyer tout de suite ne mesurerait qu'une lecture
- * de trente secondes.
+ * Le paquet reste le meilleur objet pour réviser : une notion à l'écran, la
+ * phrase à retenir masquée derrière un « tu te souviens ? ». Mais il s'ouvrait
+ * par défaut, et depuis que la fiche arrive AVEC le cours au lieu d'être
+ * demandée, l'élève tombe dessus sans l'avoir cherchée. Un paquet horizontal se
+ * prend alors pour une carte unique : le reste de la fiche n'existe pas, et
+ * c'est justement ce qu'on veut lui montrer.
+ *
+ * Son choix est retenu : celui qui préfère les cartes ne rebascule pas à chaque
+ * fiche.
  */
-function majSuiteDeLaFiche(secondTour) {
-  const bloc = $('fiche-suite');
-  if (!bloc) return;
-  bloc.hidden = Boolean(secondTour) || !etat || !chapitresRetenus().length;
+const CLE_VUE_FICHE = 'cb.vue-fiche';
+
+function vueDeLaFiche() {
+  try {
+    return localStorage.getItem(CLE_VUE_FICHE) === 'paquet' ? 'paquet' : 'colonne';
+  } catch (e) {
+    return 'colonne';
+  }
+}
+
+function appliquerVueFiche(vue) {
+  const paquet = $('paquet');
+  paquet.dataset.vue = vue;
+  const colonne = vue === 'colonne';
+  // Les rubans disent « où j'en suis dans le paquet » : en colonne il n'y a
+  // plus de position, tout est là.
+  $('rubans').hidden = colonne;
+  $('bouton-tout-afficher').textContent = colonne
+    ? 'Voir carte par carte'
+    : 'Tout afficher d’un coup';
+  // Dire « fais glisser » devant une fiche qui ne glisse pas, c'est envoyer
+  // l'élève chercher un geste qui ne répond pas — et douter de son téléphone.
+  const souffle = $('fiche-souffle');
+  const second = paquet.dataset.tour === 'second';
+  souffle.textContent = (souffle.dataset.base || '')
+    + (second ? ' · à revoir' : (colonne ? '' : ' · fais glisser'));
+  // L'observateur suit les cartes DANS le paquet. En colonne, le paquet n'est
+  // plus ce qui défile : toutes les cartes seraient vues en même temps, et la
+  // position de lecture retenue serait la dernière — jamais la bonne.
+  if (colonne) { if (observateurCartes) observateurCartes.disconnect(); }
+  else suivreCartes();
 }
 
 /* La fiche vue de dessus : les cartes en petit, avec leur couleur, leur numéro
@@ -6978,19 +7020,10 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   $('bouton-imprimer').onclick = () => imprimerFiche();
-  $('bouton-tester-depuis-fiche').onclick = () => {
-    tracer('teste_depuis_fiche', {});
-    lancerControle();
-  };
   $('bouton-tout-afficher').onclick = () => {
-    const paquet = $('paquet');
-    const colonne = paquet.dataset.vue === 'colonne';
-    paquet.dataset.vue = colonne ? 'paquet' : 'colonne';
-    $('rubans').hidden = !colonne;
-    $('bouton-tout-afficher').textContent = colonne
-      ? 'Tout afficher d’un coup'
-      : 'Revenir aux cartes';
-    if (colonne) suivreCartes();
+    const vue = $('paquet').dataset.vue === 'colonne' ? 'paquet' : 'colonne';
+    try { localStorage.setItem(CLE_VUE_FICHE, vue); } catch (e) { /* stockage refusé */ }
+    appliquerVueFiche(vue);
   };
 
   $('bouton-copier').onclick = copierLien;
