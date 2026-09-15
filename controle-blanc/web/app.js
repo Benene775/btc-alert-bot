@@ -2910,6 +2910,21 @@ async function demanderCode(email) {
     $('rappel-email').textContent = propre;
     montrerVolet('volet-code');
     $('champ-code').value = '';
+    // Sans serveur de courrier, le code ne part nulle part. Le dire : un élève
+    // qui surveille une boîte mail vide pendant dix minutes conclut que
+    // l'application est cassée, et il a raison de le conclure.
+    if (reponse.envoye === false && !reponse.code_demonstration) {
+      $('titre-code').textContent = 'On ne peut pas t’envoyer le code';
+      $('aide-code').textContent = 'La boîte mail n’est pas encore branchée. '
+        + 'Préviens la personne qui t’a donné Repère : elle peut te le donner. '
+        + 'Un code ne vaut que ' + (reponse.expire_dans_minutes || 10) + ' minutes, '
+        + 'alors redemandes-en un quand elle est prête.';
+    } else {
+      $('titre-code').textContent = 'Ton code est parti';
+      $('aide-code').innerHTML = 'Regarde dans <b id="rappel-email"></b> — '
+        + 'et dans les indésirables, ça arrive.';
+      $('rappel-email').textContent = propre;
+    }
     // En démonstration, le code s’affiche : il n’y a pas de serveur de courrier.
     if (reponse.code_demonstration) {
       $('code-demonstration').textContent =

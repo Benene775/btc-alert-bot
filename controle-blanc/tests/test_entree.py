@@ -496,3 +496,53 @@ def test_une_adresse_inconnue_coute_le_meme_temps_qu_une_adresse_inscrite():
     # Même ordre de grandeur : on ne cherche pas l'égalité à la microseconde,
     # on cherche l'absence du facteur mille qui trahirait tout.
     assert 0.2 < inconnu / connu < 5, f"connu {connu:.4f}s, inconnu {inconnu:.4f}s"
+
+
+def test_sans_serveur_de_courrier_on_ne_promet_pas_un_mail(client, monkeypatch):
+    """Le pire genre de panne : celle qui ment avec assurance.
+
+    Sans SMTP, le code part dans les journaux du serveur et nulle part ailleurs.
+    L'écran annonçait quand même « Ton code est parti — regarde dans ta boîte
+    mail » : l'élève surveille une boîte vide pendant dix minutes, puis conclut
+    que l'application est cassée. Il a raison de le conclure.
+
+    Écrit le jour où de vrais élèves ont commencé à s'inscrire, avec un service
+    qui n'avait pas encore de serveur de courrier.
+    """
+    from app import config
+
+    # Deux adresses : le serveur ne laisse partir qu'un code par minute et par
+    # adresse, et la seconde demande tomberait sur la cadence, pas sur le sujet.
+    sans_courrier = inscrire(client)
+    avec_courrier = inscrire(client)
+
+    monkeypatch.setattr(config, "SMTP_HOTE", "")
+    sans = client.post("/api/auth/oubli", json={"email": sans_courrier})
+    assert sans.status_code == 200, sans.text
+    assert sans.json()["envoye"] is False
+
+    monkeypatch.setattr(config, "SMTP_HOTE", "smtp.exemple.test")
+    monkeypatch.setattr("app.courrier.envoyer_code", lambda *a, **k: None)
+    avec = client.post("/api/auth/oubli", json={"email": avec_courrier})
+    assert avec.status_code == 200, avec.text
+    assert avec.json()["envoye"] is True
+
+
+def test_la_reponse_ne_dit_toujours_rien_de_qui_est_inscrit(client, monkeypatch):
+    """« envoye » est une constante du service, pas un fait sur ce compte : la
+    réponse doit rester identique pour une adresse inconnue, sinon ce
+    formulaire devient un moyen de savoir qui utilise Repère."""
+    from app import config
+
+    monkeypatch.setattr(config, "SMTP_HOTE", "")
+    # La suite tourne en démonstration, où le code REVIENT exprès dans la
+    # réponse pour cliquer sans serveur de courrier — et où il ne revient que
+    # pour un compte connu. C'est voulu, et c'est refusé au démarrage dès qu'il
+    # y a une adresse publique (config.fautes_de_configuration). On mesure donc
+    # la forme de production.
+    monkeypatch.setattr(config, "AUTH_CODE_EN_CLAIR", False)
+    connu = inscrire(client)
+    a = client.post("/api/auth/oubli", json={"email": connu}).json()
+    b = client.post("/api/auth/oubli", json={"email": "personne-ici@exemple.test"}).json()
+    assert a == b, "la réponse trahit l'existence du compte"
+    assert a["envoye"] is False

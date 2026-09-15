@@ -273,7 +273,13 @@ def mot_de_passe_oublie(corps: DemandeCode, request: Request) -> dict[str, Any]:
     # n'ont pas de compte.
     code = store.preparer_code(email, _source(request), garder=connu)
     reponse: dict[str, Any] = {
-        "envoye": True,
+        # La vérité, pas une politesse : sans serveur de courrier, le code part
+        # dans les journaux et nulle part ailleurs (voir courrier.envoyer_code).
+        # Annoncer « ton code est parti » enverrait l'élève surveiller une boîte
+        # mail où rien n'arrivera jamais — et conclure que l'application est
+        # cassée. C'est une constante du service, pas un fait sur ce compte :
+        # elle ne dit donc rien de qui est inscrit.
+        "envoye": bool(config.SMTP_HOTE),
         "expire_dans_minutes": config.DUREE_CODE_MINUTES,
         "renvoi_dans_secondes": config.DELAI_ENTRE_CODES_SECONDES,
     }
