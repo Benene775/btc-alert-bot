@@ -158,6 +158,53 @@
   </div>
 </header>
 
+<!-- L'INSTALLATION, EN GRAND, TANT QUE CE N'EST PAS FAIT.
+     L'invitation d'avant tenait en une ligne au bas de la page de l'élève, et
+     se taisait pour de bon au premier « non merci ». Les premiers élèves ont
+     tous buté dessus : sur iPhone, « Partager » n'a pas de nom écrit, il est en
+     bas de l'écran, et « Sur l'écran d'accueil » est loin dans la liste. Un
+     lien ouvert depuis Instagram ou Snapchat n'a même pas l'entrée.
+     D'où un bandeau qu'on voit sans le chercher, qui revient tant que
+     l'application n'est pas posée, et une marche à suivre dessinée, différente
+     selon le téléphone et le navigateur. -->
+<div class="bandeau-install" id="bandeau-install" hidden>
+  <span class="bandeau-install-signe" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+         stroke-linecap="round" stroke-linejoin="round">
+      <rect x="6.2" y="2.4" width="11.6" height="19.2" rx="2.6"/>
+      <path d="M10.4 18.6h3.2"/>
+      <path d="M12 6.2v5.4M9.8 9.4 12 11.6l2.2-2.2"/>
+    </svg>
+  </span>
+  <div class="bandeau-install-corps">
+    <p class="bandeau-install-mot">
+      <b>Mets Repère sur ton écran d’accueil.</b>
+      <span class="bandeau-install-raison">Sans ça, pas de rappel avant tes contrôles.</span>
+    </p>
+    <div class="bandeau-install-boutons">
+      <button type="button" class="bandeau-install-oui" id="bouton-installer">Comment faire</button>
+      <button type="button" class="bandeau-install-non" id="bouton-installer-plus-tard">Plus tard</button>
+    </div>
+  </div>
+</div>
+
+<!-- La marche à suivre. Son contenu est écrit par le script : il n'y a pas une
+     marche à suivre mais quatre, selon qu'on est sur iPhone, sur Android, dans
+     un navigateur embarqué, ou sur un ordinateur. En donner une seule, c'est en
+     donner une fausse à trois élèves sur quatre. -->
+<div class="guide-install" id="guide-install" hidden role="dialog" aria-modal="true"
+     aria-labelledby="guide-install-titre">
+  <div class="guide-install-feuille" role="document">
+    <button type="button" class="guide-install-fermer" id="guide-install-fermer"
+            aria-label="Fermer">✕</button>
+    <h2 class="guide-install-titre" id="guide-install-titre">Mettre Repère sur ton écran d’accueil</h2>
+    <p class="guide-install-chapo" id="guide-install-chapo"></p>
+    <ol class="guide-install-marches" id="guide-install-marches"></ol>
+    <button type="button" class="guide-install-action" id="guide-install-action" hidden></button>
+    <p class="guide-install-note" id="guide-install-note" hidden></p>
+  </div>
+</div>
+
 <main id="scene">
 
 <!-- REVENIR, PARTOUT ET AU MÊME ENDROIT.
@@ -660,17 +707,6 @@
   </div>
 
   <button type="button" class="discret" id="bouton-quitter-espace">Revenir</button>
-
-  <!-- L'invitation à installer. Elle ne paraît que si l'application ne tourne
-       pas déjà depuis l'écran d'accueil, et se referme pour de bon. Un bandeau
-       qu'on ne peut pas faire taire finit par se lire comme de la publicité. -->
-  <div class="invite-app" id="invite-app" hidden>
-    <p class="invite-app-mot" id="invite-app-mot"></p>
-    <div class="invite-app-liens">
-      <button type="button" class="invite-app-oui" id="bouton-installer" hidden>Installer</button>
-      <button type="button" class="lien-nu" id="bouton-installer-non">Non merci</button>
-    </div>
-  </div>
 
   <!-- Le compte, en bas et en petit : on n'ouvre pas le site pour le gérer.
        Effacer est à côté de sortir, parce que c'est là qu'on le cherche. -->

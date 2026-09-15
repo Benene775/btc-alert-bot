@@ -314,9 +314,13 @@ def test_ouvert_l_agenda_est_seul():
     par le script : sans lui la page reste entière."""
     mode = '#ecran-espace[data-agenda="ouvert"]'
     autour = (".moi", "#atelier", '.tuile-porte:not(#bouton-agenda)',
-              "#bouton-quitter-espace", ".invite-app", ".pied-compte")
+              "#bouton-quitter-espace", ".pied-compte")
     for quoi in autour:
         assert f"{mode} {quoi}" in STYLE, f"« {quoi} » reste visible sous l'agenda"
+    # Le bandeau d'installation vit au-dessus des écrans, pas dans celui-ci : il
+    # s'efface par la racine, que le script marque en même temps.
+    assert ':root[data-agenda="ouvert"] .bandeau-install' in STYLE
+    assert "document.documentElement.dataset.agenda = 'ouvert'" in SCRIPT
     assert "dataset.agenda = 'ouvert'" in SCRIPT, "le script ne pose jamais le mode"
 
     # Sa propre porte reste : il faut pouvoir refermer. Elle s'allonge en barre,

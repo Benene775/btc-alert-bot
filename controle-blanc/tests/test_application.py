@@ -86,24 +86,78 @@ def test_une_version_perimee_du_cache_est_effacee():
     assert "self.clients.claim()" in AGENT
 
 
-def test_l_invitation_se_referme_pour_de_bon():
-    """Un bandeau qu'on ne peut pas faire taire finit par se lire comme de la
-    publicité — sur la page d'un élève, c'est le pire endroit pour ça."""
-    assert "CLE_INVITE_APP" in SCRIPT
-    bloc = SCRIPT[SCRIPT.index("function fermerInviteApp()"):]
+def test_le_bandeau_revient_tant_que_ce_n_est_pas_installe():
+    """Règle inversée après les premiers élèves. L'invitation se fermait pour de
+    bon au premier « non merci » : ils l'ont fermée, puis n'ont pas su installer,
+    et plus rien ne le leur reproposait. « Plus tard » veut maintenant dire
+    demain, et seule l'installation fait taire le bandeau."""
+    assert "SILENCE_INSTALL" in SCRIPT
+    bloc = SCRIPT[SCRIPT.index("function installationRepoussee()"):]
     bloc = bloc[: bloc.index("\n}\n")]
-    assert "localStorage.setItem(CLE_INVITE_APP, 'non')" in bloc
+    assert "> Date.now()" in bloc, "le silence doit expirer, pas être définitif"
+    assert "'non'" not in bloc, "plus de « non » qui vaut pour toujours"
+
+    pose = SCRIPT[SCRIPT.index("$('bouton-installer-plus-tard').onclick"):][:400]
+    assert "Date.now() + SILENCE_INSTALL" in pose
 
 
-def test_l_invitation_ne_parait_pas_dans_l_application_installee():
-    bloc = SCRIPT[SCRIPT.index("function montrerInviteApp()"):]
+def test_le_bandeau_ne_parait_pas_dans_l_application_installee():
+    bloc = SCRIPT[SCRIPT.index("function rafraichirBandeauInstall()"):]
     bloc = bloc[: bloc.index("\n}\n")]
     assert "dejaInstallee()" in bloc
 
 
+def test_le_bandeau_est_au_dessus_des_ecrans_et_pas_dans_l_un_d_eux():
+    """L'ancienne invitation vivait au bas de la page de l'élève : il fallait
+    faire défiler jusqu'en bas pour la trouver. Les élèves ne l'ont jamais vue."""
+    assert PAGE.index('id="bandeau-install"') < PAGE.index('<main id="scene">')
+    assert 'id="ecran-espace"' not in PAGE[: PAGE.index('id="bandeau-install"')]
+
+
 def test_ios_recoit_ses_propres_instructions():
-    """iOS n'émet jamais beforeinstallprompt. Sans ce cas explicite,
-    l'invitation ne paraîtrait que sur Android, là où elle est le moins utile
-    puisque le navigateur la propose déjà."""
+    """iOS n'émet jamais beforeinstallprompt. Sans ce cas explicite, la marche à
+    suivre ne paraîtrait que sur Android, là où elle est le moins utile puisque
+    le navigateur la propose déjà."""
     assert "function surIOS()" in SCRIPT
     assert "Sur l’écran d’accueil" in SCRIPT, "aucune marche à suivre pour iOS"
+
+
+def test_les_trois_pieges_d_ios_sont_nommes():
+    """Trois choses ont fait échouer les premiers élèves, et aucune ne se devine :
+    le bouton « Partager » n'a pas de nom écrit, il est en bas de l'écran, et
+    l'entrée cherchée est loin dans une liste qu'il faut faire défiler."""
+    bloc = SCRIPT[SCRIPT.index("if (surIOS()) {", SCRIPT.index("function marcheASuivre()")):]
+    bloc = bloc[: bloc.index("if (inviteInstallation)")]
+    assert "en bas de l’écran" in bloc, "où se trouve le bouton"
+    assert "vers le haut" in bloc, "la liste se fait défiler"
+    assert "SIGNE_PARTAGE" in bloc, "le bouton est dessiné, pas seulement nommé"
+
+
+def test_un_navigateur_embarque_est_reconnu_et_nomme():
+    """Un lien ouvert depuis Instagram ou Snapchat ouvre une fenêtre interne qui
+    n'a pas l'entrée « Sur l'écran d'accueil ». Lui répéter la marche à suivre de
+    Safari, c'est donner tort à un élève qui a tout bien fait."""
+    assert "function navigateurEmbarque()" in SCRIPT
+    for application in ("Instagram", "Snapchat", "FBAN", "TikTok"):
+        assert application in SCRIPT, application
+    bloc = SCRIPT[SCRIPT.index("function marcheASuivre()"):]
+    assert "Ouvrir dans " in bloc[: bloc.index("if (surIOS() && !surSafariIOS())")]
+
+
+def test_sur_ios_un_autre_navigateur_renvoie_vers_safari():
+    """Sur iPhone, seule une application posée depuis Safari reçoit les
+    notifications. Installer depuis Chrome donne une icône qui ne préviendra
+    jamais de rien — et c'est justement pour ça qu'on installe."""
+    assert "function surSafariIOS()" in SCRIPT
+    for autre in ("CriOS", "FxiOS", "EdgiOS"):
+        assert autre in SCRIPT, autre
+    bloc = SCRIPT[SCRIPT.index("if (surIOS() && !surSafariIOS())"):]
+    bloc = bloc[: bloc.index("if (surIOS()) {")]
+    assert "Safari" in bloc
+    assert "rappel" in bloc or "prévenu" in bloc, "dire ce qu'on perd sans Safari"
+
+
+def test_le_bandeau_se_tait_pendant_un_controle():
+    """On ne distrait pas quelqu'un qui compose."""
+    assert ':root[data-ecran="controle"] .bandeau-install' in \
+        (WEB / "styles.css").read_text(encoding="utf-8")

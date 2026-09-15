@@ -1744,6 +1744,8 @@ function basculerAgenda(ouvre) {
   // page tant que cet attribut est là. On est venu poser une date.
   if (ouvre) $('ecran-espace').dataset.agenda = 'ouvert';
   else delete $('ecran-espace').dataset.agenda;
+  if (ouvre) document.documentElement.dataset.agenda = 'ouvert';
+  else delete document.documentElement.dataset.agenda;
   // Refermer l'agenda referme la fiche du jour avec lui : elle n'a plus de
   // calendrier derrière elle.
   if (!ouvre) { jourChoisi = null; rvModifie = null; fermerFicheJour(); cacherApercuJour(); }
@@ -3539,6 +3541,7 @@ function montrer(id, options = {}) {
   }
   // L'ambiance dépend du moment : on révise au chaud, on se teste au froid.
   document.documentElement.dataset.ecran = id.replace('ecran-', '');
+  rafraichirBandeauInstall();
   window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
   majBandeau(id);
   majBoutonRetour();
@@ -3801,7 +3804,12 @@ async function demarrerSession(depuisAgenda = null) {
  * iOS ne propose rien tout seul : il faut passer par Partager → « Sur l'écran
  * d'accueil ». Android le propose, et on lui donne un bouton.
  */
+// Le bandeau ne se tait pas pour de bon : il revient le lendemain, et ne
+// disparaît qu'une fois l'application posée. C'est un changement assumé par
+// rapport à l'ancienne invitation, qui se fermait définitivement au premier
+// « non merci » — les premiers élèves l'ont fermée, puis n'ont pas su installer.
 const CLE_INVITE_APP = 'cb.invite-app';
+const SILENCE_INSTALL = 24 * 60 * 60 * 1000;
 let inviteInstallation = null;
 
 function dejaInstallee() {
@@ -3812,6 +3820,136 @@ function dejaInstallee() {
 function surIOS() {
   return /iPad|iPhone|iPod/.test(navigator.userAgent)
     || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
+// Un lien ouvert depuis Instagram, Snapchat ou Messenger n'ouvre pas le
+// navigateur : il ouvre une fenêtre à l'intérieur de l'application, qui n'a pas
+// l'entrée « Sur l'écran d'accueil ». C'est l'explication la plus probable d'un
+// élève qui « n'y arrive pas » : chez lui, le bouton n'existe pas. Lui répéter
+// la marche à suivre de Safari ne servirait qu'à lui donner tort.
+function navigateurEmbarque() {
+  return /Instagram|FBAN|FBAV|FB_IAB|Snapchat|LinkedInApp|TikTok|Twitter|Line\//i
+    .test(navigator.userAgent);
+}
+
+// Sur iOS, tous les navigateurs tiers portent leur marque dans l'agent. Et sur
+// iOS, seule une application posée depuis Safari reçoit les notifications :
+// envoyer un élève de Chrome vers Safari n'est pas une préférence, c'est la
+// condition pour que les rappels marchent.
+function surSafariIOS() {
+  return surIOS() && !navigateurEmbarque()
+    && !/CriOS|FxiOS|EdgiOS|OPiOS|OPT\//i.test(navigator.userAgent);
+}
+
+function installationRepoussee() {
+  try {
+    return Number(localStorage.getItem(CLE_INVITE_APP) || 0) > Date.now();
+  } catch (e) {
+    // Stockage refusé : on propose quand même. Se taire par défaut, c'est se
+    // taire chez ceux qui ont le plus besoin qu'on leur parle.
+    return false;
+  }
+}
+
+function rafraichirBandeauInstall() {
+  const bandeau = $('bandeau-install');
+  if (!bandeau) return;
+  bandeau.hidden = dejaInstallee() || installationRepoussee();
+}
+
+/* La marche à suivre, selon où l'élève se trouve vraiment. */
+const SIGNE_PARTAGE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"'
+  + ' stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'
+  + '<path d="M12 3.2v11.4"/><path d="M8.6 6.6 12 3.2l3.4 3.4"/>'
+  + '<path d="M7.6 10.2H5.8A1.8 1.8 0 0 0 4 12v7.2A1.8 1.8 0 0 0 5.8 21h12.4a1.8 1.8 0 0 0 1.8-1.8V12a1.8 1.8 0 0 0-1.8-1.8h-1.8"/></svg>';
+const SIGNE_PLUS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"'
+  + ' stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'
+  + '<rect x="3.6" y="3.6" width="16.8" height="16.8" rx="4.2"/>'
+  + '<path d="M12 8.4v7.2M8.4 12h7.2"/></svg>';
+const SIGNE_POINTS = '<svg viewBox="0 0 24 24" fill="currentColor">'
+  + '<circle cx="12" cy="5" r="1.9"/><circle cx="12" cy="12" r="1.9"/>'
+  + '<circle cx="12" cy="19" r="1.9"/></svg>';
+
+function marcheASuivre() {
+  if (navigateurEmbarque()) {
+    return {
+      chapo: 'Tu as ouvert Repère depuis une autre application — Instagram, Snapchat, '
+        + 'Messenger. Cette fenêtre-là ne sait pas installer : le bouton n’existe pas '
+        + 'chez toi. Il faut d’abord passer par ' + (surIOS() ? 'Safari' : 'Chrome') + '.',
+      marches: [
+        { signe: SIGNE_POINTS, mot: 'Touche les trois points, en haut à droite de cette fenêtre.' },
+        { mot: 'Choisis <b>« Ouvrir dans ' + (surIOS() ? 'Safari' : 'Chrome') + ' »</b>.' },
+        { mot: 'Reviens ici : le bandeau te redonnera la suite.' },
+      ],
+    };
+  }
+
+  if (surIOS() && !surSafariIOS()) {
+    return {
+      chapo: 'Sur iPhone, seule une application posée depuis <b>Safari</b> peut '
+        + 't’envoyer des rappels. Depuis ce navigateur-ci, l’icône marcherait, '
+        + 'mais tu ne serais jamais prévenu avant un contrôle.',
+      marches: [
+        { signe: SIGNE_POINTS, mot: 'Ouvre le menu de ton navigateur.' },
+        { mot: 'Choisis <b>« Ouvrir dans Safari »</b>.' },
+        { mot: 'Dans Safari, reviens ici et touche « Comment faire ».' },
+      ],
+    };
+  }
+
+  if (surIOS()) {
+    return {
+      chapo: 'Trois gestes. Le premier bouton est <b>en bas de l’écran</b>, au milieu — '
+        + 'c’est un carré avec une flèche qui sort par le haut, il n’a pas de nom écrit.',
+      marches: [
+        { signe: SIGNE_PARTAGE, mot: 'Touche ce bouton, <b>tout en bas de l’écran</b>.' },
+        { mot: 'Fais glisser la liste <b>vers le haut</b> : l’entrée qu’on cherche est loin en dessous.' },
+        { signe: SIGNE_PLUS, mot: 'Touche <b>« Sur l’écran d’accueil »</b>, puis <b>« Ajouter »</b> en haut à droite.' },
+      ],
+      note: 'L’iPhone donne à l’application son propre espace : si elle te demande '
+        + 'de te reconnecter la première fois, c’est normal, et c’est la dernière.',
+    };
+  }
+
+  if (inviteInstallation) {
+    return {
+      chapo: 'Ton téléphone sait le faire tout seul. Touche le bouton ci-dessous, '
+        + 'puis confirme.',
+      marches: [],
+      action: 'Installer Repère',
+    };
+  }
+
+  return {
+    chapo: 'Ton navigateur propose l’installation dans son menu.',
+    marches: [
+      { signe: SIGNE_POINTS, mot: 'Ouvre le menu, en haut à droite.' },
+      { mot: 'Choisis <b>« Installer l’application »</b> ou <b>« Ajouter à l’écran d’accueil »</b>.' },
+      { mot: 'Confirme. L’icône Repère apparaît avec tes autres applications.' },
+    ],
+  };
+}
+
+function ouvrirGuideInstall() {
+  const quoi = marcheASuivre();
+  $('guide-install-chapo').innerHTML = quoi.chapo;
+  $('guide-install-marches').innerHTML = quoi.marches.map((marche) => (
+    '<li>' + (marche.signe ? '<span class="marche-signe">' + marche.signe + '</span>' : '')
+    + '<span class="marche-mot">' + marche.mot + '</span></li>'
+  )).join('');
+  $('guide-install-marches').hidden = !quoi.marches.length;
+  const action = $('guide-install-action');
+  action.hidden = !quoi.action;
+  if (quoi.action) action.textContent = quoi.action;
+  const note = $('guide-install-note');
+  note.hidden = !quoi.note;
+  if (quoi.note) note.innerHTML = quoi.note;
+  $('guide-install').hidden = false;
+  $('guide-install-fermer').focus();
+}
+
+function fermerGuideInstall() {
+  $('guide-install').hidden = true;
 }
 
 function armerApplication() {
@@ -3829,38 +3967,36 @@ function armerApplication() {
   window.addEventListener('beforeinstallprompt', (evenement) => {
     evenement.preventDefault();
     inviteInstallation = evenement;
-    $('bouton-installer').hidden = false;
-    montrerInviteApp();
+    rafraichirBandeauInstall();
   });
 
-  $('bouton-installer').onclick = async () => {
+  // Posée depuis le navigateur, l'application n'a plus rien à demander — et le
+  // bandeau doit disparaître sans attendre un rechargement.
+  window.addEventListener('appinstalled', () => {
+    inviteInstallation = null;
+    fermerGuideInstall();
+    $('bandeau-install').hidden = true;
+  });
+
+  $('bouton-installer').onclick = ouvrirGuideInstall;
+  $('guide-install-fermer').onclick = fermerGuideInstall;
+  $('guide-install').onclick = (e) => { if (e.target === $('guide-install')) fermerGuideInstall(); };
+  $('guide-install-action').onclick = async () => {
     if (!inviteInstallation) return;
     inviteInstallation.prompt();
     await inviteInstallation.userChoice;
     inviteInstallation = null;
-    fermerInviteApp();
+    fermerGuideInstall();
+    rafraichirBandeauInstall();
   };
-  $('bouton-installer-non').onclick = fermerInviteApp;
+  $('bouton-installer-plus-tard').onclick = () => {
+    try {
+      localStorage.setItem(CLE_INVITE_APP, String(Date.now() + SILENCE_INSTALL));
+    } catch (e) { /* stockage refusé : il reviendra au prochain chargement */ }
+    $('bandeau-install').hidden = true;
+  };
 
-  // iOS n'émet jamais beforeinstallprompt : sans ça, l'invitation ne
-  // paraîtrait que sur Android, là où elle est le moins nécessaire.
-  if (surIOS()) montrerInviteApp();
-}
-
-function montrerInviteApp() {
-  if (dejaInstallee()) return;
-  try { if (localStorage.getItem(CLE_INVITE_APP) === 'non') return; } catch (e) { return; }
-  const invite = $('invite-app');
-  if (!invite) return;
-  $('invite-app-mot').textContent = surIOS()
-    ? 'Garde Repère sur ton écran d’accueil : touche « Partager », puis « Sur l’écran d’accueil ».'
-    : 'Garde Repère sur ton écran d’accueil : il s’ouvrira en plein écran, et même sans réseau.';
-  invite.hidden = false;
-}
-
-function fermerInviteApp() {
-  $('invite-app').hidden = true;
-  try { localStorage.setItem(CLE_INVITE_APP, 'non'); } catch (e) { /* stockage refusé */ }
+  rafraichirBandeauInstall();
 }
 
 /* --- Le menu de la marque ------------------------------------------------
@@ -6830,6 +6966,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('page-suivante').onclick = (e) => { e.stopPropagation(); cahierOuvert.rang += 1; dessinerCahier(); };
   document.addEventListener('keydown', (evenement) => {
     if (evenement.key !== 'Escape') return;
+    if (!$('guide-install').hidden) return fermerGuideInstall();
     if (!$('visionneuse').hidden) return fermerCahier();
     if (!$('fiche-jour').hidden) { jourChoisi = null; dessinerEspace(); }
   });

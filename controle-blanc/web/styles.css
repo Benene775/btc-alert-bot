@@ -3784,7 +3784,6 @@ h1 {
 #ecran-espace[data-agenda="ouvert"] #atelier,
 #ecran-espace[data-agenda="ouvert"] .tuile-porte:not(#bouton-agenda),
 #ecran-espace[data-agenda="ouvert"] #bouton-quitter-espace,
-#ecran-espace[data-agenda="ouvert"] .invite-app,
 #ecran-espace[data-agenda="ouvert"] .pied-compte { display: none; }
 
 #ecran-espace[data-agenda="ouvert"] .tuiles { grid-template-columns: 1fr; }
@@ -4181,38 +4180,241 @@ h1 {
 
 /* L'invitation à installer l'application. Discrète : elle vit en bas de la page
    perso, là où on gère son compte, pas en travers du travail. */
-.invite-app {
+/* --- LE BANDEAU D'INSTALLATION --------------------------------------------
+ *
+ * Il est au-dessus de tout, sur tous les écrans, et il revient tant que
+ * l'application n'est pas posée. L'ancienne invitation vivait au bas de la page
+ * de l'élève : il fallait faire défiler jusqu'en bas pour la trouver, et les
+ * premiers élèves ne l'ont jamais vue.
+ *
+ * Deux endroits où il se tait quand même : pendant un contrôle, parce qu'on ne
+ * distrait pas quelqu'un qui compose, et sous l'agenda ouvert, qui prend
+ * l'écran entier pour une seule chose.
+ */
+.bandeau-install {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--e2);
+  padding: calc(10px + env(safe-area-inset-top, 0px)) var(--e3) 10px;
+  background: var(--accent);
+  color: var(--sur-accent);
+}
+
+/* Les boutons restent alignés sous le texte, jamais flottants à droite d'un
+   vide : repliés sur un téléphone, ils partaient à l'autre bout de la ligne. */
+.bandeau-install-corps {
+  flex: 1 1 auto;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px var(--e2);
-  margin-top: var(--e3);
-  padding: var(--e2) var(--e3);
-  border: 1px solid var(--trait);
-  border-radius: var(--rayon);
-  background: var(--carte);
+  gap: 4px var(--e2);
+  min-width: 0;
 }
 
-.invite-app-mot {
-  flex: 1 1 220px;
+/* On n'installe pas un outil qu'on n'a pas encore choisi : sur l'accueil et sur
+   l'écran de connexion, le bandeau passerait devant ce qu'on est venu lire.
+   Pendant un contrôle non plus — on ne distrait pas quelqu'un qui compose. Et
+   pas sous l'agenda ouvert, qui prend l'écran pour une seule chose. */
+:root[data-ecran="accueil"] .bandeau-install,
+:root[data-ecran="connexion"] .bandeau-install,
+:root[data-ecran="controle"] .bandeau-install,
+:root[data-agenda="ouvert"] .bandeau-install { display: none; }
+
+.bandeau-install-signe {
+  display: flex;
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, .17);
+}
+
+.bandeau-install-signe svg { width: 17px; height: 17px; }
+
+.bandeau-install-mot {
+  flex: 1 1 210px;
   margin: 0;
-  font-size: .85rem;
-  line-height: 1.45;
+  font-size: .82rem;
+  line-height: 1.35;
+}
+
+.bandeau-install-boutons {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+}
+
+.bandeau-install-mot b { font-weight: 650; }
+
+/* La raison passe à la ligne sous le titre : « pourquoi » n'est pas « quoi », et
+   les deux collés sur une ligne se lisaient comme une seule phrase trop longue. */
+.bandeau-install-raison { display: block; opacity: .82; }
+
+.bandeau-install-oui {
+  flex: 0 0 auto;
+  padding: 9px 15px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--sur-accent);
+  color: var(--accent);
+  font: inherit;
+  font-size: .82rem;
+  font-weight: 650;
+  cursor: pointer;
+  /* Une cible de 44 px : mesurée sur un vrai téléphone, un bouton plus court se
+     rate une fois sur trois et l'élève croit que ça ne marche pas. */
+  min-height: 44px;
+}
+
+.bandeau-install-non {
+  flex: 0 0 auto;
+  padding: 9px 4px;
+  min-height: 44px;
+  border: 0;
+  background: none;
+  color: inherit;
+  opacity: .72;
+  font: inherit;
+  font-size: .78rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* --- LA MARCHE À SUIVRE ----------------------------------------------------
+ *
+ * Il n'y a pas une marche à suivre mais quatre — iPhone, Android, navigateur
+ * embarqué, ordinateur — et le script choisit. Les signes sont dessinés parce
+ * que sur iPhone le bouton « Partager » n'a pas de nom écrit : le décrire par
+ * son mot, c'est décrire une chose que l'élève ne verra jamais à l'écran.
+ */
+.guide-install {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(36, 30, 23, .5);
+  padding: var(--e3) 0 0;
+}
+
+.guide-install-feuille {
+  position: relative;
+  width: min(460px, 100%);
+  max-height: 88vh;
+  overflow-y: auto;
+  padding: var(--e4) var(--e3) calc(var(--e4) + env(safe-area-inset-bottom, 0px));
+  border-radius: 20px 20px 0 0;
+  background: var(--carte);
+  color: var(--encre);
+}
+
+@media (min-width: 620px) {
+  .guide-install { align-items: center; padding: var(--e3); }
+  .guide-install-feuille { border-radius: 20px; }
+}
+
+.guide-install-fermer {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--encre-douce);
+  font-size: 1.05rem;
+  cursor: pointer;
+}
+
+.guide-install-titre {
+  margin: 0 40px var(--e2) 0;
+  font-size: 1.12rem;
+  line-height: 1.3;
+}
+
+.guide-install-chapo {
+  margin: 0 0 var(--e3);
+  font-size: .9rem;
+  line-height: 1.5;
   color: var(--encre-douce);
 }
 
-.invite-app-liens { display: flex; align-items: center; gap: var(--e2); margin-left: auto; }
+.guide-install-marches {
+  display: grid;
+  gap: var(--e2);
+  margin: 0 0 var(--e3);
+  padding: 0;
+  list-style: none;
+  counter-reset: marche;
+}
 
-.invite-app-oui {
-  padding: 7px 14px;
+.guide-install-marches li {
+  display: flex;
+  align-items: center;
+  gap: var(--e2);
+  padding: var(--e2);
+  border: 1px solid var(--trait);
+  border-radius: var(--rayon);
+  background: var(--papier);
+  font-size: .92rem;
+  line-height: 1.45;
+}
+
+/* Le numéro de la marche, avant tout le reste : trois gestes dans l'ordre, et
+   l'élève doit pouvoir retrouver où il en est en revenant à l'écran. */
+.guide-install-marches li::before {
+  counter-increment: marche;
+  content: counter(marche);
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--sur-accent);
+  font-size: .78rem;
+  font-weight: 700;
+}
+
+.marche-signe {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: var(--stylo-eleve-doux);
+  color: var(--stylo-eleve);
+}
+
+.marche-signe svg { width: 22px; height: 22px; }
+.marche-mot { flex: 1 1 auto; }
+
+.guide-install-action {
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 18px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--rayon);
   background: var(--accent);
   color: var(--sur-accent);
   font: inherit;
-  font-size: .85rem;
-  font-weight: 600;
+  font-size: .95rem;
+  font-weight: 650;
   cursor: pointer;
+}
+
+.guide-install-note {
+  margin: var(--e3) 0 0;
+  font-size: .82rem;
+  line-height: 1.5;
+  color: var(--encre-douce);
 }
 
 /* --- Le tableau de bord --------------------------------------------------

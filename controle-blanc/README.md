@@ -560,11 +560,27 @@ résultat à l'usage : une icône qu'on touche. Pour six testeurs sur deux mois,
 c'est disproportionné. Le jour où la distribution en magasin devient un vrai
 besoin, le même code peut être emballé sans être réécrit.
 
-**Comment l'élève l'installe** : sur Android le navigateur le propose, et la
-page perso porte un bouton ; sur iOS il faut Partager → « Sur l'écran
-d'accueil », ce que la même invitation explique. Elle se referme
-définitivement — un bandeau qu'on ne peut pas faire taire se lit comme de la
-publicité.
+**Comment l'élève l'installe.** Un bandeau en haut de l'écran le lui dit, et
+revient tant que ce n'est pas fait. « Comment faire » ouvre une marche à suivre
+qui n'est pas la même pour tout le monde — c'est là qu'était le défaut :
+
+| Où il est | Ce qu'on lui dit |
+|---|---|
+| iPhone, dans Safari | Trois gestes, avec le bouton Partager **dessiné** : il n'a pas de nom écrit, il est en bas de l'écran, et l'entrée cherchée est loin dans une liste qu'il faut faire défiler |
+| iPhone, dans Chrome ou Firefox | Passer par Safari d'abord — sur iOS, seule une application posée depuis Safari reçoit les notifications |
+| Dans Instagram, Snapchat, Messenger | La fenêtre embarquée n'a pas l'entrée du tout : « Ouvrir dans Safari », puis revenir |
+| Android | Le navigateur émet `beforeinstallprompt` : un vrai bouton. Sinon, le menu ⋮ |
+
+Les premiers élèves ont tous buté dessus, et la version d'avant y était pour
+quelque chose : l'invitation tenait en une ligne au bas de leur page — il fallait
+faire défiler jusqu'en bas pour la voir — et se taisait **définitivement** au
+premier « non merci ». Ils l'ont fermée, puis n'ont pas su installer, et plus
+rien ne le leur reproposait. « Plus tard » veut maintenant dire vingt-quatre
+heures ; seule l'installation fait taire le bandeau pour de bon.
+
+Il se tait quand même à trois endroits : sur l'accueil et l'écran de connexion
+(on n'installe pas un outil qu'on n'a pas encore choisi), pendant un contrôle
+(on ne distrait pas quelqu'un qui compose), et sous l'agenda ouvert.
 
 ### L'essayer sur son propre téléphone
 
