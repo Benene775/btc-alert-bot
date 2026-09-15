@@ -158,3 +158,50 @@ def test_modifier_garde_ce_qu_on_ne_touche_pas():
     l'élève ait écrite à la main."""
     corps = bloc("modifierRendezVous")
     assert "Object.assign({}, r, champs)" in corps
+
+
+# --- Relier un cours qu'on a déjà ------------------------------------------
+
+def test_on_peut_relier_un_cours_deja_photographie():
+    """Un contrôle noté à la main ne connaissait rien du classeur : il annonçait
+    « cours pas encore photographié » même quand le cours était là depuis deux
+    semaines, avec ses fiches. L'élève n'avait que deux mauvaises sorties — tout
+    rephotographier, ce qui consomme des pages du mois pour rien, ou renoncer.
+    """
+    assert "function blocRelier" in CODE_NU
+    assert "blocRelier()" in bloc("formulaireRendezVous")
+    corps = bloc("blocRelier")
+    # Relier, c'est poser la date sur la séance qui existe : rien n'est copié.
+    assert "changerDateDeSeance(choix.value, jourChoisi)" in corps
+    assert "Rien n’est recopié ni rephotographié" in corps
+
+
+def test_le_bloc_disparait_quand_il_n_y_a_rien_a_relier():
+    """Un menu vide sous « Ajouter » dirait qu'il manque quelque chose."""
+    corps = bloc("blocRelier")
+    assert "if (!cours.length) return bloc;" in corps
+    assert ".relier:empty { display: none; }" in STYLE
+
+
+def test_le_cours_se_reconnait_a_son_chapitre():
+    """Deux cours d'histoire-géo ne se distinguent pas par leur matière. C'est le
+    titre du chapitre qui dit lequel est lequel."""
+    corps = bloc("etiquetteCours")
+    assert "premier.titre" in corps
+    assert "nomMatiere(session.matiere)" in corps
+    # Et un cours qui a déjà une date VA BOUGER : une séance n'en a qu'une.
+    assert "session.dateControle" in corps and "actuellement le" in corps
+
+
+def test_relier_ne_touche_a_rien_d_autre_que_la_date():
+    """Même garantie que pour le retrait : il y a du travail derrière."""
+    corps = bloc("blocRelier")
+    for champ in ("fiches", "controles", "chapitres", "photos"):
+        assert champ + " =" not in corps, f"{champ} est modifié en reliant"
+
+
+def test_le_plus_recent_est_propose_en_premier():
+    """C'est le cours qu'on vient de faire en classe, donc celui dont on note
+    la date."""
+    corps = bloc("coursARelier")
+    assert "majLe" in corps and "sort(" in corps

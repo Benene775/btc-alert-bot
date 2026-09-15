@@ -1328,7 +1328,7 @@ function formulaireRendezVous(existant) {
       ajouterRendezVous(jour, choix.value, note.value.trim());
       demarrerSession({ matiere: choix.value, date: jour });
     };
-    forme.append(photos, valider);
+    forme.append(photos, valider, blocRelier());
   }
 
   forme.onsubmit = (evenement) => {
@@ -1424,6 +1424,77 @@ function champDate(forme, valeur) {
                aide('Actuellement le ' + dateCourte(valeur)
                     + '. Change-la pour décaler le contrôle.'));
   return quand;
+}
+
+/* Relier un cours DÉJÀ photographié à cette date.
+ *
+ * Un contrôle noté à la main ne connaît rien du classeur : il annonce « cours
+ * pas encore photographié » même quand le cours est là depuis deux semaines,
+ * avec ses fiches. L'élève n'avait alors que deux mauvaises sorties — tout
+ * rephotographier, ce qui coûte des pages du mois pour rien, ou renoncer.
+ *
+ * Relier ne copie rien : ça pose la date d'échéance sur la séance existante.
+ * C'est exactement ce que fait « décaler » (changerDateDeSeance), et c'est ce
+ * qui fait que le cours apparaît ensuite dans la fiche du jour avec son bouton
+ * « Ouvrir », que le « J−7 » du bandeau se met à décompter les jours, et que le
+ * rappel de la veille sait de quoi il parle.
+ */
+function coursARelier() {
+  const liste = [];
+  coursRepassables().forEach((sessions) => sessions.forEach((s) => liste.push(s)));
+  // Le plus récent d'abord : c'est le cours qu'on vient de faire en classe.
+  return liste.sort((a, b) => String(b.majLe || '').localeCompare(String(a.majLe || '')));
+}
+
+function etiquetteCours(session) {
+  const premier = (session.chapitres || [])[0] || {};
+  const morceaux = [nomMatiere(session.matiere)];
+  if (premier.titre) morceaux.push(premier.titre);
+  const reste = (session.chapitres || []).length - 1;
+  const texte = morceaux.join(' · ') + (reste > 0 ? ' +' + reste : '');
+  // Un cours déjà rattaché à une date VA BOUGER : il n'en a qu'une. Le dire
+  // dans l'étiquette plutôt que de le découvrir après coup.
+  return session.dateControle
+    ? texte + ' (actuellement le ' + dateCourte(session.dateControle) + ')'
+    : texte;
+}
+
+function blocRelier() {
+  const cours = coursARelier();
+  const bloc = document.createElement('div');
+  bloc.className = 'relier';
+  if (!cours.length) return bloc;  // rien à relier : pas de bloc du tout
+
+  const titre = document.createElement('p');
+  titre.className = 'relier-titre';
+  titre.textContent = 'Ou relier un cours déjà photographié';
+
+  const choix = document.createElement('select');
+  choix.id = 'relier-cours';
+  choix.setAttribute('aria-label', 'Le cours à relier à ce contrôle');
+  cours.forEach((session) => {
+    const option = document.createElement('option');
+    option.value = session.sessionId;
+    option.textContent = etiquetteCours(session);
+    choix.appendChild(option);
+  });
+
+  const bouton = document.createElement('button');
+  bouton.type = 'button';
+  bouton.className = 'relier-valider';
+  bouton.textContent = 'Relier ce cours';
+  bouton.onclick = () => {
+    const session = cours.find((s) => s.sessionId === choix.value);
+    if (!session || !changerDateDeSeance(choix.value, jourChoisi)) return;
+    message(nomMatiere(session.matiere) + ' est maintenant ton contrôle du '
+            + dateCourte(jourChoisi) + '.');
+    dessinerEspace();
+  };
+
+  bloc.append(titre, choix, bouton,
+              aide('Rien n’est recopié ni rephotographié : ton cours garde ses fiches '
+                   + 'et ses contrôles blancs, et prend simplement cette date.'));
+  return bloc;
 }
 
 function aide(texte) {
