@@ -977,6 +977,15 @@ function retirerRendezVous(id) {
   garderRendezVous(rendezVous().filter((r) => r.id !== id));
 }
 
+/* Un contrôle se décale au moins aussi souvent qu'il s'annule : le professeur
+ * est absent, la classe est en sortie, le chapitre n'est pas fini. Sans ça il
+ * fallait supprimer puis recréer — et reperdre au passage ce qui tombe. */
+function modifierRendezVous(id, champs) {
+  garderRendezVous(rendezVous().map(
+    (r) => (r.id === id ? Object.assign({}, r, champs) : r)
+  ));
+}
+
 function cleJour(d) {
   // Pas toISOString : il bascule en UTC et décale d'un jour le soir en France.
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')
@@ -1033,6 +1042,9 @@ function prochainesEcheances(sessions) {
 
 let moisAffiche = null;
 let jourChoisi = null;
+// Le contrôle qu'on est en train de modifier, s'il y en a un : le formulaire du
+// bas sert alors à le changer au lieu d'en ajouter un.
+let rvModifie = null;
 
 function dessinerAgenda(sessions) {
   if (!moisAffiche) {
@@ -1160,19 +1172,27 @@ function dessinerJourChoisi(sessions) {
     }
     ligne.appendChild(action);
 
+    // Un contrôle noté à la main s'annule et se décale. C'était une croix de
+    // 32 px sans étiquette, à côté de la croix qui referme la fiche : deux
+    // signes identiques pour « ferme cette feuille » et « efface ce contrôle »,
+    // dont l'un est irréversible. Signalé en usage réel — « je voudrais qu'on
+    // ait la possibilité de supprimer » —, c'est-à-dire pas trouvé du tout.
     if (e.source === 'saisi') {
-      const retirer = document.createElement('button');
-      retirer.type = 'button';
-      retirer.className = 'rendez-vous-retirer';
-      retirer.setAttribute('aria-label', 'Retirer ce contrôle');
-      retirer.textContent = '×';
-      retirer.onclick = () => { retirerRendezVous(e.id); dessinerEspace(); };
-      ligne.appendChild(retirer);
+      const changer = document.createElement('button');
+      changer.type = 'button';
+      changer.className = 'rendez-vous-changer';
+      changer.textContent = 'Modifier';
+      changer.setAttribute('aria-label', 'Modifier ou supprimer ce contrôle');
+      changer.onclick = () => { rvModifie = e.id; dessinerEspace(); };
+      corps.appendChild(changer);
     }
     boite.appendChild(ligne);
   });
 
-  boite.appendChild(formulaireRendezVous());
+  const enCours = rvModifie
+    ? evenements.find((e) => e.source === 'saisi' && e.id === rvModifie)
+    : null;
+  boite.appendChild(formulaireRendezVous(enCours || null));
 }
 
 /* Le formulaire de la fiche du jour.
@@ -1184,13 +1204,21 @@ function dessinerJourChoisi(sessions) {
  * dans la ligne du rendez-vous, mais rien ne permettait de la saisir : le
  * contrôle annonçait donc toujours « Cours pas encore photographié ».
  */
-function formulaireRendezVous() {
+/* Le formulaire de la fiche du jour, pour ajouter ou pour modifier.
+ *
+ * Même formulaire dans les deux cas : un contrôle qu'on modifie demande
+ * exactement ce qu'on demande pour en poser un, plus la date — parce qu'un
+ * contrôle se décale au moins aussi souvent qu'il s'annule. Deux formulaires
+ * auraient fini par diverger sur ce qui tombe, qui n'est saisissable qu'ici.
+ */
+function formulaireRendezVous(existant) {
   const forme = document.createElement('form');
   forme.className = 'ajout-rv';
+  if (existant) forme.dataset.modifie = 'oui';
 
   const titre = document.createElement('p');
   titre.className = 'ajout-rv-titre';
-  titre.textContent = 'Ajouter un contrôle';
+  titre.textContent = existant ? 'Modifier ce contrôle' : 'Ajouter un contrôle';
 
   const etiquetteMatiere = document.createElement('label');
   etiquetteMatiere.setAttribute('for', 'rv-matiere');
@@ -1204,7 +1232,8 @@ function formulaireRendezVous() {
     option.textContent = m.nom;
     choix.appendChild(option);
   });
-  if (etat && etat.matiere) choix.value = etat.matiere;
+  if (existant) choix.value = existant.matiere;
+  else if (etat && etat.matiere) choix.value = etat.matiere;
 
   const etiquetteNote = document.createElement('label');
   etiquetteNote.setAttribute('for', 'rv-note');
@@ -1216,33 +1245,98 @@ function formulaireRendezVous() {
   note.maxLength = 80;
   note.autocomplete = 'off';
   note.placeholder = 'Chapitre 3, les fonctions…';
+  if (existant) note.value = existant.note || '';
+
+  // La date n'apparaît qu'en modification : à l'ajout, c'est le jour qu'on
+  // vient de toucher dans le calendrier, et le redemander serait absurde.
+  let quand = null;
+  if (existant) {
+    const etiquetteDate = document.createElement('label');
+    etiquetteDate.setAttribute('for', 'rv-date');
+    etiquetteDate.textContent = 'La date';
+    quand = document.createElement('input');
+    quand.type = 'date';
+    quand.id = 'rv-date';
+    quand.value = existant.date;
+    // Le champ date s'affiche dans le format du téléphone — 20/09 ici, 09/20
+    // ailleurs — et rien dans la page ne peut le changer. La date en toutes
+    // lettres lève le doute, et dit au passage à quoi sert ce champ : un
+    // contrôle se décale aussi souvent qu'il s'annule.
+    const aideDate = document.createElement('p');
+    aideDate.className = 'aide ajout-rv-aide';
+    aideDate.textContent = 'Actuellement le ' + dateCourte(existant.date)
+      + '. Change-la pour décaler le contrôle.';
+    forme.append(titre, etiquetteMatiere, choix, etiquetteNote, note,
+                 etiquetteDate, quand, aideDate);
+  } else {
+    forme.append(titre, etiquetteMatiere, choix, etiquetteNote, note);
+  }
 
   const valider = document.createElement('button');
   valider.type = 'submit';
   valider.className = 'principal ajout-rv-valider';
-  valider.textContent = 'Ajouter';
+  valider.textContent = existant ? 'Enregistrer' : 'Ajouter';
 
-  // Dire ce qui tombe et le photographier sont le même geste, à une minute
-  // près : le cours est ouvert sur la table quand on note la date. Le lien pose
-  // d'abord le contrôle — sinon la date serait perdue en quittant la page — et
-  // enchaîne sur l'appareil photo.
-  const photos = document.createElement('button');
-  photos.type = 'button';
-  photos.className = 'ajout-rv-photos';
-  photos.textContent = 'Ajouter les photos du cours';
-  photos.onclick = () => {
-    const jour = jourChoisi;
-    ajouterRendezVous(jour, choix.value, note.value.trim());
-    demarrerSession({ matiere: choix.value, date: jour });
-  };
+  if (existant) {
+    forme.appendChild(valider);
+
+    const effacer = document.createElement('button');
+    effacer.type = 'button';
+    effacer.className = 'ajout-rv-effacer';
+    effacer.textContent = 'Supprimer ce contrôle';
+    effacer.onclick = () => {
+      retirerRendezVous(existant.id);
+      rvModifie = null;
+      message('Contrôle supprimé de ton agenda.');
+      dessinerEspace();
+    };
+
+    const renoncer = document.createElement('button');
+    renoncer.type = 'button';
+    renoncer.className = 'ajout-rv-renoncer';
+    renoncer.textContent = 'Annuler';
+    renoncer.onclick = () => { rvModifie = null; dessinerEspace(); };
+
+    forme.append(effacer, renoncer);
+  } else {
+    // Dire ce qui tombe et le photographier sont le même geste, à une minute
+    // près : le cours est ouvert sur la table quand on note la date. Le lien
+    // pose d'abord le contrôle — sinon la date serait perdue en quittant la
+    // page — et enchaîne sur l'appareil photo.
+    const photos = document.createElement('button');
+    photos.type = 'button';
+    photos.className = 'ajout-rv-photos';
+    photos.textContent = 'Ajouter les photos du cours';
+    photos.onclick = () => {
+      const jour = jourChoisi;
+      ajouterRendezVous(jour, choix.value, note.value.trim());
+      demarrerSession({ matiere: choix.value, date: jour });
+    };
+    forme.append(photos, valider);
+  }
 
   forme.onsubmit = (evenement) => {
     evenement.preventDefault();
-    ajouterRendezVous(jourChoisi, choix.value, note.value.trim());
+    if (!existant) {
+      ajouterRendezVous(jourChoisi, choix.value, note.value.trim());
+      return dessinerEspace();
+    }
+    const nouvelleDate = (quand && quand.value) || existant.date;
+    modifierRendezVous(existant.id, {
+      date: nouvelleDate,
+      matiere: choix.value,
+      note: note.value.trim(),
+    });
+    rvModifie = null;
+    // La fiche suit le contrôle à sa nouvelle date : c'est la preuve qu'il a
+    // bien bougé, et on y est déjà si on veut le rouvrir.
+    if (nouvelleDate !== existant.date) {
+      jourChoisi = nouvelleDate;
+      message('Contrôle déplacé au ' + dateCourte(nouvelleDate) + '.');
+    }
     dessinerEspace();
   };
 
-  forme.append(titre, etiquetteMatiere, choix, etiquetteNote, note, photos, valider);
   return forme;
 }
 
@@ -1447,7 +1541,7 @@ function basculerAgenda(ouvre) {
   else delete $('ecran-espace').dataset.agenda;
   // Refermer l'agenda referme la fiche du jour avec lui : elle n'a plus de
   // calendrier derrière elle.
-  if (!ouvre) { jourChoisi = null; fermerFicheJour(); cacherApercuJour(); }
+  if (!ouvre) { jourChoisi = null; rvModifie = null; fermerFicheJour(); cacherApercuJour(); }
 
   if (ouvre) {
     bloc.hidden = false;
@@ -3219,7 +3313,7 @@ function montrer(id, options = {}) {
     rafraichirQuotas();
   }
   if (id !== 'ecran-espace') {
-    if (!$('fiche-jour').hidden) { jourChoisi = null; fermerFicheJour(); }
+    if (!$('fiche-jour').hidden) { jourChoisi = null; rvModifie = null; fermerFicheJour(); }
     if ($('ecran-espace').dataset.agenda) basculerAgenda(false);
   }
   // L'ambiance dépend du moment : on révise au chaud, on se teste au froid.

@@ -4472,18 +4472,71 @@ h1 {
   font-weight: 700;
 }
 
-.rendez-vous-retirer {
-  flex: 0 0 auto;
-  width: 32px;
-  height: 32px;
-  min-height: 0;
-  padding: 0;
+/* « Modifier », sous ce qui tombe.
+ *
+ * C'était une croix de 32 px sans étiquette, posée à côté de la croix qui
+ * referme la fiche : deux signes identiques, l'un qui ferme une feuille et
+ * l'autre qui efface un contrôle pour de bon. Personne ne l'a trouvée. Un mot
+ * la remplace, souligné comme un lien, à la hauteur d'un doigt (44 px avec sa
+ * zone de touche) — et il ouvre le formulaire, où supprimer se lit en toutes
+ * lettres à côté de « décaler ». */
+.rendez-vous-changer {
+  /* La zone de touche fait 44 px de haut — le minimum pour un doigt — sans
+     que le texte s'éloigne pour autant : le rembourrage est repris en marge
+     négative, donc la ligne reste aussi compacte qu'avant. Mesuré : 27 px
+     avant cette correction, ce qui était exactement le défaut qu'on répare. */
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin: -6px -10px 0;
+  padding: 0 10px;
   border: 0;
-  border-radius: 50%;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: .78rem;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+/* Modifier, c'est déjà s'occuper d'un contrôle en particulier : le formulaire
+   se détache du reste de la fiche pour qu'on voie qu'il ne parle que de lui. */
+.ajout-rv[data-modifie] {
+  border: 1px solid var(--accent);
+  border-radius: var(--rayon);
+  padding: 14px;
+}
+
+.ajout-rv-effacer {
+  display: block;
+  width: 100%;
+  margin: var(--e2) 0 0;
+  padding: 11px;
+  border: 1px solid var(--rouge);
+  border-radius: var(--rayon);
+  background: none;
+  color: var(--rouge);
+  font: inherit;
+  font-weight: 700;
+  font-size: .85rem;
+  cursor: pointer;
+}
+
+.ajout-rv-renoncer {
+  display: block;
+  width: 100%;
+  margin: var(--e1) 0 0;
+  padding: 9px;
+  border: 0;
   background: none;
   color: var(--encre-douce);
-  font-size: 1.1rem;
-  line-height: 1;
+  font: inherit;
+  font-size: .82rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
 }
 
 /* Dans la fiche, le formulaire a la place de se déplier : un titre, deux
