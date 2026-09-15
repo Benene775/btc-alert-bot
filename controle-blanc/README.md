@@ -712,19 +712,41 @@ lot de cours.
 ## Mesurer le test
 
 `GET /admin/metriques?token=…` (404 si `CB_ADMIN_TOKEN` n'est pas défini).
+Le rendu est dans `app/tableau_de_bord.py` ; `main.py` ne fait que la garde et
+la collecte.
 
-La page affiche, dans cet ordre :
+La page s'ouvre sur **une question et sa réponse en toutes lettres** : *est-ce
+qu'un abonnement paie l'élève qui le consomme ?* — « sur les 7,99 € d'un
+abonnement, le modèle en prend 2,55 €, il te reste 5,44 € ». Quand le coût
+dépasse le prix, la phrase change au lieu d'afficher un reste négatif, qui se lit
+de loin comme un reste.
 
-1. combien ont ouvert le lien ;
-2. combien ont généré une 2e fiche sans qu'on le leur demande ;
-3. **combien sont revenus le lendemain** — mise en avant, c'est la seule qui décide ;
+Puis, dans cet ordre :
 
-puis la répartition « je révise d'abord » / « je me teste tout de suite », **avec le taux
-de retour de chacun des deux chemins**. C'est cette ligne qui dira s'il faut garder les
-deux entrées ou n'en garder qu'une.
+1. **Quatre lectures du même mois** — l'élève moyen, le médian, le plus gourmand,
+   et le plafond. La moyenne dit ce que coûtent les élèves d'aujourd'hui ; le
+   plafond dit ce que coûterait le pire. Un prix fixé sur la moyenne tient tant
+   que personne ne se sert vraiment du produit.
+2. **Ce que coûte chaque élève**, poste par poste, avec la composition de sa
+   dépense en une barre. Ces montants-là sont cumulés depuis le début, pas sur le
+   mois — c'est écrit sur le tableau, parce que deux grandeurs voisines qui ne se
+   ressemblent pas doivent se distinguer à l'oeil.
+3. **Où va l'argent** : la répartition par poste, et surtout le prix d'**une**
+   unité — une page, un contrôle, une fiche. C'est ce prix-là qui règle les
+   plafonds du mois.
+4. **Si un élève consomme tout son mois** : les droits de `QUOTAS_MOIS`
+   multipliés par les prix mesurés juste au-dessus. Un poste jamais appelé n'a pas
+   de prix : il est nommé, et le total est annoncé comme un plancher.
+5. **Est-ce que ça sert vraiment** : élèves actifs, revenus un autre jour,
+   **revenus une semaine après** — mise en avant, c'est la seule qui décide — puis
+   les chiffres par cours et la répartition « je révise » / « je me teste » avec le
+   taux de retour de chacun des deux chemins.
+6. **Ce qui cloche** : les tarifs inconnus, et les questions signalées par les
+   élèves — à relire avant chaque itération sur les prompts.
 
-Le coût réel par session y figure aussi, ainsi que les questions signalées par les élèves
-— à relire avant chaque itération sur les prompts.
+Les dollars sont ceux du fournisseur, hors taxes. Les euros servent à décider d'un
+ordre de grandeur, à un taux fixe réglé par `CB_TAUX_EUR_USD` ; c'est la facture
+qui fait foi, pas cette page.
 
 ---
 

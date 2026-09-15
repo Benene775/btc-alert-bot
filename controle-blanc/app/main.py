@@ -16,7 +16,6 @@ Trois principes de découpage :
 from __future__ import annotations
 
 import asyncio
-import html
 import json
 import logging
 import uuid
@@ -28,7 +27,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import config, courrier, formats, llm, rappels, schemas, store
+from . import config, courrier, formats, llm, rappels, schemas, store, tableau_de_bord
 from .schemas import (
     AbonnementPush,
     Connexion,
@@ -768,265 +767,25 @@ def signaler(corps: SignalementQuestion,
 # --- Tableau de bord du test ------------------------------------------------
 
 @app.get("/admin/metriques", response_class=HTMLResponse)
-def tableau_de_bord(token: str = "") -> HTMLResponse:
+def page_du_tableau_de_bord(token: str = "") -> HTMLResponse:
+    """La seule page qui n'est pas pour les élèves.
+
+    Elle affiche des prénoms, des niveaux et la dépense de chacun : le jeton
+    n'est pas une formalité. Vide, la page n'existe pas du tout — un tableau de
+    bord ouvert par oubli de réglage serait pire qu'absent.
+    """
     if not config.ADMIN_TOKEN:
         raise HTTPException(status_code=404, detail="tableau de bord désactivé")
     if token != config.ADMIN_TOKEN:
         raise HTTPException(status_code=403, detail="jeton invalide")
 
-    m = store.metriques()
     par_eleve = store.cout_par_eleve()
-    signalees = store.questions_signalees_detail(30)
-
-    # Tout ce qui suit est écrit par des élèves (motifs de signalement, énoncés,
-    # nom du chemin choisi). Ça ne rentre pas dans la page sans être échappé.
-    def txt(valeur: Any) -> str:
-        return html.escape(str(valeur), quote=True)
-
-    def ligne(titre: str, valeur: Any, note: str = "", classe: str = "") -> str:
-        attribut = f" class='{classe}'" if classe else ""
-        return (
-            f"<tr{attribut}><th>{titre}</th><td class='v'>{valeur}</td>"
-            f"<td class='n'>{note}</td></tr>"
-        )
-
-    chemins = "".join(
-        f"<tr><th>{txt(cle)}</th><td class='v'>{v['sessions']}</td>"
-        f"<td class='n'>{v['revenus']} revenus un autre jour</td></tr>"
-        for cle, v in sorted(m["par_chemin"].items())
-    ) or "<tr><td colspan='3' class='n'>Aucun choix enregistré pour l'instant.</td></tr>"
-
-    couts = "".join(
-        f"<tr><th>{txt(d['action'])}</th><td class='v'>{d['appels']}</td>"
-        f"<td class='n'>{d['cout_usd']} $ &middot; {txt(d['modele'])}</td></tr>"
-        for d in m["detail_cout"]
-    ) or "<tr><td colspan='3' class='n'>Aucun appel facturé.</td></tr>"
-
-    # Un tarif manquant fausse la colonne entière sans rien casser : on le dit.
-    alerte_tarifs = (
-        "<p class='alerte'>Tarif inconnu pour "
-        + txt(", ".join(m["tarifs_inconnus"]))
-        + " — ces lignes sont chiffrées au tarif par défaut, donc fausses. "
-        + "Ajouter le modèle dans <code>PRIX_USD_PAR_MTOK_PAR_MODELE</code>.</p>"
-    ) if m["tarifs_inconnus"] else ""
-
-    # --- Ce que coûte chaque élève, poste par poste --------------------------
-    #
-    # La moyenne, la médiane et le maximum disaient COMBIEN et jamais POURQUOI.
-    # Quand un chiffre dérape, il faut savoir s'il faut baisser les pages, les
-    # contrôles ou les fiches : trois plafonds différents, et les photos font
-    # l'essentiel de la note.
-    #
-    # Les teintes suivent le POSTE, jamais son rang du jour : deux captures
-    # prises à une semaine d'écart doivent se comparer. Elles sont validées pour
-    # le daltonisme sur ce fond (contraste faible pour trois d'entre elles, d'où
-    # la règle : tout chiffre est écrit en toutes lettres dans le tableau, la
-    # barre ne fait que résumer ce qui est déjà lisible).
-    TEINTES = {
-        "analyse": "#2a78d6",
-        "controle": "#eb6834",
-        "correction": "#1baf7a",
-        "fiche_generale": "#eda100",
-        "fiche_ciblee": "#e87ba4",
-    }
-
-    def sous(valeur: float) -> str:
-        """Des sous, écrits comme on les lit : trois décimales sous le dollar."""
-        return (f"{valeur:.3f}" if valeur < 1 else f"{valeur:.2f}").replace(".", ",") + " $"
-
-    def barre(postes: dict[str, Any], total: float) -> str:
-        """La composition d'une dépense, en une barre. Elle ne porte aucun
-        chiffre : ils sont tous dans les cellules, à côté."""
-        if total <= 0:
-            return ""
-        morceaux = []
-        for poste in store.POSTES:
-            part = postes[poste]["cout_usd"] / total * 100
-            if part <= 0:
-                continue
-            morceaux.append(
-                f"<span style='width:{part:.2f}%;background:{TEINTES[poste]}'"
-                f" title='{txt(store.NOM_DU_POSTE[poste])}'></span>"
-            )
-        return "<span class='barre'>" + "".join(morceaux) + "</span>"
-
-    legende = "".join(
-        f"<span class='cle-couleur'><i style='background:{TEINTES[poste]}'></i>"
-        f"{txt(store.NOM_DU_POSTE[poste])}</span>"
-        for poste in store.POSTES
-    )
-
-    entetes = "".join(f"<th class='v'>{txt(store.NOM_DU_POSTE[p])}</th>" for p in store.POSTES)
-
-    def cellule(nom_poste: str, poste: dict[str, Any]) -> str:
-        if not poste["quantite"] and not poste["cout_usd"]:
-            return "<td class='v vide'>—</td>"
-        combien = poste["quantite"]
-        return (f"<td class='v'>{sous(poste['cout_usd'])}"
-                f"<small>{combien} {txt(store.unite(nom_poste, combien))}</small></td>")
-
-    lignes_eleves = "".join(
-        f"<tr><th class='qui'>{txt(e['prenom'])}"
-        + (f"<small>{txt(e['niveau'])}</small>" if e["niveau"] else "")
-        + barre(e["postes"], e["cout_usd"])
-        + "</th>"
-        + f"<td class='v total'>{sous(e['cout_usd'])}<small>en tout</small></td>"
-        + "".join(cellule(p, e["postes"][p]) for p in store.POSTES)
-        + "</tr>"
-        for e in par_eleve["eleves"]
-    ) or ("<tr><td colspan='7' class='n'>Aucun appel facturé pour l’instant : "
-          "aucun élève n’a encore rentré de cours.</td></tr>")
-
-    # --- Où va l'argent, tous élèves confondus, et ce que coûte UNE unité ----
-    total_general = par_eleve["cout_usd_total"]
-    nb_eleves = len(par_eleve["eleves"]) or 1
-    # Un volume sans coût, c'est le mode démonstration — et c'est aussi l'état
-    # d'une base neuve. La part de chaque poste vaut alors zéro, pas une
-    # division par zéro qui renverrait une erreur 500 au lieu du tableau.
-    part_de = (lambda c: c / total_general * 100) if total_general > 0 else (lambda c: 0.0)
-    lignes_postes = "".join(
-        f"<tr><th><i class='pastille' style='background:{TEINTES[poste]}'></i>"
-        f"{txt(store.NOM_DU_POSTE[poste])}</th>"
-        f"<td class='v'>{sous(t['cout_usd'])}"
-        f"<small>{part_de(t['cout_usd']):.0f} % du total</small></td>"
-        f"<td class='v'>{t['quantite']}"
-        f"<small>{txt(store.unite(poste, t['quantite']))}</small></td>"
-        f"<td class='v'>{sous(t['cout_usd'] / t['quantite']) if t['quantite'] else '—'}"
-        f"<small>l’unité</small></td>"
-        f"<td class='v'>{sous(t['cout_usd'] / nb_eleves)}<small>par élève</small></td></tr>"
-        for poste, t in ((p, par_eleve["totaux"][p]) for p in store.POSTES)
-        if t["cout_usd"] or t["quantite"]
-    ) or "<tr><td colspan='5' class='n'>Rien à répartir.</td></tr>"
-
-    liste_signalees = "".join(
-        f"<li><b>Q{txt(signal.get('numero', '?'))}</b> — {txt(signal.get('enonce', '')[:160])}"
-        + (f"<br><i>{txt(signal.get('motif'))}</i>" if signal.get("motif") else "")
-        + "</li>"
-        for signal in signalees
-    ) or "<li class='n'>Aucune question signalée.</li>"
-
-    page_html = f"""<!doctype html><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Repère — mesures du test</title>
-<style>
- body {{ font: 16px/1.5 system-ui, sans-serif; margin: 0 auto; padding: 24px;
-        max-width: 980px; background: #faf9f7; color: #1c1a17; }}
- /* Le texte explicatif garde une longueur de ligne lisible : une phrase qui
-    court sur 980 px se relit deux fois. Les tableaux, eux, prennent la place. */
- h1, h2, p {{ max-width: 46em; }}
- h1 {{ font-size: 1.4rem; }} h2 {{ font-size: 1rem; margin-top: 32px; text-transform: uppercase;
-      letter-spacing: .06em; color: #6b6560; }}
- table {{ width: 100%; border-collapse: collapse; }}
- th {{ text-align: left; font-weight: 500; padding: 10px 0; border-bottom: 1px solid #e5e1db; }}
- td {{ padding: 10px 0; border-bottom: 1px solid #e5e1db; }}
- td.v {{ text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; width: 90px; }}
- td.n {{ color: #6b6560; font-size: .85rem; padding-left: 16px; }}
- .cle td.v {{ color: #b4530a; font-size: 1.3rem; }}
- .alerte {{ background: #fdf1e3; border-left: 3px solid #b4530a; padding: 10px 14px;
-            font-size: .85rem; margin: 12px 0; }}
- code {{ font-size: .85em; }}
- ul {{ padding-left: 18px; }} li {{ margin-bottom: 10px; font-size: .9rem; }}
-
- /* Le tableau par élève est large : il défile plutôt qu'il ne se comprime.
-    Comprimé, les colonnes se chevauchent et on ne lit plus rien. */
- .large {{ overflow-x: auto; margin: 0 -24px; padding: 0 24px; }}
- .large table {{ min-width: 640px; }}
- .large th, .large td {{ white-space: nowrap; }}
- td.v small, th small {{ display: block; font-weight: 400; font-size: .72rem;
-                         color: #6b6560; letter-spacing: 0; }}
- td.v {{ width: auto; padding-left: 14px; }}
- td.vide {{ color: #c7c1b8; }}
- td.total {{ color: #b4530a; }}
- th {{ font-weight: 600; }}
- /* Sans ce rembourrage, les en-têtes se soudent : « CONTRÔLESCORRECTIONSFICHES ».
-    Ils doivent suivre les cellules qu'ils coiffent, pas la règle des <th> de gauche. */
- thead th {{ font-size: .78rem; text-transform: uppercase; letter-spacing: .04em;
-             color: #6b6560; font-weight: 600; }}
- thead th.v {{ text-align: right; padding-left: 18px; }}
- .large td.v {{ padding-left: 18px; }}
-
- /* La barre ne porte aucun chiffre : ils sont tous dans les cellules à côté.
-    Elle répond à « où part l'argent de cet élève » d'un coup d'oeil, et le
-    filet de 2 px empêche deux teintes voisines de se souder. */
- th.qui {{ min-width: 150px; }}
- .barre {{ display: flex; gap: 2px; height: 8px; border-radius: 4px; margin-top: 7px;
-           overflow: hidden; background: #ece7e0; }}
- .barre span {{ display: block; height: 100%; }}
- .legende {{ display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 0 14px;
-             font-size: .8rem; color: #6b6560; }}
- .cle-couleur {{ display: inline-flex; align-items: center; gap: 6px; }}
- .cle-couleur i, .pastille {{ width: 10px; height: 10px; border-radius: 3px;
-                              display: inline-block; flex: 0 0 auto; }}
- .pastille {{ margin-right: 8px; vertical-align: baseline; }}
-</style>
-<h1>Repère — mesures du test</h1>
-<h2>Par élève — ce que le test doit répondre</h2>
-<table>
- {ligne("Élèves actifs", m["eleves_actifs"], "ont fait au moins une chose")}
- {ligne("Revenus un autre jour", m["eleves_revenus_un_autre_jour"], "pas le même jour que la découverte")}
- {ligne("Revenus une semaine après", m["eleves_revenus_une_semaine_apres"], "le seul signe d'un usage qui tient", classe="cle")}
- {ligne("Jours actifs (médiane)", m["jours_actifs_median_par_eleve"], "par élève")}
- {ligne("Ont rentré 2 cours ou plus", m["eleves_deux_cours_ou_plus"], "un seul cours = un essai")}
-</table>
-
-<h2>Par cours</h2>
-<table>
- {ligne("Liens ouverts", m["ouvertures"], "séances distinctes")}
- {ligne("2 fiches ou plus", m["deux_fiches_ou_plus"], "sans qu'on le demande")}
- {ligne("Cours rouverts le lendemain", m["revenus_le_lendemain"], "un cours, pas un élève")}
-</table>
-<h2>Détail</h2>
-<table>
- {ligne("Sessions créées", m["sessions_creees"])}
- {ligne("Revenus un autre jour", m["revenus_un_autre_jour"], "pas forcément J+1")}
- {ligne("Contrôles terminés", m["controles_termines"])}
- {ligne("Questions signalées", m["questions_signalees"], "« me semble fausse »")}
-</table>
-<h2>Étape 3 — quel chemin, et lequel fait revenir</h2>
-<table>{chemins}</table>
-<h2>Coût par appel</h2>
-{alerte_tarifs}
-<table>
- {couts}
- {ligne("Total", sous(m['cout_usd_total']), f"{sous(m['cout_usd_par_session'])} par séance")}
-</table>
-<h2>Ce que coûte chaque élève</h2>
-<p class='n'>Une ligne par élève, du plus cher au moins cher. Chaque case donne ce que
-le poste a coûté, et en dessous ce qu'il a consommé. La barre sous le prénom résume
-d'où vient sa dépense — elle ne dit rien que les chiffres de la ligne ne disent déjà.</p>
-<div class='legende'>{legende}</div>
-<div class='large'><table>
- <thead><tr><th>Élève</th><th class='v'>Total</th>{entetes}</tr></thead>
- <tbody>{lignes_eleves}</tbody>
-</table></div>
-
-<h2>Où va l’argent, et ce que coûte une unité</h2>
-<p class='n'>La colonne « l’unité » est celle qui sert à décider : c'est le prix d'UNE page
-photographiée, d'UN contrôle blanc, d'UNE fiche. Les plafonds du mois se règlent là-dessus.</p>
-<p class='n'><b>Tout est en dollars et hors taxes</b> — ce sont les tarifs affichés du
-fournisseur. Selon ton statut, la facture peut porter 20 % de TVA en plus, et elle est
-en euros : c'est elle qui fait foi, pas cette page.</p>
-<div class='large'><table>
- <thead><tr><th>Poste</th><th class='v'>Coût</th><th class='v'>Volume</th>
- <th class='v'>À l’unité</th><th class='v'>Par élève</th></tr></thead>
- <tbody>{lignes_postes}</tbody>
-</table></div>
-
-<h2>Le chiffre qui décide de l’abonnement</h2>
-<p class='n'>Le coût d'un compte sur un mois. Pas le pire cas, qui suppose un élève
-saturant les quatre compteurs — la moyenne, avec le maximum à côté pour savoir si
-les plafonds tiennent.</p>
-<table>
- {ligne("Moyenne", sous(m['cout_usd_moyen_compte_mois']),
-        "à comparer à ce qu'un abonnement encaisse net", classe="cle")}
- {ligne("Médiane", sous(m['cout_usd_median_compte_mois']), "l'élève ordinaire")}
- {ligne("Maximum", sous(m['cout_usd_max_compte_mois']), "le plus gourmand : les plafonds tiennent-ils ?")}
- {ligne("Mesuré sur", m["comptes_mois_mesures"], "couples compte × mois")}
-</table>
-<h2>Questions signalées</h2>
-<ul>{liste_signalees}</ul>
-"""
-    return HTMLResponse(page_html)
+    return HTMLResponse(tableau_de_bord.rendre(
+        m=store.metriques(),
+        par_eleve=par_eleve,
+        plafond=store.plafond_du_mois(par_eleve["totaux"]),
+        signalees=store.questions_signalees_detail(30),
+    ))
 
 
 # --- Combien de temps le navigateur a le droit de garder un fichier ----------

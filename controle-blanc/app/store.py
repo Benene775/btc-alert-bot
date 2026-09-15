@@ -1590,6 +1590,56 @@ def cout_par_eleve() -> dict[str, Any]:
     }
 
 
+# Ce qu'un élève a le DROIT de consommer en un mois, poste par poste. Les
+# quatre premiers sont des plafonds réglés dans config ; la correction n'en a
+# pas de propre — il y en a une par contrôle, jamais deux, donc le plafond des
+# contrôles est aussi le sien.
+def droits_du_mois() -> dict[str, int]:
+    return {
+        "analyse": config.QUOTAS_MOIS["analyse"],
+        "controle": config.QUOTAS_MOIS["controle"],
+        "correction": config.QUOTAS_MOIS["controle"],
+        "fiche_generale": config.QUOTAS_MOIS["fiche_generale"],
+        "fiche_ciblee": config.QUOTAS_MOIS["fiche_ciblee"],
+    }
+
+
+def plafond_du_mois(totaux: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Ce que coûterait un élève qui consommerait tous ses droits du mois.
+
+    C'est le chiffre qui décide d'un prix d'abonnement : la moyenne dit ce que
+    coûtent les élèves d'aujourd'hui, le plafond dit ce que coûterait le pire
+    d'entre eux si le produit prenait. Un prix fixé sur la moyenne tient tant
+    que personne ne se sert vraiment du produit.
+
+    Le prix d'UNE unité vient des appels réellement facturés ; les quantités
+    viennent des plafonds. Un poste jamais appelé n'a pas de prix mesuré : il
+    est compté pour zéro et nommé à part, sinon un total incomplet passerait
+    pour un total.
+    """
+    if totaux is None:
+        totaux = cout_par_eleve()["totaux"]
+    droits = droits_du_mois()
+
+    lignes, sans_mesure, total = [], [], 0.0
+    for poste in POSTES:
+        volume = totaux[poste]["quantite"]
+        unitaire = (totaux[poste]["cout_usd"] / volume) if volume else 0.0
+        cout = unitaire * droits[poste]
+        total += cout
+        if not volume:
+            sans_mesure.append(poste)
+        lignes.append({
+            "poste": poste,
+            "droits": droits[poste],
+            "unitaire_usd": unitaire,
+            "cout_usd": cout,
+            "mesure": bool(volume),
+        })
+
+    return {"lignes": lignes, "cout_usd": total, "sans_mesure": sans_mesure}
+
+
 def _cout_usd(ligne: Any, inconnus: set[str] | None = None) -> float:
     """Le coût d'un paquet d'appels, au tarif du modèle qui les a servis."""
     prix, connu = config.prix_du_modele(ligne["modele"] or "")

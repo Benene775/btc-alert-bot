@@ -26,6 +26,13 @@ def _int(name: str, default: int) -> int:
         return default
 
 
+def _flottant(name: str, default: float) -> float:
+    try:
+        return float(os.environ.get(name, "").strip().replace(",", "."))
+    except (TypeError, ValueError):
+        return default
+
+
 # --- Les modèles -----------------------------------------------------------
 #
 # Deux modèles, parce que les cinq appels n'ont pas le même risque.
@@ -305,6 +312,29 @@ PRIX_USD_PAR_MTOK_PAR_MODELE: dict[str, dict[str, float]] = {
 # Utilisé quand le nom du modèle n'est pas reconnu. Le tableau de bord le
 # signale au lieu d'afficher un chiffre faux sans le dire.
 PRIX_USD_PAR_MTOK = PRIX_USD_PAR_MTOK_PAR_MODELE["opus"]
+
+
+# --- De quoi comparer ce que ça coûte à ce que ça rapporte -------------------
+#
+# Les tarifs ci-dessus sont en dollars et hors taxes : c'est ainsi que le
+# fournisseur les affiche. L'abonnement, lui, est en euros et toutes taxes
+# comprises. Tant que le tableau de bord ne donnait que des dollars, il fallait
+# faire la conversion de tête pour répondre à la seule question qui compte :
+# est-ce qu'un abonnement paie l'élève qui le consomme ?
+#
+# Le taux est FIXE et se règle ici. Une page de tableau de bord n'ira pas
+# chercher un cours de change : un taux qui bouge tout seul rendrait deux
+# captures d'écran incomparables, et ferait passer une variation de change pour
+# une dérive des coûts. Le chiffre qui fait foi reste la facture.
+TAUX_EURO_POUR_UN_DOLLAR = _flottant("CB_TAUX_EUR_USD", 0.92)
+
+# Le prix affiché de l'abonnement, toutes taxes comprises. Sert à une seule
+# chose : dire ce qu'il reste une fois le modèle payé.
+PRIX_ABONNEMENT_EUR = _flottant("CB_PRIX_ABONNEMENT", 7.99)
+
+
+def en_euros(usd: float) -> float:
+    return usd * TAUX_EURO_POUR_UN_DOLLAR
 
 
 def prix_du_modele(modele: str) -> tuple[dict[str, float], bool]:

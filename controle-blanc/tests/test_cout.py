@@ -9,6 +9,7 @@ manquant qui se taisait.
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import pytest
@@ -121,7 +122,10 @@ def test_le_tableau_de_bord_montre_le_cout_par_compte(client, session, usage_nu)
     _poser(session, "analyse", "claude-opus-5", entree=1_000_000)
     page = client.get("/admin/metriques", params={"token": "jeton-de-test"}).text
     assert "Le chiffre qui décide de l’abonnement" in page
-    assert "Médiane" in page
+    # Trois lectures du même mois : une moyenne seule laisserait un gros usager
+    # se cacher derrière la foule, ou l'inverse.
+    for lecture in ("L’élève moyen", "L’élève médian", "Le plus gourmand"):
+        assert lecture in page, lecture
 
 
 def test_le_tableau_de_bord_dit_ce_que_coute_QUOI_par_eleve(client, session, usage_nu):
@@ -210,7 +214,7 @@ def test_le_prix_d_ecriture_suit_la_duree_de_cache_demandee():
 def test_chaque_poste_a_un_nom_une_unite_et_une_couleur():
     """Un poste ajouté sans son nom afficherait une colonne vide ; sans son
     unité, « 8 » sans dire huit quoi ; sans sa couleur, une barre trouée."""
-    source = (RACINE / "app" / "main.py").read_text(encoding="utf-8")
+    source = (RACINE / "app" / "tableau_de_bord.py").read_text(encoding="utf-8")
     for poste in store.POSTES:
         assert poste in store.NOM_DU_POSTE, poste
         assert poste in store.UNITE_DU_POSTE, poste
@@ -231,20 +235,32 @@ def test_les_unites_savent_compter(poste, combien, attendu):
     assert store.unite(poste, combien) == attendu
 
 
-def test_le_total_ne_se_trouve_pas_au_bout_du_defilement():
+def test_le_total_ne_se_trouve_pas_au_bout_du_defilement(client, session, usage_nu):
     """Le tableau est plus large qu'un téléphone : il défile. Le total est le
     chiffre qu'on vient chercher, il doit donc être le premier après le prénom
     — mesuré sur une capture, où il tombait hors de l'écran."""
-    source = (RACINE / "app" / "main.py").read_text(encoding="utf-8")
-    entete = source[source.index("<thead><tr><th>Élève</th>"):][:120]
-    assert entete.index("Total") < entete.index("{entetes}")
+    _poser(session, "analyse", "claude-opus-5", entree=1000, quantite=3)
+    page = client.get("/admin/metriques", params={"token": "jeton-de-test"}).text
+    entete = page[page.index("<th>Élève</th>"):]
+    entete = entete[: entete.index("</tr>")]
+    colonnes = re.findall(r">([^<>]+)</th>", entete)
+    assert colonnes[0] == "Élève"
+    assert colonnes[1] == "Total", f"le total doit suivre le prénom, pas fermer la ligne : {colonnes}"
+
+
+def test_un_tableau_plus_large_que_l_ecran_dit_qu_il_defile(client, session, usage_nu):
+    """Sur un téléphone, la dernière colonne est simplement coupée : rien ne
+    distingue « il n'y a rien de plus » de « la suite est hors de l'écran »."""
+    _poser(session, "analyse", "claude-opus-5", entree=1000, quantite=3)
+    page = client.get("/admin/metriques", params={"token": "jeton-de-test"}).text
+    assert page.count("défile vers la droite") >= 3, "les trois tableaux larges"
 
 
 def test_les_teintes_suivent_le_poste_et_pas_son_rang():
     """Deux captures prises à une semaine d'écart doivent se comparer. Une
     couleur attribuée par rang repeindrait tout dès qu'un élève change d'ordre.
     """
-    source = (RACINE / "app" / "main.py").read_text(encoding="utf-8")
+    source = (RACINE / "app" / "tableau_de_bord.py").read_text(encoding="utf-8")
     bloc = source[source.index("TEINTES = {"):]
     bloc = bloc[: bloc.index("}")]
     for poste in store.POSTES:

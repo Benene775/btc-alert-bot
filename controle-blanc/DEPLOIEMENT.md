@@ -94,6 +94,8 @@ concernent le courrier.
 | `CB_DB_PATH` | `/var/donnees/repere.sqlite3` | **dans le disque monté**, sinon les comptes disparaissent au premier redéploiement |
 | `CB_PUBLIC_BASE_URL` | `https://…` (l'adresse que Render te donne) | sert aux liens de reprise, et signale au démarrage que le site est en ligne |
 | `CB_ADMIN_TOKEN` | le jeton de l'étape 0 | ouvre `/admin/metriques` |
+| `CB_TAUX_EUR_USD` | `0.92` | convertit les dollars du tableau de bord en euros |
+| `CB_PRIX_ABONNEMENT` | `7.99` | le prix affiché, pour dire ce qu'il reste une fois le modèle payé |
 | `CB_IPS_PROXY` | `*` | **le piège** : sans ça uvicorn voit du `http` derrière le proxy, et le cookie de connexion part sans `Secure`. Sûr ici, où rien n'atteint l'application autrement que par le proxy de la plateforme |
 | `CB_PROXY_DE_CONFIANCE` | `1` | pour que les limites de cadence comptent la vraie machine, pas le proxy |
 
