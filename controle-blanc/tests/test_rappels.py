@@ -317,3 +317,57 @@ def test_le_verificateur_n_affiche_aucun_secret(monkeypatch):
 
     tout = " ".join(verifier())
     assert privee[:20] not in tout, "la clé privée se retrouve dans un message d'erreur"
+
+
+# --- L'invitation, et ce qu'elle devient une fois acceptée ------------------
+
+def _script() -> str:
+    from pathlib import Path
+
+    racine = Path(__file__).resolve().parent.parent
+    return (racine / "web" / "app.js").read_text(encoding="utf-8")
+
+
+def _bloc(nom: str) -> str:
+    import re
+
+    nu = re.sub(r"//[^\n]*", "", re.sub(r"/\*.*?\*/", "", _script(), flags=re.S))
+    debut = nu.index("function " + nom + "(")
+    return nu[debut : nu.index("\n}\n", debut)]
+
+
+def test_l_invitation_disparait_une_fois_les_rappels_actifs():
+    """« Ça sert à rien de le garder. » Une carte qui ne fait que confirmer ce
+    qu'on sait déjà se lit à chaque ouverture de l'agenda et ne dit jamais rien
+    de neuf — or l'agenda s'ouvre pour noter un contrôle, pas pour relire ses
+    réglages."""
+    corps = _bloc("dessinerRappels")
+    assert "bloc.hidden = pose;" in corps
+    assert "if (pose) return;" in corps
+
+
+def test_mais_on_peut_encore_les_couper():
+    """Retirer l'invitation ne doit pas enfermer l'élève : sans interrupteur,
+    couper les rappels demanderait de passer par les réglages du téléphone, que
+    l'application ne contrôle pas et où l'abonnement resterait vivant."""
+    from pathlib import Path
+
+    racine = Path(__file__).resolve().parent.parent
+    page = (racine / "web" / "index.html").read_text(encoding="utf-8")
+    # Au pied du compte, là où l'on cherche à couper quelque chose.
+    pied = page[page.index('class="pied-compte"') : page.index("</section>",
+                                                              page.index('class="pied-compte"'))]
+    assert 'id="bouton-stopper-rappels"' in pied
+    assert 'id="bouton-sortir"' in pied, "le repère de l'endroit a changé"
+    corps = _bloc("dessinerRappels")
+    assert "arret.hidden = !pose;" in corps
+    assert "function arreterLesRappels" in _script()
+    # Et il coupe vraiment des deux côtés : serveur et navigateur.
+    arret = _bloc("arreterLesRappels")
+    assert "/api/rappels/arreter" in arret and "deja.unsubscribe()" in arret
+
+
+def test_l_etat_est_redessine_avec_la_page_perso():
+    """Le pied du compte vit sur la page perso, pas dans l'agenda : sans ce
+    dessin-là, l'interrupteur n'apparaîtrait qu'après avoir ouvert l'agenda."""
+    assert "dessinerRappels();" in _bloc("dessinerEspace")

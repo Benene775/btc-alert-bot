@@ -677,6 +677,11 @@
   <div class="pied-compte">
     <p class="pied-compte-adresse" id="compte-adresse"></p>
     <div class="pied-compte-liens">
+      <!-- Une fois les rappels activés, l'invitation quitte l'agenda : elle
+           n'a plus rien à proposer et se lisait à chaque visite. Mais on doit
+           pouvoir les couper depuis l'application, et ça se cherche ici, avec
+           se déconnecter et effacer son compte. -->
+      <button type="button" class="lien-nu" id="bouton-stopper-rappels" hidden>Arrêter les rappels</button>
       <button type="button" class="lien-nu" id="bouton-sortir">Se déconnecter</button>
       <button type="button" class="lien-nu lien-danger" id="bouton-effacer-compte">Effacer mon compte</button>
     </div>

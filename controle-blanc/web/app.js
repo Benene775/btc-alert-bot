@@ -612,6 +612,10 @@ function dessinerEspace() {
   soignerTypographie($('ecran-espace'));
   // Sans await : la page est déjà dessinée, le compteur se posera dessus.
   rafraichirQuotas();
+  // L'état des rappels décide de DEUX choses sur cette page : l'invitation
+  // dans l'agenda, et l'arrêt au pied du compte. Le savoir demande d'interroger
+  // l'agent de service, donc pas d'await ici non plus.
+  dessinerRappels();
 }
 
 /* --- Les six portes ------------------------------------------------------
@@ -1644,38 +1648,49 @@ async function rappelDuNavigateur() {
 
 async function dessinerRappels() {
   const bloc = $('bloc-rappels');
+  const arret = $('bouton-stopper-rappels');
   if (!bloc) return;
-  if (!compte || !rappelsPossibles()) { bloc.hidden = true; return; }
-  bloc.hidden = false;
+  if (!compte || !rappelsPossibles()) {
+    bloc.hidden = true;
+    if (arret) arret.hidden = true;
+    return;
+  }
 
   const pose = Boolean(await rappelDuNavigateur());
   const refuse = Notification.permission === 'denied';
-  bloc.dataset.etat = pose ? 'oui' : (refuse ? 'refuse' : 'non');
-  $('rappels-titre').textContent = pose ? 'Tu seras prévenu la veille'
-                                        : 'Me prévenir la veille';
-  $('rappels-etat').textContent = pose ? '✓' : '';
-  if (refuse && !pose) {
-    $('rappels-aide').textContent = 'Les notifications sont bloquées pour Repère. '
-      + 'Ça se rouvre dans les réglages de ton téléphone.';
-  } else if (pose) {
-    $('rappels-aide').textContent = 'Une notification à 18 h, la veille d’un contrôle. '
-      + 'Touche pour arrêter.';
-  } else {
-    $('rappels-aide').textContent = 'Une notification à 18 h, la veille d’un contrôle.';
-  }
+
+  // Activés, il n'y a plus rien à proposer : l'invitation quitte l'agenda.
+  // Une carte qui ne fait que confirmer ce qu'on sait déjà se lit à chaque
+  // visite et ne dit jamais rien de neuf. L'arrêt, lui, descend au pied du
+  // compte — c'est là qu'on cherche à couper quelque chose.
+  bloc.hidden = pose;
+  if (arret) arret.hidden = !pose;
+  if (pose) return;
+
+  bloc.dataset.etat = refuse ? 'refuse' : 'non';
+  $('rappels-titre').textContent = 'Me prévenir la veille';
+  $('rappels-etat').textContent = '';
+  $('rappels-aide').textContent = refuse
+    ? 'Les notifications sont bloquées pour Repère. '
+      + 'Ça se rouvre dans les réglages de ton téléphone.'
+    : 'Une notification à 18 h, la veille d’un contrôle.';
+}
+
+async function arreterLesRappels() {
+  if (!rappelsPossibles()) return;
+  const deja = await rappelDuNavigateur();
+  if (!deja) return dessinerRappels();
+  try {
+    await envoyerJson('/api/rappels/arreter', { endpoint: deja.endpoint });
+    await deja.unsubscribe();
+  } catch (e) { /* le serveur a déjà oublié, ou le réseau est parti */ }
+  message('Tu ne seras plus prévenu la veille de tes contrôles.');
+  return dessinerRappels();
 }
 
 async function basculerRappels() {
   if (!rappelsPossibles()) return;
-  const deja = await rappelDuNavigateur();
-  if (deja) {
-    try {
-      await envoyerJson('/api/rappels/arreter', { endpoint: deja.endpoint });
-      await deja.unsubscribe();
-    } catch (e) { /* le serveur a déjà oublié, ou le réseau est parti */ }
-    message('Tu ne seras plus prévenu la veille.');
-    return dessinerRappels();
-  }
+  if (await rappelDuNavigateur()) return arreterLesRappels();
 
   if (Notification.permission === 'denied') {
     return message('Les notifications sont bloquées pour Repère, dans les réglages '
@@ -6690,6 +6705,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('embleme').onclick = basculerAtelier;
   $('bouton-agenda').onclick = () => basculerAgenda();
   $('bouton-rappels').onclick = () => basculerRappels();
+  $('bouton-stopper-rappels').onclick = () => arreterLesRappels();
 
   $('bouton-fabriquer').onclick = () =>
     ouvrirAtelier(archiveOuverte === 'controles' ? 'controle' : 'fiche');
