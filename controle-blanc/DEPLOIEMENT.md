@@ -126,7 +126,7 @@ jamais entrer dans le dépôt**, qui est public — c'est elle qui autorise à
 |---|---|
 | `CB_VAPID_CLE_PUBLIQUE` | ce que l'outil affiche |
 | `CB_VAPID_CLE_PRIVEE` | ce que l'outil affiche — **secret** |
-| `CB_VAPID_CONTACT` | `mailto:ton-adresse` — exigé par Apple et Google pour te joindre si tes envois posent problème |
+| `CB_VAPID_CONTACT` | `https://ton-site.onrender.com` — par où Apple et Google te joindraient si tes envois posaient problème. L'adresse du site suffit ; `mailto:une-adresse` marche aussi, mais une adresse personnelle n'apporte rien ici |
 
 Deux choses à savoir avant de le proposer aux familles :
 

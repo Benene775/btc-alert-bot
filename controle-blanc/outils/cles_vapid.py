@@ -14,6 +14,11 @@ clé privée dont la publique a été donnée au navigateur au moment de
 l'inscription. C'est ce qui empêche n'importe qui d'écrire aux abonnés de
 Repère en connaissant leur adresse de push.
 
+La troisième ligne, le contact, part avec chaque envoi vers Apple et Google, et
+vers eux seuls : c'est par là qu'ils te joindraient si tes envois posaient
+problème. L'adresse du site fait l'affaire — inutile d'y mettre une adresse
+personnelle, qui n'apporterait rien et se promènerait chez deux géants.
+
 Les changer coupe les rappels de tout le monde : les navigateurs déjà inscrits
 l'ont été avec l'ancienne clé publique, et devront se réinscrire. On ne les
 régénère donc que si la privée a fuité — auquel cas il faut le faire tout de
@@ -57,7 +62,12 @@ def main() -> int:
     print()
     print("CB_VAPID_CLE_PUBLIQUE=" + publique)
     print("CB_VAPID_CLE_PRIVEE=" + privee)
-    print("CB_VAPID_CONTACT=mailto:ton-adresse@exemple.fr")
+    print("CB_VAPID_CONTACT=https://ton-site.example")
+    print()
+    print("# CB_VAPID_CONTACT : par où Apple et Google te joindraient si tes envois")
+    print("# posaient problème. L'adresse du site convient et ne coûte rien en vie")
+    print("# privée ; « mailto:une-adresse@exemple.fr » marche aussi. Ce n'est vu")
+    print("# ni par les élèves ni par personne d'autre — c'est de l'exploitation.")
     print()
     print("# Sans les trois, les rappels n'existent pas : aucun réglage ne s'affiche")
     print("# chez l'élève, et aucune tâche de fond ne démarre.")
