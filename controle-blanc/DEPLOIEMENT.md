@@ -184,6 +184,26 @@ Dans l'ordre, sur ton téléphone :
    l'écran d'accueil » sur iPhone. Vérifie qu'elle s'ouvre sans barre d'adresse.
 8. **`/admin/metriques?token=…`** répond.
 
+### Quand le tableau de bord ne bouge pas
+
+Des élèves travaillent, et la page ne montre rien de neuf. Trois pannes très
+différentes se ressemblent vues d'ici. Dans l'ordre, du plus rapide au plus sûr :
+
+1. **Ouvrir `/api/config`** dans un navigateur — pas besoin du jeton. Si
+   `"mode_demonstration": true`, tout est dit : sans `ANTHROPIC_API_KEY`, le
+   produit continue de marcher mais **sert des contenus inventés** et enregistre
+   des appels à zéro token. Les volumes montent, le coût reste à zéro.
+2. **Dans le Shell Render**, taper `python outils/etat_base.py`. Il dit le mode,
+   l'état de la base, ce qui est arrivé les dix derniers jours poste par poste,
+   et ce qui est rattaché à chaque élève. Il n'écrit rien et n'appelle rien.
+3. **Regarder « Plus ancien compte »** dans sa sortie. Si cette date colle avec
+   le dernier déploiement, `CB_DB_PATH` ne pointe pas sur le disque persistant
+   et la base repart de zéro à chaque mise en ligne.
+
+Et un cas qui n'est pas une panne : **« Séances sans compte »**. Ces appels-là
+comptent dans « Dépensé en tout » et dans aucune ligne d'élève — c'est ce que
+fait un élève qui travaille déconnecté.
+
 ---
 
 ## 4. Les dix familles
