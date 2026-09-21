@@ -60,6 +60,23 @@ def humaniser(quand: str) -> str:
     return f"{quand[:16]} — il y a moins d'une heure"
 
 
+def derniere_ecriture(chemin: Path) -> tuple[str, int]:
+    """Quand la base a vraiment été écrite, et ce qu'elle pèse en tout.
+
+    Elle tourne en WAL : les écritures atterrissent dans un fichier « -wal » à
+    côté, et la date du fichier principal ne bouge qu'au passage d'un point de
+    reprise. Lue seule, elle annonçait « modifié il y a cinq jours » sur une
+    base écrite la veille — un faux indice, servi au moment précis où l'on
+    cherche une panne.
+    """
+    voisins = [chemin] + [chemin.with_name(chemin.name + suffixe)
+                          for suffixe in ("-wal", "-shm")]
+    presents = [f for f in voisins if f.exists()]
+    recent = max((f.stat().st_mtime for f in presents), default=0.0)
+    return (datetime.fromtimestamp(recent, timezone.utc).isoformat(),
+            sum(f.stat().st_size for f in presents))
+
+
 def le_mode() -> None:
     titre("1. LE MODE")
     cle = bool(config.CLE_API)
@@ -81,10 +98,9 @@ def la_base() -> None:
     if not chemin.exists():
         print("  ⚠  IL N'EXISTE PAS. Rien n'a jamais été écrit à cet endroit.")
         return
-    stat = chemin.stat()
-    cree = datetime.fromtimestamp(stat.st_mtime, timezone.utc).isoformat()
-    print(f"  Taille  : {stat.st_size // 1024} Kio")
-    print(f"  Modifié : {humaniser(cree)}")
+    quand, taille = derniere_ecriture(chemin)
+    print(f"  Taille  : {taille // 1024} Kio (journal compris)")
+    print(f"  Écrite  : {humaniser(quand)}")
 
     with store.curseur() as cur:
         for nom, table in (("comptes", "comptes"), ("séances", "sessions"),
@@ -149,10 +165,44 @@ def les_eleves() -> None:
         print("     ligne d'élève. Un élève qui travaille déconnecté fait ça.")
 
 
+def les_portes_fermees() -> None:
+    """Qui s'est retrouvé dehors.
+
+    Sans serveur de courrier, le code de réinitialisation part dans les
+    journaux de la plateforme et n'arrive à personne. L'élève, lui, ne signale
+    pas une panne technique : il arrête. C'est la panne la plus coûteuse du
+    produit, et la seule qui ne laisse aucune trace dans les mesures.
+    """
+    titre("5. LES PORTES FERMÉES")
+    courrier = bool(config.SMTP_HOTE)
+    print(f"  Serveur de courrier configuré : {'oui' if courrier else 'NON'}")
+    if not courrier:
+        print()
+        print("  ⚠  UN ÉLÈVE QUI OUBLIE SON MOT DE PASSE NE PEUT PAS REVENIR.")
+        print("     Son code part dans les journaux de Render et n'arrive nulle part.")
+        print("     Pour voir s'il y en a eu : onglet Logs, chercher « code pour ».")
+        print("     Pour que ça cesse : poser les cinq variables CB_SMTP_*.")
+
+    with store.curseur() as cur:
+        jamais = cur.execute(
+            "SELECT prenom, niveau, cree_le FROM comptes c WHERE NOT EXISTS"
+            " (SELECT 1 FROM sessions s WHERE s.compte_id = c.id)"
+            " ORDER BY cree_le DESC"
+        ).fetchall()
+    if jamais:
+        print(f"\n  Comptes ouverts et jamais servis : {len(jamais)}")
+        for l in jamais:
+            print(f"    {(l['prenom'] or '(sans prénom)'):<14}{(l['niveau'] or ''):<10}"
+                  f"inscrit {humaniser(l['cree_le'])}")
+        print("  (un compte sans la moindre séance, c'est quelqu'un qui s'est")
+        print("   inscrit et qui a buté sur quelque chose juste après)")
+
+
 if __name__ == "__main__":
     print("État de la base de Repère —", datetime.now().strftime("%d/%m/%Y %H:%M"))
     le_mode()
     la_base()
     l_activite()
     les_eleves()
+    les_portes_fermees()
     print()
