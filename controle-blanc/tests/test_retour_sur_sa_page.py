@@ -77,18 +77,16 @@ def test_la_page_perso_vide_n_est_pas_un_cul_de_sac():
     trouver quoi faire, sinon le raccourci devient un mur."""
     page = (RACINE / "web" / "index.html").read_text(encoding="utf-8")
     debut = page.index('id="ecran-espace"')
-    espace = page[debut:page.index('id="bouton-quitter-espace"', debut)]
-    # Le grand bouton dit quoi faire, et il est au-dessus du pli depuis qu'on a
-    # remis la page dans l'ordre. Le menu des matières est là aussi : il liste
-    # les douze, y compris quand on n'a encore rien fait.
-    # La porte pleine dit quoi faire, et c'est la première des six : sur un
-    # téléphone de 390 px, les six carrés tiennent sous le pli.
+    espace = page[debut:page.index('id="ecran-matiere"', debut)]
+    # L'action de la page est dans SA TÊTE, avec son titre — pas en aplat de
+    # 96 px tout en bas, où elle passait devant l'alerte qu'elle devait laisser
+    # passer. Elle est donc là, visible, sur une page sans le moindre cours.
     assert 'id="porte-photo"' in espace
-    assert "Ajouter un cours" in espace
-    # Le bouton qui fabrique est au PIED de la liste, pas en tête : la barre
-    # de rubriques vient d'abord, parce qu'elle dit où l'on est. Ce qui compte
-    # est qu'il soit là, visible, sur une page sans le moindre cours.
-    assert espace.index('id="rangs-vide"') < espace.index('id="porte-photo"')
+    assert "Photographier un cours" in espace
+    assert espace.index('id="porte-photo"') < espace.index('id="rangs-vide"')
+    # Et la colonne de gauche la porte aussi, sur un ordinateur : deux chemins
+    # vers le seul geste qui remplit la page.
+    assert 'id="carcasse-photo"' in page
     # La porte des matières est là aussi : elle ouvre les douze, y compris
     # quand on n'a encore rien fait.
     assert 'id="porte-matieres"' in espace

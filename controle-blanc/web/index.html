@@ -205,6 +205,75 @@
   </div>
 </div>
 
+<!-- LA CARCASSE.
+     ==============
+     Une navigation qui ne disparaît jamais. C'était le vrai grief : quatre
+     rubriques qui REMPLAÇAIENT la page, donc un « Revenir » orphelin en bas et
+     rien qui dise où l'on est. Tous les outils qu'un élève ouvre déjà — sa
+     messagerie, son ENT — tiennent la même règle : la barre reste, le centre
+     change.
+
+     Elle vit HORS des écrans : « montrer() » cache toutes les sections, et une
+     navigation rangée dans l'une d'elles s'éteindrait avec elle.
+
+     Une seule pièce, deux formes. Sur un ordinateur, une colonne à gauche avec
+     l'action principale, les sections, les matières et le compte. Sur un
+     téléphone, la même liste devient la barre d'onglets du bas — et tout ce qui
+     ne tient pas dans cinq centimètres se retire. -->
+<nav class="carcasse" id="carcasse" aria-label="Sections de ma page" hidden>
+
+  <div class="carcasse-tete">
+    <p class="carcasse-marque">
+      <svg class="logo-marque" aria-hidden="true" focusable="false"><use href="#glyphe-repere"/></svg>
+      <span>Repère</span>
+    </p>
+    <button type="button" class="carcasse-fabrique" id="carcasse-photo">
+      <svg class="carcasse-signe" aria-hidden="true" focusable="false"><use href="#glyphe-appareil"/></svg>
+      Photographier un cours
+    </button>
+  </div>
+
+  <p class="carcasse-rubrique">Ma page</p>
+  <div class="carcasse-liens" id="carcasse-liens">
+    <button type="button" class="carcasse-lien" id="onglet-cours" data-ici="oui">
+      <svg class="carcasse-signe" aria-hidden="true" focusable="false"><use href="#glyphe-matieres"/></svg>
+      <span class="carcasse-nom">Mes cours</span>
+      <span class="carcasse-compte" id="carcasse-compte-cours"></span>
+    </button>
+    <button type="button" class="carcasse-lien" id="porte-fiches">
+      <svg class="carcasse-signe" aria-hidden="true" focusable="false"><use href="#glyphe-fiche"/></svg>
+      <span class="carcasse-nom">Mes fiches</span>
+      <span class="carcasse-compte" id="mot-fiches"></span>
+    </button>
+    <button type="button" class="carcasse-lien" id="porte-controles">
+      <svg class="carcasse-signe" aria-hidden="true" focusable="false"><use href="#glyphe-controle"/></svg>
+      <span class="carcasse-nom">Mes contrôles</span>
+      <span class="carcasse-compte" id="mot-controles"></span>
+    </button>
+    <button type="button" class="carcasse-lien" id="bouton-agenda"
+            aria-expanded="false" aria-controls="agenda-deplie">
+      <svg class="carcasse-signe" aria-hidden="true" focusable="false"><use href="#glyphe-agenda"/></svg>
+      <span class="carcasse-nom" id="agenda-nom">Agenda</span>
+      <span class="carcasse-alerte" id="compte-agenda" hidden></span>
+    </button>
+  </div>
+
+  <!-- Le deuxième niveau : ses matières, avec leur code et leur compte. Il ne
+       paraît que sur la colonne — sur un téléphone, la barre du bas ne porte
+       que des destinations. -->
+  <p class="carcasse-rubrique carcasse-rubrique-deux">Mes matières</p>
+  <div class="carcasse-matieres" id="carcasse-matieres"></div>
+
+  <button type="button" class="carcasse-moi" id="carcasse-moi">
+    <span class="carcasse-initiale" id="carcasse-initiale" aria-hidden="true"></span>
+    <span class="carcasse-moi-texte">
+      <b id="carcasse-prenom">Mon compte</b>
+      <i id="carcasse-classe"></i>
+    </span>
+    <span class="carcasse-chevron" aria-hidden="true">⌄</span>
+  </button>
+</nav>
+
 <main id="scene">
 
 <!-- REVENIR, PARTOUT ET AU MÊME ENDROIT.
@@ -574,94 +643,86 @@
        gardait deux défauts : on repassait par un damier entre deux endroits, et
        une page où tout a le même poids n'a plus de hiérarchie.
 
-       Elle prend maintenant la forme des outils qu'un élève ouvre déjà tous les
-       jours : une barre de rubriques, ce qui presse juste dessous, puis ses
-       cours en liste numérotée avec leur état écrit à droite. -->
+       Elle prend maintenant la forme d'une APPLICATION : la navigation vit
+       dehors, dans la carcasse, et ne disparaît plus. Ce qui reste ici est le
+       contenu d'une page et rien d'autre — son titre, son action, ce qui
+       presse, la liste en colonnes, et un rail qui dit ce qui vient. -->
 
-  <!-- Qui je suis, et la lumière que je veux. Une ligne, pas une carte. -->
-  <div class="moi" id="moi">
-    <button type="button" id="embleme" class="embleme" aria-label="Changer d’emblème et de couleur"
-            aria-expanded="false" aria-controls="atelier">✏️</button>
-    <div class="moi-identite">
-      <label for="champ-prenom" class="masque">Ton prénom</label>
-      <input type="text" id="champ-prenom" class="champ-prenom" maxlength="24"
-             placeholder="Ton prénom" autocomplete="off" spellcheck="false">
-      <p class="moi-classe" id="carte-classe"></p>
-    </div>
-    <!-- Deux dessins disent tout, et le bouton allumé est celui qu'on a sous
-         les yeux. Pas de « Auto » : qui n'y touche jamais suit son téléphone. -->
-    <div class="apparence" role="radiogroup" aria-label="Apparence">
-      <button type="button" class="apparence-cote" id="apparence-claire" role="radio"
-              aria-checked="false" data-apparence="light" aria-label="Mode jour">
-        <svg class="apparence-signe" aria-hidden="true" focusable="false"><use href="#glyphe-soleil"/></svg>
-      </button>
-      <button type="button" class="apparence-cote" id="apparence-sombre" role="radio"
-              aria-checked="false" data-apparence="dark" aria-label="Mode nuit">
-        <svg class="apparence-signe" aria-hidden="true" focusable="false"><use href="#glyphe-lune"/></svg>
+  <!-- LE TITRE DE LA PAGE, ET SON ACTION.
+       La page n'avait pas de nom : on tombait sur une liste sans savoir de quoi
+       elle était la liste. Et son action principale était un aplat de 96 px
+       tout en bas, après le vide — donc plus visible que l'alerte qu'elle
+       devait laisser passer devant. Les deux sont ici, ensemble, en tête. -->
+  <div class="tete-page">
+    <div class="tete-page-ligne">
+      <h1 class="tete-page-nom">Mes cours <span class="tete-page-compte" id="compte-cours"></span></h1>
+      <!-- Sur la colonne de gauche, la carcasse porte déjà cette action : ce
+           bouton-ci se retire alors, pour ne pas la dire deux fois. Sur un
+           téléphone il raccourcit : « Photographier un cours » à côté d'un
+           titre, sur 350 px, casse les deux en trois lignes chacun. -->
+      <button type="button" class="principal tete-page-action" id="porte-photo">
+        <svg class="tete-page-signe" aria-hidden="true" focusable="false"><use href="#glyphe-appareil"/></svg>
+        <span class="tete-page-long">Photographier un cours</span>
+        <span class="tete-page-court">Ajouter</span>
       </button>
     </div>
+    <p class="tete-page-mot" id="reste-cours"></p>
   </div>
 
-  <!-- Choisir son emblème et la couleur de sa page. C'est tout ce qu'il y a à
-       personnaliser, et ça suffit : la page devient la sienne. -->
-  <div class="atelier" id="atelier" hidden>
-    <p class="atelier-titre">Ton emblème</p>
-    <div class="atelier-choix" id="choix-emblemes"></div>
-    <p class="atelier-titre">Ta couleur</p>
-    <div class="atelier-choix" id="choix-teintes"></div>
-  </div>
-
-  <!-- LES ONGLETS, LA LISTE, ET CE QUI PRESSE.
-       ==========================================
-       Ici vivaient six tuiles carrées, une par destination. Elles avaient leur
-       logique — une porte par endroit — et deux défauts qu'un commanditaire a
-       nommés avant nous : on revenait à un damier à chaque fois, et une page
-       où tout a la même taille n'a plus de hiérarchie.
-
-       Une barre d'onglets prend leur place, comme sur n'importe quel outil
-       qu'on ouvre tous les jours. En dessous, ce qui presse ; puis les cours,
-       numérotés comme les articles d'un sommaire, avec leur état écrit à
-       droite. Les identifiants des anciennes portes sont conservés : tout le
-       script de l'agenda et des archives s'appuie dessus. -->
-
-  <nav class="rubriques" id="rubriques-espace" aria-label="Ma page">
-    <button type="button" class="rubrique" id="onglet-cours" data-ici="oui">Mes cours</button>
-    <button type="button" class="rubrique" id="porte-fiches">
-      Fiches<span class="rubrique-compte" id="mot-fiches"></span>
-    </button>
-    <button type="button" class="rubrique" id="porte-controles">
-      Contrôles<span class="rubrique-compte" id="mot-controles"></span>
-    </button>
-    <!-- L'agenda garde son identifiant : c'est la même porte qu'avant, et tout
-         le script du calendrier s'appuie dessus. -->
-    <button type="button" class="rubrique" id="bouton-agenda"
-            aria-expanded="false" aria-controls="agenda-deplie">
-      <span id="agenda-nom">Agenda</span>
-      <span class="rubrique-compte" id="compte-agenda" hidden></span>
-    </button>
-  </nav>
-
-  <!-- Ce qui presse, en tête et en bordeaux. C'était écrit en petit sous le nom
-       d'une tuile de 169 px ; c'est la seule chose de la page qui ait une date. -->
+  <!-- Ce qui presse. Une bande d'alerte au sens où les vrais sites l'entendent :
+       le motif, la conséquence, et l'action DEDANS — on ne dit pas à quelqu'un
+       que ça brûle en le laissant chercher la sortie. -->
   <div class="echeance" id="echeance" hidden>
     <span class="echeance-signe" aria-hidden="true">!</span>
     <p class="echeance-mot"><b id="agenda-mot"></b><span id="echeance-detail"></span></p>
+    <button type="button" class="echeance-action" id="echeance-action" hidden></button>
   </div>
 
-  <!-- Le filtre par matière. Il ne paraît qu'à partir de quelques cours :
-       au-dessous, il n'y a rien à filtrer et il ferait un bouton de plus. -->
-  <div class="outils-cours" id="outils-cours" hidden>
-    <button type="button" class="filtre-matiere" id="porte-matieres" aria-haspopup="dialog">
-      Choisir une matière
-    </button>
-  </div>
+  <div class="colonnes-espace">
+    <div class="colonne-liste">
+      <!-- Le filtre par matière. Il ne paraît qu'à partir de quelques cours :
+           au-dessous, il n'y a rien à filtrer et il ferait un bouton de plus. -->
+      <div class="outils-cours" id="outils-cours" hidden>
+        <button type="button" class="filtre-matiere" id="porte-matieres" aria-haspopup="dialog">
+          Choisir une matière
+        </button>
+      </div>
 
-  <ol class="rangs" id="rangs-cours"></ol>
-  <p class="rangs-vide" id="rangs-vide" hidden></p>
+      <!-- Les en-têtes de colonnes. Elles ne paraissent que sur un écran large :
+           sur un téléphone la ligne s'empile, et une en-tête qui ne coiffe plus
+           rien est un mensonge typographique. -->
+      <div class="rangs-tete" id="rangs-tete" hidden aria-hidden="true">
+        <span></span>
+        <span>Cours</span>
+        <span>Matière</span>
+        <span>État</span>
+        <span>Dernière activité</span>
+      </div>
 
-  <div class="pied-cours">
-    <button type="button" class="principal" id="porte-photo">Ajouter un cours</button>
-    <p class="pied-cours-mot" id="reste-cours"></p>
+      <ol class="rangs" id="rangs-cours"></ol>
+      <p class="rangs-vide" id="rangs-vide" hidden></p>
+    </div>
+
+    <!-- LE RAIL. Ce qui vient, où j'en suis du mois, et où j'en étais resté.
+         Il ne paraît que là où il y a la place pour une troisième colonne ;
+         sur un téléphone, tout ça se lit dans l'agenda et sous le titre. -->
+    <aside class="rail" id="rail-espace" aria-label="Ce qui vient" hidden>
+      <p class="rail-titre">Ta semaine</p>
+      <div class="rail-semaine" id="rail-semaine"></div>
+      <div class="rail-dates" id="rail-dates"></div>
+      <button type="button" class="rail-lien" id="rail-poser-date">＋ Poser une date</button>
+
+      <p class="rail-titre rail-titre-deux">Ce mois-ci</p>
+      <div class="rail-compteurs" id="rail-compteurs"></div>
+
+      <div class="rail-reprise" id="rail-reprise" hidden>
+        <p class="rail-titre">Reprendre</p>
+        <button type="button" class="rail-reprise-porte" id="rail-reprise-porte">
+          <b id="rail-reprise-titre"></b>
+          <i id="rail-reprise-sous"></i>
+        </button>
+      </div>
+    </aside>
   </div>
 
   <!-- L'agenda. Ouvert, il est seul sur la page : on est venu poser une date.
@@ -709,7 +770,51 @@
     </div>
   </div>
 
-  <button type="button" class="discret" id="bouton-quitter-espace">Revenir</button>
+  <!-- MON COMPTE, AU PIED.
+       « Revenir » flottait ici, seul, entre le bouton qui fabrique et le pied
+       de page : 57 px pour un orphelin, dans une page qui n'avait déjà pas
+       assez de hiérarchie. La carcasse rend chaque destination atteignable d'un
+       doigt, alors il n'a plus rien à ramener : il est parti.
+
+       Ce qui le remplace, ce sont les réglages — qui je suis, ma couleur, la
+       lumière — descendus du haut de la page. Ils y prenaient la première place
+       pour dire à l'élève ce qu'il sait déjà. On ne va pas sur un site pour
+       gérer son compte : ça vit en bas, avec se déconnecter et effacer. -->
+  <div class="mon-compte" id="mon-compte">
+    <h2 class="mon-compte-titre">Mon compte</h2>
+
+    <!-- Qui je suis, et la lumière que je veux. Une ligne, pas une carte. -->
+  <div class="moi" id="moi">
+    <button type="button" id="embleme" class="embleme" aria-label="Changer d’emblème et de couleur"
+            aria-expanded="false" aria-controls="atelier">✏️</button>
+    <div class="moi-identite">
+      <label for="champ-prenom" class="masque">Ton prénom</label>
+      <input type="text" id="champ-prenom" class="champ-prenom" maxlength="24"
+             placeholder="Ton prénom" autocomplete="off" spellcheck="false">
+      <p class="moi-classe" id="carte-classe"></p>
+    </div>
+    <!-- Deux dessins disent tout, et le bouton allumé est celui qu'on a sous
+         les yeux. Pas de « Auto » : qui n'y touche jamais suit son téléphone. -->
+    <div class="apparence" role="radiogroup" aria-label="Apparence">
+      <button type="button" class="apparence-cote" id="apparence-claire" role="radio"
+              aria-checked="false" data-apparence="light" aria-label="Mode jour">
+        <svg class="apparence-signe" aria-hidden="true" focusable="false"><use href="#glyphe-soleil"/></svg>
+      </button>
+      <button type="button" class="apparence-cote" id="apparence-sombre" role="radio"
+              aria-checked="false" data-apparence="dark" aria-label="Mode nuit">
+        <svg class="apparence-signe" aria-hidden="true" focusable="false"><use href="#glyphe-lune"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Choisir son emblème et la couleur de sa page. C'est tout ce qu'il y a à
+       personnaliser, et ça suffit : la page devient la sienne. -->
+  <div class="atelier" id="atelier" hidden>
+    <p class="atelier-titre">Ton emblème</p>
+    <div class="atelier-choix" id="choix-emblemes"></div>
+    <p class="atelier-titre">Ta couleur</p>
+    <div class="atelier-choix" id="choix-teintes"></div>
+  </div>
 
   <!-- Le compte, en bas et en petit : on n'ouvre pas le site pour le gérer.
        Effacer est à côté de sortir, parce que c'est là qu'on le cherche. -->
@@ -724,6 +829,7 @@
       <button type="button" class="lien-nu" id="bouton-sortir">Se déconnecter</button>
       <button type="button" class="lien-nu lien-danger" id="bouton-effacer-compte">Effacer mon compte</button>
     </div>
+  </div>
   </div>
 </section>
 

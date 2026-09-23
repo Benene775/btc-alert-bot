@@ -31,6 +31,12 @@
   --encre-douce: #66615a;
   --trait: #dedad3;
   --trait-fort: #c3bcb1;
+  /* La carcasse. Un ton en dessous du papier : une barre latérale se distingue
+     du contenu sans le concurrencer, et sa largeur est une constante de mise en
+     page — le corps se décale d'autant. */
+  --carcasse-fond: #f7f5f2;
+  --carcasse-ici: #eceae5;
+  --carcasse-large: 236px;
 
   /* Le stylo de l'élève. */
   --accent: #1f3a8f;
@@ -38,6 +44,10 @@
   /* Ce qui s'écrit SUR l'accent : blanc ici, encre sombre en mode sombre, où
      l'ambre est trop clair pour porter du blanc (2,2:1 — illisible). */
   --sur-accent: #ffffff;
+  /* Même raison, pour les deux autres rôles : en mode sombre le rouge et
+     l'ambre s'éclaircissent et ne portent plus de blanc. */
+  --sur-rouge: #ffffff;
+  --sur-partiel: #ffffff;
   --surligneur: rgba(255, 214, 102, .55);
   /* La lueur qui suit le curseur. Assez pour se sentir, pas assez pour
      passer devant le texte qu'elle traverse. */
@@ -122,9 +132,13 @@
     --encre-douce: #a0a6b0;
     --trait: #2c313a;
     --trait-fort: #434a56;
+    --carcasse-fond: #0e1015;
+    --carcasse-ici: #1e2330;
     --accent: #9db2ea;
     --accent-doux: #1c2438;
     --sur-accent: #12141a;
+    --sur-rouge: #12141a;
+    --sur-partiel: #12141a;
     --surligneur: rgba(226, 184, 74, .28);
     --lueur: rgba(157, 178, 234, .10);
     --stylo-eleve: #9dbcf2;
@@ -160,9 +174,13 @@
   --encre-douce: #a0a6b0;
   --trait: #2c313a;
   --trait-fort: #434a56;
+  --carcasse-fond: #0e1015;
+  --carcasse-ici: #1e2330;
   --accent: #9db2ea;
   --accent-doux: #1c2438;
   --sur-accent: #12141a;
+  --sur-rouge: #12141a;
+  --sur-partiel: #12141a;
   --surligneur: rgba(226, 184, 74, .28);
   --lueur: rgba(157, 178, 234, .10);
   --stylo-eleve: #9dbcf2;
@@ -377,6 +395,10 @@ body {
   display: flex;
   align-items: center;
 }
+
+/* Sans bouton dedans, elle gardait 40 px de vide en tête de page — mesurés sur
+   la page perso, où la carcasse remplace le retour. */
+.barre-retour:has(.retour[hidden]) { min-height: 0; }
 
 
 .ecran {
@@ -3348,7 +3370,11 @@ h1 {
  * hauteur ne dépend plus du nombre de séances.
  */
 
-.ecran-espace { display: flex; flex-direction: column; gap: var(--e4); }
+/* Un écart identique entre tous les blocs, c'est l'absence de groupement —
+   « une page où tout a le même poids n'a plus de hiérarchie ». Chaque bloc
+   porte donc SA marge : le titre est collé à ce qui presse, la liste respire,
+   le compte est loin. */
+.ecran-espace { display: flex; flex-direction: column; gap: 0; }
 
 /* --- Jour ou nuit --------------------------------------------------------
  *
@@ -3584,59 +3610,527 @@ h1 {
   .choix-embleme:hover, .choix-teinte:hover { transform: none; }
 }
 
-/* --- LA PAGE DE L'ÉLÈVE : ONGLETS, ÉCHÉANCE, LISTE -----------------------
+/* --- LA CARCASSE ---------------------------------------------------------
  *
- * Six tuiles carrées vivaient ici, une par destination. L'idée tenait — une
- * porte par endroit, toutes de même taille — et produisait deux défauts :
- * on repassait par un damier entre deux endroits, et une page où tout a le
- * même poids n'a plus de hiérarchie. C'était le premier grief du
- * commanditaire : « tout est une carte arrondie ».
+ * Une navigation qui ne disparaît jamais.
  *
- * À la place, la forme des outils qu'un élève ouvre déjà tous les jours : une
- * barre d'onglets, ce qui presse juste en dessous, puis ses cours en liste
- * numérotée avec leur état écrit à droite. Des filets, pas des cartes.
+ * Il y a eu six tuiles carrées, puis une barre de rubriques. Les deux avaient
+ * le même défaut, que le commanditaire a fini par nommer : « je n'aime pas le
+ * design, je veux un truc où on s'y retrouve ». On ne s'y retrouvait pas parce
+ * que les rubriques REMPLAÇAIENT la page — d'où un « Revenir » orphelin en bas,
+ * et rien, jamais, qui dise où l'on est.
+ *
+ * Tous les outils qu'un élève ouvre déjà tiennent la même règle : la barre
+ * reste, le centre change. Une seule pièce ici, et deux formes :
+ *
+ *   — au-dessus de 1024 px, une COLONNE à gauche : l'action principale en
+ *     haut, les quatre sections avec leurs comptes, les matières en second
+ *     niveau, le compte en bas ;
+ *   — en dessous, la même liste devient la BARRE D'ONGLETS DU BAS, et tout ce
+ *     qui ne tient pas dans cinq centimètres se retire.
+ *
+ * Elle est « fixed » dans les deux cas : le corps se décale d'autant, ce qui
+ * évite d'emboîter toute l'application dans une grille — et donc de toucher
+ * aux treize écrans pour en refaire un.
  */
-.rubriques {
+.carcasse {
+  position: fixed;
+  z-index: 20;
+  background: var(--carcasse-fond);
   display: flex;
-  gap: 2px;
-  margin: 0 0 var(--e3);
-  border-bottom: 1px solid var(--trait);
-  overflow-x: auto;
-  scrollbar-width: none;
 }
-.rubriques::-webkit-scrollbar { display: none; }
 
-.rubrique {
-  display: inline-flex;
+.carcasse[hidden] { display: none; }
+
+.carcasse-tete, .carcasse-rubrique, .carcasse-matieres, .carcasse-moi { display: none; }
+
+.carcasse-liens { display: contents; }
+
+.carcasse-lien {
+  display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 11px 10px 10px;
-  /* Une cible de 44 px : sur un téléphone, un onglet plus court se rate une
-     fois sur trois et l'élève croit que l'application ne répond pas. */
-  min-height: 44px;
   border: 0;
   background: none;
   cursor: pointer;
   font-family: var(--utilitaire);
-  font-size: .84rem;
-  font-weight: 500;
   color: var(--encre-douce);
-  white-space: nowrap;
+  text-align: left;
 }
-.rubrique[data-ici] {
-  color: var(--accent);
-  font-weight: 700;
-  box-shadow: inset 0 -2px 0 var(--accent);
-}
-.rubrique-compte {
+
+.carcasse-signe { width: 20px; height: 20px; flex: 0 0 auto; }
+
+.carcasse-compte {
   font-family: var(--utilitaire);
   font-size: .68rem;
   font-weight: 700;
-  padding: 1px 6px;
-  border-radius: 10px;
-  background: var(--accent-doux);
-  color: var(--accent);
+  color: var(--encre-douce);
   font-variant-numeric: tabular-nums;
+}
+
+/* La pastille de l'agenda : elle ne compte pas, elle alerte. Un chiffre rouge
+   sur une destination, c'est la seule façon de dire « il y a une date » sans
+   occuper une ligne de la page. */
+.carcasse-alerte {
+  min-width: 17px;
+  height: 17px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--rouge);
+  color: #fff;
+  font-family: var(--utilitaire);
+  font-size: .62rem;
+  font-weight: 700;
+}
+
+/* --- Forme 1 : la barre du bas, sur un téléphone ------------------------- */
+@media (max-width: 1023px) {
+  .carcasse {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-top: 1px solid var(--trait);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .carcasse-liens {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    width: 100%;
+  }
+  .carcasse-lien {
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    /* 60 px : au-dessous, une cible en bas d'écran se rate au pouce. */
+    min-height: 60px;
+    padding: 6px 2px 8px;
+    font-size: .66rem;
+    font-weight: 600;
+    text-align: center;
+    position: relative;
+  }
+  .carcasse-lien[data-ici] { color: var(--accent); font-weight: 700; }
+  .carcasse-lien[data-ici] .carcasse-signe { stroke-width: 2; }
+  /* Le trait du haut marque l'onglet courant, comme le fait le soulignement
+     d'un onglet ordinaire — mais du bon côté, celui par où l'œil arrive. */
+  .carcasse-lien[data-ici]::before {
+    content: "";
+    position: absolute;
+    top: -1px;
+    left: 18%;
+    right: 18%;
+    height: 2px;
+    background: var(--accent);
+  }
+  .carcasse-compte { display: none; }
+  .carcasse-alerte { position: absolute; top: 5px; left: 56%; }
+}
+
+/* --- Forme 2 : la colonne, sur un ordinateur ---------------------------- */
+@media (min-width: 1024px) {
+  .carcasse {
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: var(--carcasse-large);
+    flex-direction: column;
+    border-right: 1px solid var(--trait);
+    overflow-y: auto;
+  }
+
+  .carcasse-tete { display: block; padding: 18px 16px 14px; }
+
+  .carcasse-marque {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 14px;
+    font-family: var(--utilitaire);
+    font-size: .74rem;
+    font-weight: 700;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: var(--encre);
+  }
+  .carcasse-marque .logo-marque { width: 22px; height: 22px; }
+
+  .carcasse-fabrique {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    min-height: 42px;
+    border: 0;
+    border-radius: var(--rayon);
+    background: var(--accent);
+    color: var(--sur-accent);
+    cursor: pointer;
+    font-family: var(--utilitaire);
+    font-size: .84rem;
+    font-weight: 700;
+  }
+  .carcasse-fabrique .carcasse-signe { width: 17px; height: 17px; }
+
+  .carcasse-rubrique {
+    display: block;
+    margin: 0 0 4px;
+    padding: 0 16px;
+    font-family: var(--utilitaire);
+    font-size: .64rem;
+    font-weight: 700;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--encre-douce);
+  }
+  .carcasse-rubrique-deux { margin-top: 20px; }
+
+  .carcasse-liens {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    padding: 0 10px;
+  }
+  .carcasse-lien {
+    gap: 10px;
+    min-height: 38px;
+    padding: 0 10px;
+    border-radius: var(--rayon);
+    font-size: .85rem;
+    color: var(--encre);
+  }
+  .carcasse-lien:hover { background: color-mix(in srgb, var(--encre) 5%, transparent); }
+  .carcasse-lien[data-ici] { background: var(--carcasse-ici); font-weight: 700; }
+  .carcasse-nom { flex: 1; min-width: 0; }
+
+  .carcasse-matieres {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    padding: 0 10px;
+  }
+  .carcasse-matiere {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 36px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: var(--rayon);
+    background: none;
+    cursor: pointer;
+    font-family: var(--utilitaire);
+    font-size: .8rem;
+    color: var(--encre);
+    text-align: left;
+  }
+  .carcasse-matiere:hover { background: color-mix(in srgb, var(--encre) 5%, transparent); }
+  .carcasse-matiere-code {
+    flex: 0 0 auto;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 3px;
+    font-size: .58rem;
+    font-weight: 700;
+  }
+  .carcasse-matiere-nom { flex: 1; min-width: 0; }
+
+  /* Le code porte la teinte de sa matière, la même que dans les archives et
+     sur les puces de filtre. Sans elle, quatre pastilles grises côte à côte ne
+     se distinguent que par leurs trois lettres — et c'est justement la couleur
+     qui fait qu'on trouve sa matière sans lire. */
+  .carcasse-matiere-code[data-teinte="0"] { background: var(--t1); }
+  .carcasse-matiere-code[data-teinte="1"] { background: var(--t2); }
+  .carcasse-matiere-code[data-teinte="2"] { background: var(--t3); }
+  .carcasse-matiere-code[data-teinte="3"] { background: var(--t4); }
+  .carcasse-matiere-code[data-teinte="4"] { background: var(--t5); }
+  .carcasse-matiere-code[data-teinte="5"] { background: var(--t1); }
+
+  .carcasse-moi {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: auto;
+    min-height: 58px;
+    padding: 0 16px;
+    border: 0;
+    border-top: 1px solid var(--trait);
+    background: none;
+    cursor: pointer;
+    text-align: left;
+    color: var(--encre);
+  }
+  .carcasse-moi:hover { background: color-mix(in srgb, var(--encre) 5%, transparent); }
+  .carcasse-initiale {
+    flex: 0 0 auto;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--accent);
+    color: var(--sur-accent);
+    font-family: var(--utilitaire);
+    font-size: .82rem;
+    font-weight: 700;
+  }
+  .carcasse-moi-texte { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
+  .carcasse-moi-texte b { font-family: var(--utilitaire); font-size: .82rem; font-weight: 700; }
+  .carcasse-moi-texte i {
+    font-style: normal;
+    font-family: var(--utilitaire);
+    font-size: .72rem;
+    color: var(--encre-douce);
+  }
+  .carcasse-chevron { color: var(--encre-douce); font-size: .8rem; }
+
+  /* La marque est dans la colonne : la redire dans le bandeau, c'est deux fois
+     le même mot à 30 px d'écart. Le rond et le compte à rebours restent — ils
+     ramènent à une séance en cours, ce que la colonne ne fait pas. */
+  html[data-ecran="espace"] #bandeau .marque-menu,
+  html[data-ecran="matiere"] #bandeau .marque-menu { display: none; }
+
+  /* Et s'il ne reste rien dedans, il s'en va : un filet de 21 px au-dessus de
+     la page n'est pas un bandeau, c'est une rayure. */
+  #bandeau[data-vide="oui"] { display: none; }
+}
+
+/* --- LE CORPS SE DÉCALE DE LA CARCASSE -----------------------------------
+ *
+ * Plutôt que d'emboîter les treize écrans dans une grille — donc de tous les
+ * toucher pour en refaire un — la carcasse est « fixed » et le corps prend la
+ * place qu'elle occupe. Seulement là où elle est : sur l'écran des photos ou
+ * pendant un contrôle, elle n'existe pas et le corps reprend tout.
+ */
+html[data-ecran="espace"] body,
+html[data-ecran="matiere"] body {
+  padding-bottom: calc(62px + env(safe-area-inset-bottom));
+}
+
+@media (min-width: 1024px) {
+  html[data-ecran="espace"] body,
+  html[data-ecran="matiere"] body {
+    padding-bottom: 0;
+    padding-left: var(--carcasse-large);
+  }
+}
+
+/* --- LA TÊTE DE PAGE ------------------------------------------------------
+ *
+ * La page n'avait pas de nom : on tombait sur une liste sans savoir de quoi
+ * elle était la liste. Et son action principale — un aplat de 96 px tout en
+ * bas, après 46 px de vide — passait devant l'alerte qu'elle devait laisser
+ * passer. Un titre, son compte, sa phrase, son action : c'est la tête de page
+ * de n'importe quel outil qu'on ouvre tous les jours.
+ */
+.tete-page {
+  margin-bottom: var(--e3);
+  padding-bottom: var(--e2);
+  border-bottom: 2px solid var(--encre);
+}
+
+.tete-page-ligne {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e2);
+}
+
+.tete-page-nom {
+  margin: 0;
+  font-family: var(--titre);
+  font-size: 1.6rem;
+  font-weight: 600;
+  line-height: 1.15;
+}
+
+.tete-page-compte {
+  font-family: var(--utilitaire);
+  font-size: .9rem;
+  font-weight: 600;
+  color: var(--encre-douce);
+  font-variant-numeric: tabular-nums;
+}
+
+.tete-page-mot { margin: 7px 0 0; font-size: .82rem; color: var(--encre-douce); }
+
+.tete-page-court { display: none; }
+@media (max-width: 599px) {
+  .tete-page-long { display: none; }
+  .tete-page-court { display: inline; }
+}
+
+.tete-page-action {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: auto;
+  min-height: 44px;
+  margin-top: 0;
+  padding: 0 16px;
+  font-size: .9rem;
+}
+.tete-page-signe { width: 17px; height: 17px; }
+
+/* Sur la colonne de gauche, la carcasse porte déjà cette action. La dire deux
+   fois sur le même écran, c'est demander laquelle est la vraie. */
+@media (min-width: 1024px) {
+  .tete-page-action { display: none; }
+}
+
+/* --- LES COLONNES DE LA PAGE --------------------------------------------- */
+.colonne-liste { min-width: 0; }
+
+.rail { display: none; }
+
+@media (min-width: 1180px) {
+  .colonnes-espace {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 272px;
+    gap: var(--e5);
+    align-items: start;
+  }
+  .rail:not([hidden]) { display: block; }
+}
+
+.rail-titre {
+  margin: 0 0 9px;
+  font-family: var(--utilitaire);
+  font-size: .64rem;
+  font-weight: 700;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--encre-douce);
+}
+.rail-titre-deux { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--encre); }
+
+.rail-semaine {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 3px;
+  margin-bottom: 12px;
+}
+.rail-jour {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 5px 0 6px;
+  border-radius: var(--rayon);
+  font-family: var(--utilitaire);
+  font-size: .58rem;
+  font-weight: 700;
+  color: var(--encre-douce);
+}
+.rail-jour b { font-family: var(--titre); font-size: .86rem; font-weight: 600; line-height: 1; }
+.rail-jour[data-jour="aujourdhui"] { background: var(--encre); color: var(--papier); }
+.rail-jour[data-jour="controle"] { background: var(--rouge-doux); color: var(--rouge); }
+
+.rail-date {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 0;
+  border: 0;
+  border-top: 1px solid var(--trait);
+  background: none;
+  cursor: pointer;
+  text-align: left;
+}
+.rail-date-quand {
+  flex: 0 0 auto;
+  font-family: var(--utilitaire);
+  font-size: .62rem;
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--rouge);
+}
+.rail-date-quoi { flex: 1; min-width: 0; font-size: .84rem; color: var(--encre); }
+
+.rail-lien {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 44px;
+  border: 0;
+  border-top: 1px solid var(--trait);
+  background: none;
+  cursor: pointer;
+  font-family: var(--utilitaire);
+  font-size: .82rem;
+  font-weight: 600;
+  color: var(--accent);
+  text-align: left;
+}
+
+.rail-compteur {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--trait);
+  font-size: .84rem;
+}
+.rail-compteur i { font-style: normal; color: var(--encre); }
+.rail-compteur b {
+  font-family: var(--utilitaire);
+  font-size: .82rem;
+  font-weight: 700;
+  color: var(--encre-douce);
+  font-variant-numeric: tabular-nums;
+}
+
+.rail-reprise { margin-top: 18px; }
+.rail-reprise-porte {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+}
+.rail-reprise-porte b {
+  font-family: var(--titre);
+  font-size: .96rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--encre);
+}
+.rail-reprise-porte i {
+  font-style: normal;
+  font-family: var(--utilitaire);
+  font-size: .72rem;
+  color: var(--encre-douce);
+}
+
+/* --- MON COMPTE, AU PIED ------------------------------------------------- */
+.mon-compte {
+  margin-top: var(--e5);
+  padding-top: var(--e3);
+  border-top: 1px solid var(--trait);
+}
+.mon-compte-titre {
+  margin: 0 0 var(--e2);
+  font-family: var(--utilitaire);
+  font-size: .64rem;
+  font-weight: 700;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--encre-douce);
 }
 
 /* Ce qui presse. C'était écrit en petit sous le nom d'une tuile de 169 px ;
@@ -3647,7 +4141,9 @@ h1 {
   gap: var(--e2);
   align-items: flex-start;
   padding: var(--e2) var(--e3);
-  margin-bottom: var(--e3);
+  /* Plus d'air sous l'alerte que sous le titre : elle se termine, la liste
+     commence. C'est le groupement qui manquait quand tout était à 46 px. */
+  margin-bottom: var(--e4);
   background: var(--rouge-doux);
   border-left: 3px solid var(--rouge);
 }
@@ -3674,6 +4170,90 @@ h1 {
   line-height: 1.25;
 }
 .echeance-mot span { color: var(--encre-douce); font-size: .84rem; }
+
+/* L'action DANS la bande. On ne dit pas à quelqu'un que ça brûle en le laissant
+   chercher la sortie : l'alerte nommait trois notions fragiles et l'élève
+   devait deviner qu'on les retravaille depuis la liste, deux écrans plus loin.
+   Elle porte la couleur de l'urgence, pas celle de l'accent : c'est la seule
+   chose de la page qui presse, et deux bleus côte à côte se valent. */
+.echeance-action {
+  flex: 0 0 auto;
+  align-self: center;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--rayon);
+  background: var(--rouge);
+  color: var(--sur-rouge);
+  cursor: pointer;
+  font-family: var(--utilitaire);
+  font-size: .8rem;
+  font-weight: 700;
+}
+.echeance[data-urgence="basse"] .echeance-action { background: var(--partiel); color: var(--sur-partiel); }
+.echeance[data-urgence="aucune"] .echeance-action { background: var(--accent); color: var(--sur-accent); }
+
+/* Sur un téléphone, le bouton passe sous la phrase : à côté, il lui laissait
+   quatre mots par ligne. */
+@media (max-width: 599px) {
+  .echeance { flex-wrap: wrap; }
+  .echeance-action { width: 100%; align-self: stretch; margin-top: var(--e1); }
+}
+
+/* --- LA LISTE EN COLONNES ------------------------------------------------
+ *
+ * Sur un téléphone, une ligne empilée : le numéro, le titre, sa sous-ligne, et
+ * l'état à droite. Au-dessus de 900 px il y a la place pour ce que fait tout
+ * outil sérieux devant une liste — des colonnes, avec leurs en-têtes. La
+ * matière et la date sortent alors de la sous-ligne, où elles étaient
+ * empaquetées avec le reste, et deviennent deux colonnes qu'on peut balayer
+ * du regard.
+ */
+.rangs-tete { display: none; }
+
+@media (min-width: 900px) {
+  .rangs-tete {
+    display: grid;
+    grid-template-columns: 30px minmax(0, 1fr) 116px 104px 128px;
+    gap: var(--e2);
+    align-items: end;
+    padding: 0 var(--e2) 7px;
+    border-bottom: 1px solid var(--encre);
+    font-family: var(--utilitaire);
+    font-size: .6rem;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--encre-douce);
+  }
+  .rangs { border-top: 0; }
+  .rang-porte {
+    display: grid;
+    grid-template-columns: 30px minmax(0, 1fr) 116px 104px 128px;
+    gap: var(--e2);
+    align-items: center;
+  }
+  /* Ce que la sous-ligne empaquetait devient deux colonnes ; elle garde ce qui
+     n'en est pas une — « 3 notions fragiles », « pas encore de fiche ». */
+  .rang-matiere, .rang-quand {
+    font-family: var(--utilitaire);
+    font-size: .78rem;
+    color: var(--encre-douce);
+  }
+}
+
+/* Les morceaux de la sous-ligne sont des <i> pour pouvoir s'éteindre un par
+   un : ce sont des marqueurs, pas de l'italique. */
+.rang-sous i { font-style: normal; }
+
+.rang-matiere, .rang-quand { display: none; }
+
+@media (min-width: 900px) {
+  .rang-matiere, .rang-quand { display: block; }
+  /* Ce que la colonne dit maintenant sort de la phrase : le même fait écrit
+     deux fois sur la même ligne est du bruit. */
+  .rang-sous-mat, .rang-sous-quand { display: none; }
+}
 
 .outils-cours { margin-bottom: var(--e2); }
 .filtre-matiere {
@@ -3762,16 +4342,6 @@ h1 {
   max-width: 46ch;
   color: var(--encre-douce);
   font-size: .92rem;
-}
-
-.pied-cours { margin-top: var(--e3); }
-.pied-cours .principal { width: 100%; }
-.pied-cours-mot {
-  margin: var(--e1) 0 0;
-  font-family: var(--utilitaire);
-  font-size: .78rem;
-  color: var(--encre-douce);
-  text-align: center;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -3975,19 +4545,16 @@ h1 {
    barre : un carré posé au-dessus d'un calendrier pleine largeur ne va nulle
    part. C'est l'attribut posé par le script qui commande, jamais la feuille de
    style seule : sans lui, la page reste entière. */
+#ecran-espace[data-agenda="ouvert"] .tete-page,
 #ecran-espace[data-agenda="ouvert"] .echeance,
-#ecran-espace[data-agenda="ouvert"] .outils-cours,
-#ecran-espace[data-agenda="ouvert"] .rangs,
-#ecran-espace[data-agenda="ouvert"] .rangs-vide,
-#ecran-espace[data-agenda="ouvert"] .pied-cours,
-#ecran-espace[data-agenda="ouvert"] .moi,
-#ecran-espace[data-agenda="ouvert"] #atelier,
-#ecran-espace[data-agenda="ouvert"] #bouton-quitter-espace,
-#ecran-espace[data-agenda="ouvert"] .pied-compte { display: none; }
+#ecran-espace[data-agenda="ouvert"] .colonnes-espace,
+#ecran-espace[data-agenda="ouvert"] .mon-compte { display: none; }
 
-/* La barre d'onglets, elle, RESTE. C'est par elle qu'on sort de l'agenda :
-   l'effacer avec le reste enfermait l'élève dans le calendrier, et il fallait
-   deviner que le bouton du téléphone le ramènerait. */
+/* La CARCASSE, elle, reste : c'est par elle qu'on sort de l'agenda. Et elle
+   n'a plus rien à faire ici pour ça — elle vit hors des écrans, donc rien de ce
+   qui cache le contenu de la page ne l'atteint. C'était tout l'intérêt de l'en
+   sortir : l'élève enfermé dans le calendrier l'était parce que sa navigation
+   était rangée dans la page qu'on venait de vider. */
 
 /* L'invite sous le calendrier, quand aucun jour n'est choisi. */
 .agenda-invite {

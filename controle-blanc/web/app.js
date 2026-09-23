@@ -609,7 +609,9 @@ function dessinerEspace() {
   dessinerApparence();
   const echeances = dessinerAgenda(sessions);
   dessinerLesOnglets(sessions, echeances);
+  dessinerCarcasse(sessions);
   dessinerLesCours(sessions);
+  dessinerRail(sessions);
   soignerTypographie($('ecran-espace'));
   // Sans await : la page est déjà dessinée, le compteur se posera dessus.
   rafraichirQuotas();
@@ -676,17 +678,32 @@ const MOT_DE_L_ETAT = {
 /* Ce qu'on lit sous le titre : la matière, et où en est le travail. Pas de
  * compteur de pages — l'élève ne compte pas ses pages, il se souvient d'avoir
  * lu sa fiche ou passé son contrôle. */
-function sousLigneDuCours(session) {
-  const bouts = [courtMatiere(session.matiere)];
+/* Ce qu'une ligne de cours a à dire, en trois morceaux.
+ *
+ * Sur un téléphone ils s'écrivent à la suite, sous le titre. Au-dessus de
+ * 900 px la matière et la date deviennent DEUX COLONNES — c'est ce que fait
+ * tout outil sérieux devant une liste — et la phrase ne garde que ce qui n'est
+ * pas une colonne. Un même fait écrit deux fois sur la même ligne est du bruit.
+ */
+function partsDuCours(session) {
   const fiches = (session.fiches || []).length;
   const controles = session.controles || [];
-  if (fiches) bouts.push(fiches > 1 ? fiches + ' fiches' : 'fiche lue');
-  if (controles.length) {
-    const quand = dateCourte(controles[controles.length - 1].le || session.creeLe);
-    bouts.push(quand ? 'testé le ' + quand : 'testé');
-  } else if (!fiches) {
-    bouts.push('pas encore travaillé');
-  }
+  let travail = '';
+  if (fiches) travail = fiches > 1 ? fiches + ' fiches' : 'fiche lue';
+  else if (!controles.length) travail = 'pas encore travaillé';
+  const dernier = controles.length ? (controles[controles.length - 1].le || session.creeLe) : '';
+  return {
+    matiere: courtMatiere(session.matiere),
+    travail,
+    quand: dernier ? dateCourte(dernier) : '',
+  };
+}
+
+function sousLigneDuCours(session) {
+  const parts = partsDuCours(session);
+  const bouts = [parts.matiere];
+  if (parts.travail) bouts.push(parts.travail);
+  if (parts.quand) bouts.push('testé le ' + parts.quand);
   return bouts.join(' · ');
 }
 
@@ -704,6 +721,15 @@ function marquerOnglet(id) {
     if (cle === id) onglet.dataset.ici = 'oui';
     else delete onglet.dataset.ici;
   });
+}
+
+function poserActionEcheance(quoi) {
+  const bouton = $('echeance-action');
+  if (!bouton) return;
+  bouton.hidden = !quoi;
+  if (!quoi) return;
+  bouton.textContent = quoi.mot;
+  bouton.onclick = quoi.faire;
 }
 
 function dessinerLesOnglets(sessions, echeances) {
@@ -730,12 +756,20 @@ function dessinerLesOnglets(sessions, echeances) {
           ? fragiles.length + ' notions n’ont pas tenu la dernière fois.'
           : 'Une notion n’a pas tenu la dernière fois.')
       : 'Rien ne dit encore où tu en es : passe un contrôle blanc.';
+    // L'action DANS la bande. Elle nommait trois notions fragiles et laissait
+    // l'élève deviner qu'on les retravaille depuis la liste, deux écrans plus
+    // loin. On ne dit pas à quelqu'un que ça brûle en le laissant chercher la
+    // sortie.
+    poserActionEcheance(prochains[0].sessionId
+      ? { mot: 'Réviser ce cours', faire: () => ouvrirSession(prochains[0].sessionId) }
+      : { mot: 'Voir dans l’agenda', faire: () => basculerAgenda(true) });
   } else {
     bande.hidden = false;
     bande.dataset.urgence = 'aucune';
     $('agenda-mot').textContent = 'Aucun contrôle noté';
     $('echeance-detail').textContent = 'Pose ta prochaine date dans l’agenda : '
       + 'c’est elle qui décide de ce qui passe devant ici.';
+    poserActionEcheance({ mot: 'Poser une date', faire: () => basculerAgenda(true) });
   }
 
   // Les deux archives portent leur compte sur l'onglet. À zéro, l'onglet reste
@@ -748,6 +782,155 @@ function dessinerLesOnglets(sessions, echeances) {
   $('mot-controles').hidden = !controles;
 }
 
+/* --- LA CARCASSE ----------------------------------------------------------
+ *
+ * Elle vit hors des écrans, donc elle ne se redessine pas avec eux : c'est
+ * « dessinerEspace » et « dessinerMatiere » qui l'appellent, et « montrer »
+ * qui décide où elle paraît.
+ */
+function dessinerCarcasse(sessions) {
+  const compteCours = $('carcasse-compte-cours');
+  compteCours.textContent = sessions.length ? String(sessions.length) : '';
+  compteCours.hidden = !sessions.length;
+
+  // Le second niveau : ses matières, dans l'ordre où elles pressent — le même
+  // que celui de la liste. Deux ordres pour les mêmes objets sur le même écran,
+  // et l'élève cherche pourquoi.
+  const boite = $('carcasse-matieres');
+  boite.innerHTML = '';
+  matieres(sessions).forEach((m) => {
+    const porte = document.createElement('button');
+    porte.type = 'button';
+    porte.className = 'carcasse-matiere';
+    porte.onclick = () => ouvrirMatiere(m.cle, 'fiches');
+
+    const code = document.createElement('span');
+    code.className = 'carcasse-matiere-code';
+    code.dataset.teinte = teinteMatiere(m.cle);
+    code.textContent = codeMatiere(m.cle);
+
+    const nom = document.createElement('span');
+    nom.className = 'carcasse-matiere-nom';
+    nom.textContent = courtMatiere(m.cle);
+
+    const combien = document.createElement('span');
+    combien.className = 'carcasse-compte';
+    combien.textContent = String(m.sessions.length);
+
+    porte.append(code, nom, combien);
+    boite.appendChild(porte);
+  });
+
+  const mienne = carte();
+  const prenom = String(mienne.prenom || '').trim();
+  $('carcasse-prenom').textContent = prenom || 'Mon compte';
+  $('carcasse-initiale').textContent = (prenom || '·').slice(0, 1).toUpperCase();
+  const niveaux = [...new Set(sessions.map((x) => x.niveau).filter(Boolean))];
+  $('carcasse-classe').textContent = niveaux.join(' · ');
+}
+
+/* --- LE RAIL --------------------------------------------------------------
+ *
+ * Ce qui vient, où j'en suis du mois, et où j'en étais resté. Il ne paraît que
+ * là où il y a la place d'une troisième colonne ; sur un téléphone, tout ça se
+ * lit dans l'agenda et sous le titre, et un rail empilé sous la liste serait
+ * une deuxième page à faire défiler.
+ */
+const LETTRES_SEMAINE = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+
+function dessinerRail(sessions) {
+  const rail = $('rail-espace');
+  if (!rail) return;
+  rail.hidden = !sessions.length;
+  if (rail.hidden) return;
+
+  // La semaine en cours, du lundi au dimanche. Elle ne remplace pas l'agenda :
+  // elle dit en un regard s'il y a quelque chose avant dimanche.
+  const lundi = new Date();
+  lundi.setHours(0, 0, 0, 0);
+  lundi.setDate(lundi.getDate() - ((lundi.getDay() + 6) % 7));
+  const aujourdhui = cleJour(new Date());
+  const poses = new Set(prochainesEcheances(sessions).map((e) => e.date));
+  rendezVous().forEach((r) => poses.add(r.date));
+
+  const semaine = $('rail-semaine');
+  semaine.innerHTML = '';
+  for (let i = 0; i < 7; i += 1) {
+    const jour = new Date(lundi);
+    jour.setDate(lundi.getDate() + i);
+    const cle = cleJour(jour);
+    const case_ = document.createElement('span');
+    case_.className = 'rail-jour';
+    if (cle === aujourdhui) case_.dataset.jour = 'aujourdhui';
+    else if (poses.has(cle)) case_.dataset.jour = 'controle';
+    const lettre = document.createElement('span');
+    lettre.textContent = LETTRES_SEMAINE[i];
+    const chiffre = document.createElement('b');
+    chiffre.textContent = String(jour.getDate());
+    case_.append(lettre, chiffre);
+    semaine.appendChild(case_);
+  }
+
+  const dates = $('rail-dates');
+  dates.innerHTML = '';
+  prochainesEcheances(sessions).slice(0, 3).forEach((e) => {
+    const ligne = document.createElement('button');
+    ligne.type = 'button';
+    ligne.className = 'rail-date';
+    ligne.onclick = () => { if (e.sessionId) ouvrirSession(e.sessionId); };
+    const quand = document.createElement('span');
+    quand.className = 'rail-date-quand';
+    quand.textContent = dateCourte(e.date);
+    const quoi = document.createElement('span');
+    quoi.className = 'rail-date-quoi';
+    const complement = deLaMatiere(e.matiere);
+    quoi.textContent = complement ? 'Contrôle ' + complement : 'Contrôle';
+    ligne.append(quand, quoi);
+    dates.appendChild(ligne);
+  });
+
+  peindreCompteursDuRail();
+
+  // Reprendre : le cours le plus récemment travaillé. C'est la seule chose de
+  // la page qui réponde à « j'y étais, j'y retourne » sans avoir à chercher.
+  const dernier = [...sessions].sort((a, b) =>
+    String(b.creeLe).localeCompare(String(a.creeLe)))[0];
+  const reprise = $('rail-reprise');
+  reprise.hidden = !dernier;
+  if (dernier) {
+    $('rail-reprise-titre').textContent = titreDuCours(dernier);
+    $('rail-reprise-sous').textContent = sousLigneDuCours(dernier);
+    $('rail-reprise-porte').onclick = () => ouvrirSession(dernier.sessionId);
+  }
+}
+
+/* Les trois compteurs du mois. Ils viennent du serveur, qui seul peut les
+ * compter honnêtement : ils se repeignent quand sa réponse arrive. */
+function peindreCompteursDuRail() {
+  const boite = $('rail-compteurs');
+  if (!boite) return;
+  boite.innerHTML = '';
+  // En PAGES pour l'analyse, pas en cours : c'est l'unité que le serveur
+  // compte, et « 12 cours sur 64 » serait un chiffre faux écrit proprement.
+  const lignes = [
+    ['Pages photographiées', 'analyse'],
+    ['Fiches écrites', 'fiche_generale'],
+    ['Contrôles blancs', 'controle'],
+  ];
+  lignes.forEach(([nom, action]) => {
+    const etatQuota = quotasMois && quotasMois[action];
+    if (!etatQuota) return;
+    const ligne = document.createElement('p');
+    ligne.className = 'rail-compteur';
+    const quoi = document.createElement('i');
+    quoi.textContent = nom;
+    const combien = document.createElement('b');
+    combien.textContent = (etatQuota.plafond - etatQuota.restant) + ' sur ' + etatQuota.plafond;
+    ligne.append(quoi, combien);
+    boite.appendChild(ligne);
+  });
+}
+
 /* La liste des cours, numérotée comme un sommaire. Ce qui presse en tête, puis
  * le plus récent : un élève ouvre sa page la veille d'un contrôle, pas pour
  * relire son année. */
@@ -756,14 +939,20 @@ function dessinerLesCours(sessions) {
   const vide = $('rangs-vide');
   liste.innerHTML = '';
 
+  // Le titre de la page porte son compte, comme toute liste nommée.
+  $('compte-cours').textContent = sessions.length ? String(sessions.length) : '';
+
   if (!sessions.length) {
     vide.hidden = false;
     vide.textContent = 'Aucun cours pour l’instant. Photographie ton premier — '
       + 'l’écriture à la main est lue telle quelle.';
     $('outils-cours').hidden = true;
+    $('rangs-tete').hidden = true;
     return;
   }
   vide.hidden = true;
+  // Des en-têtes au-dessus de rien ne coiffent rien.
+  $('rangs-tete').hidden = false;
   // Le filtre n'a de sens qu'à partir de quelques cours : au-dessous il n'y a
   // rien à filtrer, et ce serait un bouton de plus à comprendre.
   $('outils-cours').hidden = sessions.length < 5;
@@ -800,17 +989,39 @@ function dessinerLesCours(sessions) {
     quoi.className = 'rang-quoi';
     const titre = document.createElement('b');
     titre.textContent = titreDuCours(session);
+    // La matière et la date sont écrites DEUX fois : dans la phrase, pour un
+    // téléphone où il n'y a qu'une colonne, et dans leur colonne au-dessus de
+    // 900 px. La feuille de style éteint celle qui fait doublon — écrire les
+    // deux et n'en montrer qu'une vaut mieux que deux rendus à tenir d'accord.
+    const parts = partsDuCours(session);
     const sous = document.createElement('span');
     sous.className = 'rang-sous';
-    sous.textContent = sousLigneDuCours(session);
+    const mat = document.createElement('i');
+    mat.className = 'rang-sous-mat';
+    mat.textContent = parts.matiere + (parts.travail || parts.quand ? ' · ' : '');
+    const travail = document.createElement('span');
+    travail.textContent = parts.travail;
+    const quand = document.createElement('i');
+    quand.className = 'rang-sous-quand';
+    quand.textContent = parts.quand
+      ? (parts.travail ? ' · ' : '') + 'testé le ' + parts.quand : '';
+    sous.append(mat, travail, quand);
     quoi.append(titre, sous);
+
+    const colonneMatiere = document.createElement('span');
+    colonneMatiere.className = 'rang-matiere';
+    colonneMatiere.textContent = parts.matiere;
+
+    const colonneQuand = document.createElement('span');
+    colonneQuand.className = 'rang-quand';
+    colonneQuand.textContent = parts.quand || '—';
 
     const marque = document.createElement('span');
     marque.className = 'pastille-etat';
     marque.dataset.etat = etat;
     marque.textContent = MOT_DE_L_ETAT[etat];
 
-    bouton.append(numero, quoi, marque);
+    bouton.append(numero, quoi, colonneMatiere, marque, colonneQuand);
     ligne.appendChild(bouton);
     liste.appendChild(ligne);
   });
@@ -945,6 +1156,7 @@ function phraseOutil(surLesFiches, n) {
 
 function dessinerMatiere() {
   const sessions = sessionsFaites();
+  dessinerCarcasse(sessions);
   const cle = matiereOuverte;
   const tete = $('matiere-tete');
   tete.innerHTML = '';
@@ -3694,6 +3906,7 @@ function montrer(id, options = {}) {
   rafraichirBandeauInstall();
   window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
   majBandeau(id);
+  majCarcasse(id);
   majBoutonRetour();
   accorderLHistorique();
 }
@@ -3730,7 +3943,36 @@ function majBandeau(idEcran) {
   // Depuis sa page, le rond ramène à la séance en cours.
   $('bouton-espace').dataset.retour = dansEspace ? 'oui' : 'non';
   $('bouton-espace').hidden = dansEspace && !etat;
+  // Sur la colonne de gauche, la marque vit dans la carcasse : sans séance en
+  // cours, le bandeau n'a plus rien à montrer et ne laissait qu'un filet de
+  // 21 px au-dessus de la page — mesuré, pas supposé. On le DIT à la feuille
+  // de style plutôt que de lui faire deviner qu'un bandeau est vide.
+  bandeau.dataset.vide = dansMaPage && !etat ? 'oui' : 'non';
   dessinerRonds();
+}
+
+/* La carcasse ne vit que là où l'on NAVIGUE : sa page et l'écran d'une matière.
+ *
+ * Devant l'appareil photo, pendant un contrôle blanc ou dans une fiche, une
+ * barre de navigation est une sortie de secours offerte au mauvais moment — et
+ * un contrôle qu'on quitte n'existe plus. Ces écrans-là gardent le « ← Retour »,
+ * qui rend l'endroit d'où l'on vient plutôt que de proposer quatre ailleurs.
+ */
+const ECRANS_AVEC_CARCASSE = new Set(['ecran-espace', 'ecran-matiere']);
+
+function majCarcasse(idEcran) {
+  const carcasse = $('carcasse');
+  if (!carcasse) return;
+  const dessus = ECRANS_AVEC_CARCASSE.has(idEcran) && Boolean(compte);
+  carcasse.hidden = !dessus;
+  if (!dessus) return;
+  // Où l'on est, marqué. C'était le vrai manque : quatre rubriques qui
+  // remplaçaient la page, et rien qui dise laquelle on regarde.
+  if (idEcran === 'ecran-matiere') {
+    marquerOnglet(archiveOuverte === 'controles' ? 'porte-controles' : 'porte-fiches');
+  } else {
+    marquerOnglet($('ecran-espace').dataset.agenda === 'ouvert' ? 'bouton-agenda' : 'onglet-cours');
+  }
 }
 
 function joursAvantControle() {
@@ -6367,6 +6609,7 @@ async function rafraichirQuotas() {
 
 function peindreQuotas() {
   peindreRestePages();
+  peindreCompteursDuRail();
   // Le compteur du mois revient sur sa page, au pied de la liste : depuis que
   // les cours y sont listés, c'est là qu'on se demande s'il en reste.
   peindreResteCours();
@@ -7111,14 +7354,25 @@ document.addEventListener('DOMContentLoaded', () => {
   armerLeGlissementDeRetour();
   armerLeRetourDuSysteme();
 
-  $('bouton-quitter-espace').onclick = () => {
-    if (etat) return reprendre();
-    montrer('ecran-accueil');
-  };
   $('porte-photo').onclick = () => demarrerSession();
+  $('carcasse-photo').onclick = () => demarrerSession();
+  // Les réglages ont quitté le haut de la page pour son pied : la colonne y
+  // mène plutôt que de les redire.
+  $('carcasse-moi').onclick = () => {
+    if (ecranCourant() !== 'ecran-espace') montrer('ecran-espace');
+    const cible = $('mon-compte');
+    if (cible) cible.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
   $('onglet-cours').onclick = () => {
+    // Depuis l'écran d'une matière, « Mes cours » est une destination : c'est
+    // tout l'intérêt d'une barre qui ne disparaît pas.
+    if (ecranCourant() !== 'ecran-espace') return montrer('ecran-espace');
     if ($('ecran-espace').dataset.agenda === 'ouvert') basculerAgenda(false);
     else marquerOnglet('onglet-cours');
+  };
+  $('rail-poser-date').onclick = () => {
+    if (ecranCourant() !== 'ecran-espace') montrer('ecran-espace');
+    basculerAgenda(true);
   };
   // Chacune ouvre SA liste, toutes matières confondues, sur le bon onglet.
   $('porte-fiches').onclick = () => ouvrirMatiere(null, 'fiches');

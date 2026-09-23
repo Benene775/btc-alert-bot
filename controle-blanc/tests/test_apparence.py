@@ -24,15 +24,25 @@ def _espace() -> str:
     return espace[: espace.index('id="ecran-matiere"')]
 
 
-def test_le_choix_est_en_haut_de_la_page_perso():
-    """En bas, il fallait savoir qu'il existait. En haut, on le voit en
-    arrivant — et c'est là qu'on y pense, en ouvrant l'application le soir."""
+def test_le_choix_vit_avec_le_compte():
+    """Il a d'abord vécu en bas, où il fallait savoir qu'il existait, puis tout
+    en haut de la page perso, sur la ligne d'identité.
+
+    Le haut de la page est maintenant le titre de la page et son action : c'est
+    ce qu'on vient y faire. La lumière, l'emblème et le prénom sont des
+    RÉGLAGES — on n'ouvre pas un site pour les changer — et ils ont rejoint le
+    pied, avec se déconnecter et effacer son compte. La colonne de gauche y
+    mène en un geste, ce que la page d'avant ne savait pas faire.
+    """
     espace = _espace()
     for identifiant in ("apparence-claire", "apparence-sombre"):
         assert f'id="{identifiant}"' in espace, identifiant
-    # Sur la ligne d'identité, tout en haut : c'est un réglage de l'élève, pas
-    # une destination — il n'a rien à faire parmi les six portes.
-    assert espace.index('class="apparence"') < espace.index('class="rubriques"')
+    # Dans « mon compte », et donc après le titre de la page et la liste.
+    assert espace.index('id="mon-compte"') < espace.index('class="apparence"')
+    assert espace.index('class="tete-page"') < espace.index('id="mon-compte"')
+    assert espace.index('id="rangs-cours"') < espace.index('id="mon-compte"')
+    # Et la ligne d'identité reste la ligne d'identité : le réglage est posé
+    # dessus, pas rangé dans un écran de préférences qu'il faudrait trouver.
     assert espace.index('class="moi"') < espace.index('class="apparence"')
 
 

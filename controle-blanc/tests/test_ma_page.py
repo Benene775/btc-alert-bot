@@ -45,7 +45,7 @@ def test_le_calendrier_ne_decale_pas_les_jours():
 
 
 def test_l_ecran_existe_avec_ses_sections():
-    for identifiant in ("ecran-espace", "rubriques-espace", "rangs-cours",
+    for identifiant in ("ecran-espace", "carcasse", "rangs-cours", "compte-cours",
                         "mois-grille", "jour-detail",
                         "liste-mes-fiches", "liste-mes-controles", "frise-regularite",
                         "champ-prenom", "embleme", "porte-photo", "porte-fiches",
@@ -113,7 +113,7 @@ def test_rien_n_est_cache_derriere_un_mecanisme():
     frise vit dans l'agenda, et la porte de l'agenda s'appelle « Ton agenda ».
     """
     assert "function retournerCarte" not in SCRIPT, "le retournement est revenu"
-    agenda = PAGE[PAGE.index('id="agenda-deplie"') : PAGE.index('id="bouton-quitter-espace"')]
+    agenda = PAGE[PAGE.index('id="agenda-deplie"') : PAGE.index('id="mon-compte"')]
     assert 'id="frise-regularite"' in agenda, "la frise n'est pas dans l'agenda"
     assert 'id="mois-grille"' in agenda
     # « Ton agenda » était le nom d'une tuile ; c'est une rubrique maintenant,
@@ -316,11 +316,13 @@ def test_ouvert_l_agenda_est_seul():
     la prochaine échéance, l'étagère, les boutons du bas. L'attribut est posé
     par le script : sans lui la page reste entière."""
     mode = '#ecran-espace[data-agenda="ouvert"]'
-    # Les rubriques, elles, RESTENT : c'est par elles qu'on sort de l'agenda.
-    autour = (".moi", "#atelier", ".rangs", ".echeance", ".pied-cours",
-              "#bouton-quitter-espace", ".pied-compte")
+    # La carcasse, elle, RESTE : c'est par elle qu'on sort de l'agenda — et
+    # elle n'a plus besoin d'être épargnée nommément, puisqu'elle vit hors des
+    # écrans. Ce qui s'efface est tout le contenu de la page.
+    autour = (".tete-page", ".echeance", ".colonnes-espace", ".mon-compte")
     for quoi in autour:
         assert f"{mode} {quoi}" in STYLE, f"« {quoi} » reste visible sous l'agenda"
+    assert f"{mode} .carcasse" not in STYLE, "l'agenda efface la navigation"
     # Le bandeau d'installation vit au-dessus des écrans, pas dans celui-ci : il
     # s'efface par la racine, que le script marque en même temps.
     assert ':root[data-agenda="ouvert"] .bandeau-install' in STYLE
