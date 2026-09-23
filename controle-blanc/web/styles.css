@@ -1252,11 +1252,16 @@ select {
 
 .fiche-souffle {
   font-family: var(--utilitaire);
-  font-size: .71rem;
-  letter-spacing: .07em;
-  text-transform: lowercase;
+  font-size: .68rem;
+  letter-spacing: .09em;
+  text-transform: uppercase;
   color: var(--encre-douce);
-  margin: 8px 0 16px;
+  margin: 8px 0 0;
+  padding-bottom: var(--e2);
+  /* Le filet double ferme la tête, comme une manchette : au-dessus le titre de
+     la fiche, en dessous ce qu'il y a dedans. */
+  border-bottom: 3px double var(--encre);
+  margin-bottom: var(--e3);
 }
 
 /* Sur un écran court, l’en-tête cède la place aux cartes. */
@@ -1490,9 +1495,16 @@ select {
    deux cartes dont une coupée en deux, au milieu d'un écran vide aux trois
    quarts. Ici, deux cartes entières et la troisième qui dépasse pour dire qu'il
    y a une suite — et le titre reste aligné sur elles, ce qu'un débordement du
-   seul paquet n'aurait pas donné. */
+   seul paquet n'aurait pas donné.
+
+   Mais cette largeur-là est celle du PAQUET. En colonne, prise sur 1120 pixels,
+   une ligne de fiche faisait cent trente caractères : on perd la ligne suivante
+   en revenant à la marge, et c'est la lecture même qui se défait. La colonne
+   garde donc la colonne de lecture — et retrouve du même coup l'alignement du
+   « ← Retour », qui s'y cale et paraissait centré au milieu d'une fiche deux
+   fois plus large. */
 @media (min-width: 900px) {
-  .ecran-fiche { max-width: min(var(--large), 92vw); }
+  .ecran-fiche:has(.paquet[data-vue="paquet"]) { max-width: min(var(--large), 92vw); }
   .carte-fiche { flex: 0 0 460px; }
 }
 
@@ -1897,7 +1909,56 @@ select {
   min-height: 44px;
 }
 
-/* Pour qui préfère tout lire d’une traite : les cartes se remettent en colonne. */
+/* --- LE SOMMAIRE DE LA FICHE ---------------------------------------------
+ *
+ * Trois lignes qui disent ce qu'il y a dedans. Sur un fond creux, encadré de
+ * filets : c'est un bloc de service, il ne doit pas se lire comme une notion.
+ */
+.sommaire-fiche {
+  margin: 0 0 var(--e3);
+  padding: var(--e1) 0;
+  border-top: 1px solid var(--trait);
+  border-bottom: 1px solid var(--trait);
+  background: color-mix(in srgb, var(--trait) 22%, transparent);
+}
+.sommaire-ligne {
+  display: flex;
+  align-items: baseline;
+  gap: var(--e2);
+  width: 100%;
+  min-height: 44px;
+  padding: 7px var(--e2);
+  border: 0;
+  background: none;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.sommaire-numero {
+  flex: 0 0 auto;
+  font-family: var(--utilitaire);
+  font-size: .66rem;
+  font-weight: 700;
+  color: var(--rouge);
+  font-variant-numeric: tabular-nums;
+}
+.sommaire-nom {
+  font-family: var(--titre);
+  font-size: .96rem;
+  line-height: 1.3;
+}
+
+/* --- LA FICHE EN COLONNE : UNE PAGE IMPRIMÉE -----------------------------
+ *
+ * Le paquet de cartes reste un paquet de cartes : teinte, arrondi, ombre, une
+ * notion par écran. C'est le bon objet pour réviser au doigt.
+ *
+ * En colonne, il devient autre chose : une page qu'on lit d'une traite. Les
+ * mêmes cartes cessent donc d'être des objets posés côte à côte et deviennent
+ * des SECTIONS séparées par un filet — sans quoi on obtenait une pile de
+ * vingt rectangles pastel arrondis, c'est-à-dire exactement le défaut que la
+ * refonte devait corriger.
+ */
 .paquet[data-vue="colonne"] {
   display: block;
   flex: none;
@@ -1906,6 +1967,7 @@ select {
   scroll-snap-type: none;
   margin-inline: 0;
   padding-inline: 0;
+  border-top: 1px solid var(--trait);
 }
 
 .ecran-fiche:has(.paquet[data-vue="colonne"]) { height: auto; }
@@ -1913,7 +1975,52 @@ select {
 .paquet[data-vue="colonne"] .carte-fiche {
   height: auto;
   min-height: 0;
-  margin-bottom: 14px;
+  margin-bottom: 0;
+  padding: var(--e3) 0;
+  background: none;
+  border-radius: 0;
+  box-shadow: none;
+  border-bottom: 1px solid var(--trait);
+}
+
+/* Le chiffre géant en filigrane appartient à la carte : sur une page, c'est le
+   numéro de section qui numérote, et deux numérotations se contredisent. */
+.paquet[data-vue="colonne"] .carte-chiffre { display: none; }
+
+/* La lueur au survol dit « ceci est un objet qu'on manipule ». En colonne il
+   n'y a plus d'objets, il y a une page : elle ne s'allume pas sous la souris. */
+.paquet[data-vue="colonne"] .carte-fiche::after { display: none; }
+
+/* La suite d'une section ne reprend ni son titre ni son « 2 sur 2 », et le
+   filet de séparation ne se pose pas au milieu d'une section : il sépare deux
+   notions, pas deux morceaux de la même. */
+.paquet[data-vue="colonne"] .carte-fiche[data-suite] > .carte-tete { display: none; }
+.paquet[data-vue="colonne"] .carte-fiche[data-suite] { padding-top: 0; }
+
+/* « 1 sur 2 » comptait des cartes. En colonne il n'y en a plus qu'une seule
+   suite de lignes : annoncer une seconde moitié que rien ne vient annoncer
+   ensuite, c'est promettre une page qui n'existe pas. */
+.paquet[data-vue="colonne"] .carte-suite { display: none; }
+
+/* Le recollement : sans ça, le dernier point du premier morceau et le premier
+   du second se touchent plus que deux points de la même liste. */
+.paquet[data-vue="colonne"] .carte-fiche[data-suite] .carte-corps > :first-child {
+  margin-top: 14px;
+}
+.paquet[data-vue="colonne"] .carte-fiche:has(+ .carte-fiche[data-suite]) {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+/* La provenance a une marge basse négative : elle mord dans le rembourrage de
+   la carte pour gagner trente pixels de texte. En colonne il n'y a plus de
+   rembourrage à mordre, et elle passait par-dessus la suite. */
+.paquet[data-vue="colonne"] .provenance { margin-bottom: 0; }
+
+/* Et « ton cahier · page 1 » se dit une fois par notion, à la fin — pas une
+   fois par morceau de notion. */
+.paquet[data-vue="colonne"] .carte-fiche:has(+ .carte-fiche[data-suite]) .provenance {
+  display: none;
 }
 
 .paquet[data-vue="colonne"] .carte-corps {
@@ -1923,6 +2030,39 @@ select {
 
 .paquet[data-vue="colonne"] .retenir { margin-top: 0; }
 .paquet[data-vue="colonne"] .carte-retenir .carte-corps { display: block; }
+
+/* « À retenir » : un bloc à filet bleu, pas une carte de plus. Le bleu est la
+   couleur de ce sur quoi on agit, et c'est bien ce qu'on demande ici — toucher
+   pour révéler. Le masque reste : c'est le seul moment de la fiche où l'élève
+   se teste, et le retirer rendrait la page plus belle et moins utile. */
+.paquet[data-vue="colonne"] .carte-retenir {
+  padding: var(--e2) var(--e3);
+  margin: 0 0 var(--e3);
+  border: 0;
+  border-left: 3px solid var(--accent);
+  background: var(--accent-doux);
+}
+
+.paquet[data-vue="colonne"] .carte-fin {
+  border-bottom: 0;
+  text-align: center;
+  padding: var(--e4) 0 var(--e3);
+}
+
+/* Les mots et les pièges ne sont pas des notions : ce sont les appareils de la
+   fiche, comme un lexique et un errata en fin d'ouvrage. Un fond creux les
+   distingue de ce qu'il y a à apprendre — sans fond, ils se lisaient comme une
+   quatrième notion. */
+.paquet[data-vue="colonne"] .carte-mots,
+.paquet[data-vue="colonne"] .carte-pieges {
+  background: color-mix(in srgb, var(--trait) 22%, transparent);
+  padding: var(--e3);
+}
+
+/* La barre des rubans est une commande du paquet : elle dit à quelle carte on
+   en est. En colonne il n'y a plus de carte courante, et le bouton de la vue
+   d'ensemble restait seul sur sa ligne, sans rien à commander. */
+.ecran-fiche:has(.paquet[data-vue="colonne"]) .barre-fiche { display: none; }
 
 /* --- L'atelier : sur quel cours ? ----------------------------------------
  *

@@ -5849,6 +5849,12 @@ function afficherFiche(fiche, type, options = {}) {
 
     morceaux.forEach((points, morceau) => {
       const carte = carteFiche(rang);
+      // Une section trop longue tient sur deux cartes. En paquet, la seconde a
+      // besoin de son titre : elle est seule à l'écran. En colonne elle suit la
+      // première, et répéter le titre y ferait un journal qui recommence
+      // l'article à chaque colonne. On marque la suite, la feuille de style
+      // décide de ce qu'elle en montre.
+      if (morceau > 0) carte.dataset.suite = 'oui';
       const titre = document.createElement('h3');
       titre.textContent = section.titre;
 
@@ -5889,6 +5895,7 @@ function afficherFiche(fiche, type, options = {}) {
     decouper(definitions).forEach((lot, morceau, tous) => {
       const carte = carteFiche(sections.length);
       carte.classList.add('carte-mots');
+      if (morceau > 0) carte.dataset.suite = 'oui';
       const titre = document.createElement('h3');
       titre.textContent = 'Les mots à connaître';
       const liste = document.createElement('dl');
@@ -5916,6 +5923,7 @@ function afficherFiche(fiche, type, options = {}) {
     decouper(pieges).forEach((lot, morceau, tous) => {
       const carte = carteFiche(sections.length + 1);
       carte.classList.add('carte-pieges');
+      if (morceau > 0) carte.dataset.suite = 'oui';
       const titre = document.createElement('h3');
       titre.textContent = pieges.length > 1 ? 'Les pièges' : 'Le piège';
       const liste = document.createElement('ul');
@@ -6009,8 +6017,50 @@ function afficherFiche(fiche, type, options = {}) {
   paquet.scrollLeft = 0;
   majRubansMarques();
   majCarteFin();
+  dessinerSommaireFiche(groupes, secondTour);
   appliquerVueFiche(vueDeLaFiche());
   montrer('ecran-fiche');
+}
+
+/* Le sommaire de la fiche.
+ *
+ * Elle ne disait jamais ce qu'elle contenait. Le paquet de cartes obligeait à
+ * le découvrir en glissant, et la colonne à faire défiler : dans les deux cas
+ * l'élève commençait sans savoir combien il en avait pour son temps.
+ *
+ * Trois lignes en tête, et chacune y mène. Les rubriques de service — les mots,
+ * les pièges, la carte de fin — n'y figurent pas : un sommaire liste ce qu'il
+ * y a à apprendre, pas la mécanique de l'écran.
+ */
+const HORS_SOMMAIRE = new Set(['Les mots', 'Les pièges', 'Tu te souviens ?', 'C’est tout']);
+
+function dessinerSommaireFiche(groupes, secondTour) {
+  const sommaire = $('sommaire-fiche');
+  if (!sommaire) return;
+  sommaire.innerHTML = '';
+  const notions = (groupes || []).filter((titre) => !HORS_SOMMAIRE.has(titre));
+  // Au second tour il n'y a qu'une poignée de notions déjà connues, et sur une
+  // seule notion un sommaire d'une ligne ne sert qu'à occuper la place.
+  sommaire.hidden = Boolean(secondTour) || notions.length < 2;
+  if (sommaire.hidden) return;
+
+  notions.forEach((titre, rang) => {
+    const ligne = document.createElement('button');
+    ligne.type = 'button';
+    ligne.className = 'sommaire-ligne';
+    ligne.onclick = () => allerASection(titre);
+
+    const numero = document.createElement('span');
+    numero.className = 'sommaire-numero';
+    numero.textContent = String(rang + 1).padStart(2, '0');
+
+    const nom = document.createElement('span');
+    nom.className = 'sommaire-nom';
+    nom.textContent = titre;
+
+    ligne.append(numero, nom);
+    sommaire.appendChild(ligne);
+  });
 }
 
 /* --- Comment la fiche s'ouvre ---------------------------------------------
@@ -6134,8 +6184,22 @@ function dessinerRubans(titres) {
 }
 
 function allerACarte(index) {
-  const carte = $('paquet').children[index];
-  if (carte) carte.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+  const paquet = $('paquet');
+  const carte = paquet.children[index];
+  if (!carte) return;
+  // En colonne, la fiche défile avec la page. « Le plus près » y suffit à
+  // amener la notion à l'écran — mais par le bas : on la vise depuis le
+  // sommaire et on tombe sur la fin de la précédente, son titre à mi-hauteur.
+  // Un sommaire qui n'ouvre pas sur le titre visé n'est pas un sommaire. On la
+  // pose donc en haut, sous le bandeau — qui est collant et la recouvrirait.
+  if (paquet.dataset.vue === 'colonne') {
+    const bandeau = document.getElementById('bandeau');
+    const couvert = bandeau && !bandeau.hidden ? bandeau.getBoundingClientRect().height : 0;
+    const haut = carte.getBoundingClientRect().top + window.scrollY - couvert - 10;
+    window.scrollTo({ top: Math.max(0, haut), behavior: 'smooth' });
+    return;
+  }
+  carte.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
 }
 
 /* Au clavier, sur un ordinateur.

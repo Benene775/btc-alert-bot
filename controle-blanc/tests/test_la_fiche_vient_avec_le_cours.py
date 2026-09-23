@@ -156,3 +156,140 @@ def test_on_ne_dit_pas_fais_glisser_a_une_fiche_qui_ne_glisse_pas():
     # repasserait devant l'autre selon l'ordre des appels. On compte le texte
     # écrit, pas les commentaires qui le citent.
     assert SCRIPT.count("' · fais glisser'") == 1
+
+
+# --- La fiche dans la nouvelle identité --------------------------------------
+
+STYLE = (RACINE / "web" / "styles.css").read_text(encoding="utf-8")
+PAGE = (RACINE / "web" / "index.html").read_text(encoding="utf-8")
+
+
+def _bloc_js(nom: str) -> str:
+    debut = SCRIPT.index("function " + nom)
+    return SCRIPT[debut:][: SCRIPT[debut:].index("\n}\n")]
+
+
+def test_la_fiche_dit_ce_qu_elle_contient():
+    """Elle ne le disait jamais : le paquet obligeait à le découvrir en
+    glissant, la colonne à faire défiler. Dans les deux cas l'élève commençait
+    sans savoir combien il en avait pour son temps."""
+    assert 'id="sommaire-fiche"' in PAGE
+    corps = _bloc_js("dessinerSommaireFiche")
+    assert "allerASection(titre)" in corps, "une ligne du sommaire ne mène nulle part"
+    assert "padStart(2, '0')" in corps
+
+
+def test_le_sommaire_ne_liste_que_ce_qu_il_y_a_a_apprendre():
+    """Les mots, les pièges et la carte de fin sont l'appareil de la fiche, pas
+    son contenu. Un sommaire qui les liste fait croire à cinq notions quand il
+    y en a trois."""
+    assert "HORS_SOMMAIRE" in SCRIPT
+    debut = SCRIPT.index("const HORS_SOMMAIRE")
+    declaration = SCRIPT[debut : SCRIPT.index("]);", debut)]
+    for service in ("Les mots", "Les pièges", "Tu te souviens ?", "C’est tout"):
+        assert service in declaration, service
+
+
+def test_le_sommaire_se_tait_quand_il_n_a_rien_a_dire():
+    """Une seule notion, ou un second tour : un sommaire d'une ligne n'occupe
+    que la place."""
+    corps = _bloc_js("dessinerSommaireFiche")
+    assert "secondTour" in corps
+    assert "notions.length < 2" in corps
+
+
+def test_en_colonne_les_cartes_deviennent_des_sections():
+    """Le paquet reste un paquet — teinte, arrondi, ombre, une notion par écran,
+    c'est le bon objet pour réviser au doigt. En colonne c'est une page qu'on
+    lit d'une traite : les mêmes cartes empilées faisaient vingt rectangles
+    pastel arrondis, c'est-à-dire le défaut que la refonte devait corriger."""
+    bloc = STYLE[STYLE.index('.paquet[data-vue="colonne"] .carte-fiche {'):]
+    bloc = bloc[: bloc.index("\n}")]
+    assert "background: none" in bloc
+    assert "border-radius: 0" in bloc
+    assert "box-shadow: none" in bloc
+    assert "border-bottom: 1px solid var(--trait)" in bloc
+
+
+def test_le_masque_de_la_phrase_a_retenir_survit_a_la_refonte():
+    """C'est le seul moment de la fiche où l'élève se teste. Le retirer aurait
+    rendu la page plus belle et moins utile — une maquette ne décide pas de ce
+    qu'on apprend."""
+    assert '.retenir[data-masque="oui"] mark' in STYLE
+    assert "Tu te souviens" in SCRIPT
+    # Et le bloc porte la couleur de ce sur quoi on agit : on touche pour révéler.
+    bloc = STYLE[STYLE.index('.paquet[data-vue="colonne"] .carte-retenir {'):]
+    assert "border-left: 3px solid var(--accent)" in bloc[: bloc.index("\n}")]
+
+
+def test_la_barre_du_paquet_disparait_en_colonne():
+    """Les rubans disent à quelle carte on en est. En colonne il n'y a plus de
+    carte courante, et le bouton de la vue d'ensemble restait seul sur sa ligne
+    sans rien à commander."""
+    assert '.ecran-fiche:has(.paquet[data-vue="colonne"]) .barre-fiche { display: none; }' in STYLE
+
+
+def test_le_sommaire_ouvre_sur_le_titre_vise():
+    """Mesuré dans un navigateur : « le plus près » amenait bien la notion à
+    l'écran, mais par le bas — on cliquait « L'arrière et l'année 1917 » et on
+    tombait sur la fin de « La violence de masse », le titre visé à mi-hauteur.
+    Un sommaire qui n'ouvre pas sur son titre n'est pas un sommaire."""
+    corps = _bloc_js("allerACarte")
+    assert "dataset.vue === 'colonne'" in corps, "la visée doit dépendre de la vue"
+    assert "window.scrollTo" in corps
+    # Le bandeau est collant : viser le haut de la page sans le retrancher
+    # glisse le titre dessous.
+    assert "bandeau" in corps
+
+
+def test_une_notion_coupee_en_deux_ne_repete_pas_son_titre():
+    """Une section trop longue tient sur deux cartes. Empilées en colonne, on
+    lisait « La violence de masse / 1 sur 2 » puis « La violence de masse /
+    2 sur 2 » : un journal qui recommence l'article à chaque colonne."""
+    assert "carte.dataset.suite = 'oui'" in SCRIPT
+    assert SCRIPT.count("if (morceau > 0) carte.dataset.suite = 'oui';") == 3, (
+        "les trois découpages — notions, mots, pièges — marquent leur suite"
+    )
+    assert '.paquet[data-vue="colonne"] .carte-fiche[data-suite] > .carte-tete' in STYLE
+    assert '.paquet[data-vue="colonne"] .carte-suite { display: none; }' in STYLE
+
+
+def test_le_trait_separe_deux_notions_pas_deux_morceaux_de_la_meme():
+    """Sinon la page découpe au mauvais endroit : un filet au milieu d'une
+    notion et rien entre deux."""
+    assert (
+        '.paquet[data-vue="colonne"] .carte-fiche:has(+ .carte-fiche[data-suite]) {'
+        in STYLE
+    )
+    bloc = STYLE[STYLE.index(
+        '.paquet[data-vue="colonne"] .carte-fiche:has(+ .carte-fiche[data-suite]) {'
+    ):]
+    assert "border-bottom: 0" in bloc[: bloc.index("\n}")]
+
+
+def test_la_provenance_ne_passe_plus_par_dessus_la_suite():
+    """Elle a une marge basse négative : elle mord dans le rembourrage de la
+    carte pour gagner trente pixels de texte. En colonne il n'y a plus de
+    rembourrage à mordre, et la vignette recouvrait le premier point du morceau
+    suivant — vu à l'écran, pas déduit."""
+    assert '.paquet[data-vue="colonne"] .provenance { margin-bottom: 0; }' in STYLE
+    # Et elle se dit une fois par notion, pas une fois par morceau.
+    assert (
+        '.paquet[data-vue="colonne"] .carte-fiche:has(+ .carte-fiche[data-suite]) .provenance'
+        in STYLE
+    )
+
+
+def test_la_page_ne_s_allume_pas_sous_la_souris():
+    """La lueur au survol dit « ceci est un objet qu'on manipule ». En colonne
+    il n'y a plus d'objets, il y a une page."""
+    assert '.paquet[data-vue="colonne"] .carte-fiche::after { display: none; }' in STYLE
+
+
+def test_sur_un_ordinateur_la_colonne_garde_la_largeur_d_un_texte():
+    """La fiche s'élargit à 1120 pixels pour montrer deux cartes entières —
+    c'est le paquet qui en a besoin. En colonne, la même largeur donnait des
+    lignes de cent trente caractères : on perd la ligne suivante en revenant à
+    la marge."""
+    assert '.ecran-fiche:has(.paquet[data-vue="paquet"]) { max-width:' in STYLE
+    assert ".ecran-fiche { max-width: min(var(--large), 92vw); }" not in STYLE
