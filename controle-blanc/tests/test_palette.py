@@ -104,8 +104,34 @@ def test_aucun_jeton_utilise_n_est_indefini():
     assert not orphelins, f"jetons utilisés sans définition ni valeur de repli : {orphelins}"
 
 
-def test_la_palette_chaude_est_celle_de_toute_l_application():
-    """Elle vivait derrière « [data-ecran=\"fiche\"] » : le reste était bleu et froid."""
+def test_une_seule_palette_pour_toute_l_application():
+    """Elle a vécu derrière « [data-ecran=\"fiche\"] » : le reste était bleu et froid."""
     assert ':root[data-ecran="fiche"] {' not in STYLE, "la palette est de nouveau réservée à un écran"
-    assert CLAIR["--papier"].strip() == "#fbf7f2"
-    assert "--t0" in CLAIR and "--t5" in CLAIR, "les teintes des cartes ne sont pas globales"
+    assert "--t0" in CLAIR and "--t5" in CLAIR, "les teintes des matières ne sont pas globales"
+
+
+def test_les_trois_couleurs_ont_chacune_leur_role():
+    """Bleu, on peut agir. Bordeaux, ça presse. Vert, c'est acquis. Trois rôles
+    distincts, donc trois teintes qui ne doivent pas se confondre — une pastille
+    « acquis » qu'on prend pour un bouton est pire qu'une pastille grise."""
+    roles = {"--accent": "bleu", "--rouge": "bordeaux", "--acquis": "vert"}
+    valeurs = {CLAIR[jeton].strip().lower() for jeton in roles}
+    assert len(valeurs) == 3, f"deux rôles partagent la même couleur : {valeurs}"
+    for jeton in roles:
+        assert jeton in SOMBRE, f"{jeton} n'existe pas en sombre"
+
+
+def test_le_papier_n_est_plus_creme():
+    """Le fond beige chaud avec un accent ambre est la signature visuelle des
+    interfaces engendrées par une machine. Le commanditaire l'a nommée, et la
+    direction retenue s'en éloigne exprès."""
+    assert CLAIR["--papier"].strip().lower() not in ("#fbf7f2", "#faf9f7", "#f4f1ea")
+    assert CLAIR["--accent"].strip().lower() != "#9a6410", "l'ambre est revenu"
+
+
+def test_les_cartes_sont_devenues_des_blocs_a_filet():
+    """« Tout est une carte arrondie » était le premier grief. Une ombre portée
+    sur dix-neuf blocs dit « objet séparé » dix-neuf fois, et aplatit la
+    hiérarchie : il ne reste rien d'important."""
+    assert "--ombre-carte: 0 0 0 1px var(--trait)" in STYLE
+    assert CLAIR["--rayon"].strip() == "4px", "les grands rayons sont revenus"

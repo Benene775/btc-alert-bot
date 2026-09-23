@@ -25,23 +25,23 @@
 
   /* Le papier de la fiche, partout. L'application entière se lit le soir sous
      une lampe, pas sous les néons d'une salle de classe. */
-  --papier: #fbf7f2;
-  --carte: #fffdfa;
-  --encre: #241e17;
-  --encre-douce: #7a6a5a;
-  --trait: #ebe1d4;
-  --trait-fort: #d8c9b6;
+  --papier: #ffffff;
+  --carte: #ffffff;
+  --encre: #14120f;
+  --encre-douce: #66615a;
+  --trait: #dedad3;
+  --trait-fort: #c3bcb1;
 
   /* Le stylo de l'élève. */
-  --accent: #9a6410;
-  --accent-doux: #f7edda;
+  --accent: #1f3a8f;
+  --accent-doux: #e9edf8;
   /* Ce qui s'écrit SUR l'accent : blanc ici, encre sombre en mode sombre, où
      l'ambre est trop clair pour porter du blanc (2,2:1 — illisible). */
   --sur-accent: #ffffff;
-  --surligneur: rgba(255, 196, 60, .5);
+  --surligneur: rgba(255, 214, 102, .55);
   /* La lueur qui suit le curseur. Assez pour se sentir, pas assez pour
      passer devant le texte qu'elle traverse. */
-  --lueur: rgba(255, 196, 60, .22);
+  --lueur: rgba(31, 58, 143, .07);
   /* Le stylo de l'élève reste bleu même sur du papier chaud : c'est ce qui le
      sépare du rouge du prof. Sans lui, sa copie et l'annotation se confondent. */
   --stylo-eleve: #28518f;
@@ -54,34 +54,48 @@
   --marge: rgba(163, 58, 44, .3);
 
   /* Le stylo du prof. Sémantique, jamais décoratif. */
-  --rouge: #a33a2c;
-  --rouge-doux: #f8e7e2;
-  --acquis: #1c6f4e;
-  --acquis-doux: #e4f0e7;
+  --rouge: #8c2332;
+  --rouge-doux: #f7e9eb;
+  --acquis: #18653c;
+  --acquis-doux: #e6f0e9;
   --partiel: #8a5a12;
-  --partiel-doux: #f9edd8;
+  --partiel-doux: #f6eeda;
 
   /* Les six teintes des cartes, disponibles partout : c'est ce qui fait
      reconnaître une page de l'application au premier coup d'oeil. */
-  --t0: #fbeed2;  /* miel */
-  --t1: #fbe3d2;  /* abricot */
-  --t2: #fadee0;  /* rose */
-  --t3: #e3ecde;  /* sauge */
-  --t4: #dde8f1;  /* ciel */
-  --t5: #e7e1f0;  /* lilas */
+  --t0: #f4efdd;  /* miel */
+  --t1: #f7e9de;  /* abricot */
+  --t2: #f7e6e8;  /* rose */
+  --t3: #e6efe7;  /* sauge */
+  --t4: #e4ebf5;  /* ciel */
+  --t5: #eae6f1;  /* lilas */
 
   /* Une carte se pose sur le papier, elle ne s'y découpe pas au trait. */
-  --ombre-carte: 0 1px 2px color-mix(in srgb, var(--encre) 8%, transparent),
-                 0 14px 34px -18px color-mix(in srgb, var(--encre) 32%, transparent);
-  --voile: rgba(36, 30, 23, .82);
+  /* Plus une ombre portée : un filet d'un pixel. Dix-neuf blocs de la feuille
+     l'emploient comme « box-shadow » ; en changeant cette seule ligne, les
+     cartes flottantes deviennent des blocs bordés, sans toucher au reste. Une
+     ombre reste possible là où quelque chose doit vraiment se détacher du
+     papier — une feuille qui monte du bas, une boîte de dialogue. */
+  --ombre-carte: 0 0 0 1px var(--trait);
+  --voile: rgba(20, 18, 15, .82);
+  /* Le bandeau d'installation est un aplat pleine largeur : il ne peut
+     pas prendre l'accent tel quel, qui s'éclaircit en mode sombre et
+     ferait un projecteur au-dessus d'une page noire. */
+  --bandeau-fond: #1f3a8f;
+  --bandeau-encre: #ffffff;
+  --bandeau-bouton: #ffffff;
+  --bandeau-bouton-encre: #1f3a8f;
 
-  --titre: "Fraunces", Georgia, "Times New Roman", serif;
-  --texte: "Schibsted Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --titre: "Newsreader", Georgia, "Times New Roman", serif;
+  --texte: "Public Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  /* Le rôle utilitaire : rubriques, états, légendes, chiffres alignés.
+     Même famille que le texte, mais employée en petites capitales
+     espacées — c'est ce qui sépare ce qu'on lit de ce qui se repère. */
+  --utilitaire: "Public Sans", -apple-system, "Segoe UI", Roboto, sans-serif;
   --manuscrit: "Caveat", "Segoe Script", cursive;
 
-  --rayon: 16px;
-  --rayon-carte: 22px;
+  --rayon: 4px;
+  --rayon-carte: 6px;
   --gouttiere: 20px;
   --colonne: 620px;
   --large: 1120px;
@@ -102,69 +116,77 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --papier: #17130e;
-    --carte: #211b14;
-    --encre: #f4ede3;
-    --encre-douce: #a89887;
-    --trait: #33291e;
-    --trait-fort: #473a2a;
-    --accent: #d9a94a;
-    --accent-doux: #2a2013;
-    --sur-accent: #17130e;
-    --surligneur: rgba(224, 173, 66, .3);
-    --lueur: rgba(224, 173, 66, .13);
+    --papier: #12141a;
+    --carte: #181b22;
+    --encre: #eceef2;
+    --encre-douce: #a0a6b0;
+    --trait: #2c313a;
+    --trait-fort: #434a56;
+    --accent: #9db2ea;
+    --accent-doux: #1c2438;
+    --sur-accent: #12141a;
+    --surligneur: rgba(226, 184, 74, .28);
+    --lueur: rgba(157, 178, 234, .10);
     --stylo-eleve: #9dbcf2;
     --stylo-eleve-doux: #1b2436;
     --seyes: rgba(157, 188, 242, .05);
     --seyes-fort: rgba(157, 188, 242, .09);
     --marge: rgba(224, 138, 118, .28);
-    --rouge: #e08a76;
-    --rouge-doux: #2e1a19;
-    --acquis: #55bd90;
-    --acquis-doux: #13291f;
+    --rouge: #e08a8f;
+    --rouge-doux: #2d1a1d;
+    --acquis: #6ac295;
+    --acquis-doux: #13261d;
     --partiel: #d7a548;
-    --partiel-doux: #2a2013;
-    --t0: #2c2313;
-    --t1: #2e2118;
-    --t2: #2e1c1e;
-    --t3: #1b2619;
-    --t4: #16222c;
-    --t5: #231d2e;
-    --voile: rgba(10, 8, 5, .86);
+    --partiel-doux: #2a2214;
+    --t0: #26231a;
+    --t1: #28211b;
+    --t2: #281c20;
+    --t3: #18251f;
+    --t4: #162231;
+    --t5: #221e2e;
+    --voile: rgba(6, 8, 12, .86);
   }
+  --bandeau-fond: #1a2340;
+  --bandeau-encre: #dde3f4;
+  --bandeau-bouton: #9db2ea;
+  --bandeau-bouton-encre: #12141a;
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --papier: #17130e;
-  --carte: #211b14;
-  --encre: #f4ede3;
-  --encre-douce: #a89887;
-  --trait: #33291e;
-  --trait-fort: #473a2a;
-  --accent: #d9a94a;
-  --accent-doux: #2a2013;
-  --sur-accent: #17130e;
-  --surligneur: rgba(224, 173, 66, .3);
-  --lueur: rgba(224, 173, 66, .13);
+  --papier: #12141a;
+  --carte: #181b22;
+  --encre: #eceef2;
+  --encre-douce: #a0a6b0;
+  --trait: #2c313a;
+  --trait-fort: #434a56;
+  --accent: #9db2ea;
+  --accent-doux: #1c2438;
+  --sur-accent: #12141a;
+  --surligneur: rgba(226, 184, 74, .28);
+  --lueur: rgba(157, 178, 234, .10);
   --stylo-eleve: #9dbcf2;
   --stylo-eleve-doux: #1b2436;
   --seyes: rgba(157, 188, 242, .05);
   --seyes-fort: rgba(157, 188, 242, .09);
   --marge: rgba(224, 138, 118, .28);
-  --rouge: #e08a76;
-  --rouge-doux: #2e1a19;
-  --acquis: #55bd90;
-  --acquis-doux: #13291f;
+  --rouge: #e08a8f;
+  --rouge-doux: #2d1a1d;
+  --acquis: #6ac295;
+  --acquis-doux: #13261d;
   --partiel: #d7a548;
-  --partiel-doux: #2a2013;
-  --t0: #2c2313;
-  --t1: #2e2118;
-  --t2: #2e1c1e;
-  --t3: #1b2619;
-  --t4: #16222c;
-  --t5: #231d2e;
-  --voile: rgba(10, 8, 5, .86);
+  --partiel-doux: #2a2214;
+  --t0: #26231a;
+  --t1: #28211b;
+  --t2: #281c20;
+  --t3: #18251f;
+  --t4: #162231;
+  --t5: #221e2e;
+  --voile: rgba(6, 8, 12, .86);
+  --bandeau-fond: #1a2340;
+  --bandeau-encre: #dde3f4;
+  --bandeau-bouton: #9db2ea;
+  --bandeau-bouton-encre: #12141a;
 }
 
 * { box-sizing: border-box; }
@@ -321,7 +343,7 @@ body {
 }
 
 .compte-a-rebours {
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .72rem;
   letter-spacing: .04em;
   color: var(--accent);
@@ -413,7 +435,7 @@ h3 {
 .progression,
 .bloc-titre,
 .partie {
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .7rem;
   letter-spacing: .14em;
   text-transform: uppercase;
@@ -481,7 +503,7 @@ h3 {
 }
 
 .copie-numero {
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .82rem;
   color: var(--rouge);
 }
@@ -840,7 +862,7 @@ select {
   border-radius: 12px;
   background: var(--voile);
   color: var(--papier);
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .72rem;
   display: grid;
   place-items: center;
@@ -937,7 +959,7 @@ select {
    Une phrase qu'on lit à chaque visite mérite d'être lisible : le chiffré garde
    le mono, mais pas la taille d'un compteur qu'on ne lisait qu'une fois. */
 .reste-pages {
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .78rem;
   line-height: 1.5;
   letter-spacing: .02em;
@@ -996,7 +1018,7 @@ select {
 }
 
 .verif-page {
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .62rem;
   letter-spacing: .1em;
   text-transform: uppercase;
@@ -1034,7 +1056,7 @@ select {
 }
 
 .doute-ou {
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .64rem;
   letter-spacing: .05em;
   color: var(--encre-douce);
@@ -1095,7 +1117,7 @@ select {
   align-items: center;
   gap: 6px;
   cursor: pointer;
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .68rem;
   letter-spacing: .06em;
   color: var(--accent);
@@ -1145,7 +1167,7 @@ select {
   margin: 14px 0 6px;
   padding-top: 10px;
   border-top: 1px solid var(--trait);
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .62rem;
   letter-spacing: .1em;
   text-transform: uppercase;
@@ -1229,7 +1251,7 @@ select {
 }
 
 .fiche-souffle {
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .71rem;
   letter-spacing: .07em;
   text-transform: lowercase;
@@ -1345,7 +1367,7 @@ select {
 
 .tuile-etat {
   flex: 0 0 auto;
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .62rem;
   letter-spacing: .1em;
   text-transform: uppercase;
@@ -1444,7 +1466,7 @@ select {
 }
 
 .retenir-clair-titre {
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .6rem;
   letter-spacing: .12em;
   text-transform: uppercase;
@@ -1525,7 +1547,7 @@ select {
 }
 
 .carte-suite {
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .66rem;
   letter-spacing: .12em;
   text-transform: uppercase;
@@ -1534,7 +1556,7 @@ select {
 }
 
 .carte-etiquette {
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .68rem;
   letter-spacing: .14em;
   text-transform: uppercase;
@@ -1616,7 +1638,7 @@ select {
 }
 
 .reveler-geste {
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .68rem;
   letter-spacing: .1em;
   color: color-mix(in srgb, var(--encre) 45%, transparent);
@@ -1790,7 +1812,7 @@ select {
 }
 
 .provenance-texte {
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .66rem;
   letter-spacing: .09em;
   color: color-mix(in srgb, var(--encre) 55%, transparent);
@@ -1816,7 +1838,7 @@ select {
 }
 
 .legende-page {
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .7rem;
   letter-spacing: .1em;
   color: rgba(255, 255, 255, .72);
@@ -1914,7 +1936,7 @@ select {
 .atelier-chapeau { color: var(--encre-douce); font-size: .93rem; margin: 0 0 var(--e3); }
 
 .atelier-etiquette-champ {
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .64rem;
   letter-spacing: .1em;
   text-transform: uppercase;
@@ -1996,7 +2018,7 @@ select {
   border: 1.5px solid var(--trait);
   background: var(--carte);
   color: var(--encre-douce);
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .72rem;
   cursor: pointer;
   padding: 0;
@@ -2091,7 +2113,7 @@ select {
 .fragiles h3 { font-family: var(--titre); font-size: 1.1rem; font-weight: 600; margin-bottom: 10px; }
 .fragiles ol { margin: 0; padding-left: 20px; }
 .fragiles li { margin-bottom: 10px; }
-.fragiles li::marker { font-family: var(--mono); font-size: .85rem; color: var(--accent); }
+.fragiles li::marker { font-family: var(--utilitaire); font-size: .85rem; color: var(--accent); }
 .fragiles li:last-child { margin-bottom: 0; }
 .fragiles b { display: block; }
 .fragiles span { font-size: .88rem; color: var(--encre-douce); }
@@ -2129,7 +2151,7 @@ select {
   border-radius: 50%;
   display: grid;
   place-items: center;
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .72rem;
   background: color-mix(in srgb, var(--encre) 7%, transparent);
   color: var(--encre-douce);
@@ -2147,7 +2169,7 @@ select {
 
 /* En tête de l'énoncé, pas au-dessus : le texte coule autour. */
 .etiquette-statut {
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .6rem;
   letter-spacing: .1em;
   text-transform: uppercase;
@@ -2252,7 +2274,7 @@ details.detail-reponse p { font-size: .92rem; margin: 0 0 10px; }
 }
 
 .etapes li:last-child { border-bottom: 0; }
-.etapes .marqueur { flex: 0 0 22px; font-family: var(--mono); color: var(--acquis); }
+.etapes .marqueur { flex: 0 0 22px; font-family: var(--utilitaire); color: var(--acquis); }
 .etapes li[data-fait="non"] { color: var(--encre-douce); }
 .etapes li[data-fait="non"] .marqueur { color: var(--trait-fort); }
 
@@ -2270,7 +2292,7 @@ details.detail-reponse p { font-size: .92rem; margin: 0 0 10px; }
 
 .lien-reprise code {
   display: block;
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .74rem;
   word-break: break-all;
   background: var(--papier);
@@ -2521,7 +2543,7 @@ h1 {
 /* Le code se lit à voix haute depuis un téléphone posé à côté : il faut des
    chiffres larges, espacés, et non proportionnels pour qu'ils ne dansent pas. */
 .champ-code {
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: 1.6rem;
   letter-spacing: .34em;
   text-align: center;
@@ -2689,7 +2711,7 @@ h1 {
   border-radius: 12px;
   background: var(--accent-doux);
   color: var(--accent);
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .82rem;
   line-height: 1.5;
 }
@@ -2856,7 +2878,7 @@ h1 {
 }
 
 .acces-perso-mot {
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .62rem;
   letter-spacing: .1em;
   text-transform: uppercase;
@@ -2883,7 +2905,7 @@ h1 {
 .apercu { position: relative; }
 
 .apercu-invite {
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .62rem;
   letter-spacing: .12em;
   text-transform: uppercase;
@@ -2967,7 +2989,7 @@ h1 {
 }
 
 .apercu-etiquette {
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .62rem;
   letter-spacing: .12em;
   text-transform: uppercase;
@@ -3004,7 +3026,7 @@ h1 {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .62rem;
   letter-spacing: .08em;
   color: color-mix(in srgb, var(--encre) 55%, transparent);
@@ -3092,7 +3114,7 @@ h1 {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .7rem;
   letter-spacing: .14em;
   text-transform: uppercase;
@@ -3346,7 +3368,7 @@ h1 {
 }
 
 .atelier-titre {
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .6rem;
   letter-spacing: .09em;
   text-transform: uppercase;
@@ -3517,7 +3539,7 @@ h1 {
    zéro : ce compteur peut être en retard, et c'est le serveur qui dit non. */
 .tuile-reste {
   margin-top: 2px;
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .6rem;
   letter-spacing: .03em;
   color: var(--encre-douce);
@@ -3538,7 +3560,7 @@ h1 {
   border-radius: 999px;
   background: var(--accent);
   color: var(--sur-accent);
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .68rem;
   display: inline-flex;
   align-items: center;
@@ -3713,7 +3735,7 @@ h1 {
   border-radius: 11px;
   background: color-mix(in srgb, var(--carte) 78%, transparent);
   color: var(--accent);
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .68rem;
   font-weight: 700;
   letter-spacing: .02em;
@@ -3809,7 +3831,7 @@ h1 {
 
 .apercu-jour-combien {
   margin: 0 0 6px;
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .6rem;
   letter-spacing: .09em;
   text-transform: uppercase;
@@ -4075,7 +4097,7 @@ h1 {
   justify-content: start;
   /* Décalée de la colonne des jours, pour tomber sur la grille. */
   margin-left: 15px;
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .52rem;
   letter-spacing: .06em;
   text-transform: uppercase;
@@ -4094,7 +4116,7 @@ h1 {
   grid-template-rows: repeat(7, 10px);
   gap: 3px;
   width: 10px;
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .48rem;
   line-height: 10px;
   text-align: center;
@@ -4141,7 +4163,7 @@ h1 {
 
 /* Sans légende, personne ne devine que chaque colonne est une semaine. */
 .frise-legende {
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .55rem;
   letter-spacing: .09em;
   text-transform: uppercase;
@@ -4167,8 +4189,8 @@ h1 {
   align-items: flex-start;
   gap: var(--e2);
   padding: calc(10px + env(safe-area-inset-top, 0px)) var(--e3) 10px;
-  background: var(--accent);
-  color: var(--sur-accent);
+  background: var(--bandeau-fond);
+  color: var(--bandeau-encre);
 }
 
 /* Les boutons restent alignés sous le texte, jamais flottants à droite d'un
@@ -4229,8 +4251,8 @@ h1 {
   padding: 9px 15px;
   border: 0;
   border-radius: 999px;
-  background: var(--sur-accent);
-  color: var(--accent);
+  background: var(--bandeau-bouton);
+  color: var(--bandeau-bouton-encre);
   font: inherit;
   font-size: .82rem;
   font-weight: 650;
@@ -4400,7 +4422,7 @@ h1 {
 .pan-tete { display: flex; align-items: baseline; justify-content: space-between; gap: var(--e2); }
 
 .pan-titre {
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .66rem;
   letter-spacing: .14em;
   text-transform: uppercase;
@@ -4446,7 +4468,7 @@ h1 {
 .pan-tete-pliante .pan-titre { flex: 1; }
 
 .pan-compte {
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .62rem;
   padding: 2px 7px;
   border-radius: 999px;
@@ -4524,7 +4546,7 @@ h1 {
   border-radius: 14px;
   display: grid;
   place-items: center;
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .68rem;
   letter-spacing: .06em;
   background: color-mix(in srgb, var(--carte) 70%, transparent);
@@ -4587,7 +4609,7 @@ h1 {
 }
 
 .jours-semaine {
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .6rem;
   letter-spacing: .08em;
   color: var(--encre-douce);
@@ -4642,7 +4664,7 @@ h1 {
 .jour-detail { display: flex; flex-direction: column; gap: 6px; margin-top: var(--e2); }
 
 .jour-detail-titre {
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .64rem;
   letter-spacing: .1em;
   text-transform: uppercase;
@@ -4729,7 +4751,7 @@ h1 {
 
 .relier-titre {
   margin: 0 0 var(--e2);
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .72rem;
   letter-spacing: .06em;
   text-transform: uppercase;
@@ -4804,7 +4826,7 @@ h1 {
 }
 
 .ajout-rv-titre {
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .62rem;
   letter-spacing: .1em;
   text-transform: uppercase;
@@ -4910,7 +4932,7 @@ h1 {
 
 .revient-fois {
   flex: 0 0 auto;
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .64rem;
   letter-spacing: .06em;
   text-transform: uppercase;
@@ -4944,7 +4966,7 @@ h1 {
 }
 
 .revient-intro {
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .6rem;
   letter-spacing: .1em;
   text-transform: uppercase;
@@ -4980,7 +5002,7 @@ h1 {
 }
 
 .revient-fiche-ou {
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .62rem;
   letter-spacing: .04em;
   color: var(--encre-douce);
@@ -5046,7 +5068,7 @@ h1 {
 .groupe-nom {
   flex: 1;
   min-width: 0;
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .68rem;
   letter-spacing: .1em;
   text-transform: uppercase;
@@ -5055,7 +5077,7 @@ h1 {
 
 .groupe-compte {
   flex: 0 0 auto;
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .64rem;
   padding: 2px 7px;
   border-radius: 999px;
@@ -5168,7 +5190,7 @@ h1 {
 }
 
 .bascule-compte {
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .64rem;
   font-weight: 400;
   font-variant-numeric: tabular-nums;
@@ -5210,7 +5232,7 @@ h1 {
 }
 
 .puce-compte {
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .6rem;
   font-weight: 400;
   font-variant-numeric: tabular-nums;
@@ -5229,7 +5251,7 @@ h1 {
 .archive-liste { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
 
 .archive-mois {
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .58rem;
   letter-spacing: .14em;
   text-transform: uppercase;
@@ -5276,7 +5298,7 @@ h1 {
   border-radius: 11px;
   display: grid;
   place-items: center;
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .62rem;
   letter-spacing: .04em;
   font-weight: 500;
@@ -5313,7 +5335,7 @@ h1 {
 }
 
 .ligne-archive-bas {
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: .6rem;
   letter-spacing: .07em;
   text-transform: uppercase;
@@ -5749,7 +5771,7 @@ h1 {
 }
 
 .papier-dessous {
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: 7.5pt;
   letter-spacing: .08em;
   text-transform: uppercase;
@@ -5762,16 +5784,16 @@ h1 {
   margin: 0 0 2.6mm;
   padding: 2.2mm 2.6mm 2.4mm;
   border-radius: 2.4mm;
-  background: #fbeed2;
+  background: #f4efdd;
 }
 
 /* Les six teintes de l'application, dans le même ordre : une partie garde sa
    couleur du téléphone au papier. */
-.papier-partie[data-teinte="1"] { background: #fbe3d2; }
-.papier-partie[data-teinte="2"] { background: #fadee0; }
-.papier-partie[data-teinte="3"] { background: #e3ecde; }
-.papier-partie[data-teinte="4"] { background: #dde8f1; }
-.papier-partie[data-teinte="5"] { background: #e7e1f0; }
+.papier-partie[data-teinte="1"] { background: #f7e9de; }
+.papier-partie[data-teinte="2"] { background: #f7e6e8; }
+.papier-partie[data-teinte="3"] { background: #e6efe7; }
+.papier-partie[data-teinte="4"] { background: #e4ebf5; }
+.papier-partie[data-teinte="5"] { background: #eae6f1; }
 
 .papier-partie-titre {
   font-family: var(--titre);
@@ -5784,7 +5806,7 @@ h1 {
 }
 
 .papier-numero {
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: 8pt;
   color: #9a6410;
   border: .8pt solid #9a6410;
@@ -5812,7 +5834,7 @@ h1 {
 }
 
 .papier-retenir-mot {
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: 7pt;
   letter-spacing: .08em;
   text-transform: uppercase;
@@ -5859,7 +5881,7 @@ h1 {
 }
 
 .papier-pied {
-  font-family: var(--mono);
+  font-family: var(--utilitaire);
   font-size: 7pt;
   text-align: center;
   color: rgba(36, 30, 23, .55);

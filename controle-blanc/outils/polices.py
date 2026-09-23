@@ -36,9 +36,8 @@ NAVIGATEUR = "Python-urllib/3"
 URL = (
     "https://fonts.googleapis.com/css2?"
     "family=Caveat:wght@600"
-    "&family=Fraunces:opsz,wght@9..144,600"
-    "&family=IBM+Plex+Mono:wght@500"
-    "&family=Schibsted+Grotesk:wght@400;700&display=swap"
+    "&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400"
+    "&family=Public+Sans:wght@400;600;700&display=swap"
 )
 
 # Ce dont une application française a besoin : l'ASCII imprimable, les lettres
@@ -140,9 +139,14 @@ def main() -> int:
 
         famille = re.search(r"font-family: '([^']+)'", bloc).group(1)
         graisse = re.search(r"font-weight: (\S+);", bloc).group(1)
-        if (famille, graisse) in vus:
+        style_ = re.search(r"font-style: (\S+);", bloc)
+        style_ = style_.group(1) if style_ else "normal"
+        # Le style fait partie de l'identité d'une police : sans lui, l'italique
+        # d'une graisse déjà vue était sauté en silence, et le navigateur le
+        # remplaçait par un faux italique penché à la main.
+        if (famille, graisse, style_) in vus:
             continue
-        vus.add((famille, graisse))
+        vus.add((famille, graisse, style_))
 
         brut = telecharger(lien.group(1), binaire=True)
         jeu = RESTREINTES.get(famille, CARACTERES)
@@ -150,7 +154,7 @@ def main() -> int:
         avant += len(brut)
         apres += len(reduit)
 
-        verifier(famille, graisse, reduit, jeu)
+        verifier(f"{famille} {style_}", graisse, reduit, jeu)
 
         donnees = base64.b64encode(reduit).decode()
         bloc = re.sub(

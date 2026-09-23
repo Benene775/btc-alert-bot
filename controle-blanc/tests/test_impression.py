@@ -234,7 +234,7 @@ def test_elle_porte_les_couleurs_de_l_application():
     # Sans ça, les navigateurs suppriment les fonds : la fiche sortirait grise.
     assert "print-color-adjust: exact" in IMPRESSION
     # Les trois familles de l'application, jamais une police du système seule.
-    for police in ("var(--titre)", "var(--texte)", "var(--mono)"):
+    for police in ("var(--titre)", "var(--texte)", "var(--utilitaire)"):
         assert police in feuille or police in ECRAN[ECRAN.index("#fiche-papier {"):], \
             f"{police} manque à la feuille"
 
