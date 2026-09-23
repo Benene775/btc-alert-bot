@@ -45,7 +45,8 @@ def test_le_calendrier_ne_decale_pas_les_jours():
 
 
 def test_l_ecran_existe_avec_ses_sections():
-    for identifiant in ("ecran-espace", "tuiles", "mois-grille", "jour-detail",
+    for identifiant in ("ecran-espace", "rubriques-espace", "rangs-cours",
+                        "mois-grille", "jour-detail",
                         "liste-mes-fiches", "liste-mes-controles", "frise-regularite",
                         "champ-prenom", "embleme", "porte-photo", "porte-fiches",
                         "porte-controles", "bouton-fabriquer"):
@@ -115,7 +116,9 @@ def test_rien_n_est_cache_derriere_un_mecanisme():
     agenda = PAGE[PAGE.index('id="agenda-deplie"') : PAGE.index('id="bouton-quitter-espace"')]
     assert 'id="frise-regularite"' in agenda, "la frise n'est pas dans l'agenda"
     assert 'id="mois-grille"' in agenda
-    assert ">Ton agenda<" in PAGE, "la porte de l'agenda ne dit pas son nom"
+    # « Ton agenda » était le nom d'une tuile ; c'est une rubrique maintenant,
+    # et une rubrique porte un nom court, comme dans un journal.
+    assert ">Agenda<" in PAGE, "la rubrique de l'agenda ne dit pas son nom"
 
 
 def test_l_archive_est_faite_pour_une_annee_entiere():
@@ -200,7 +203,7 @@ def test_l_agenda_s_ouvre_depuis_sa_porte():
     assert "<button" in porte, "la porte n'est pas un bouton"
     assert 'aria-expanded="false"' in porte
     assert 'aria-controls="agenda-deplie"' in porte
-    assert "tuile-porte" in porte, "la porte de l'agenda n'est pas une des six"
+    assert "rubrique" in porte, "l'agenda n'est pas une rubrique de la barre"
 
 
 def test_la_frise_est_redessinee_quand_l_agenda_s_ouvre():
@@ -221,10 +224,10 @@ def test_la_porte_de_l_agenda_se_lit_sans_survol():
     sans rien survoler — et il dit en plus ce qu'il y a derrière : la prochaine
     échéance sous son nom, le nombre d'échéances sur sa pastille."""
     porte = PAGE[PAGE.index('id="bouton-agenda"') : PAGE.index('id="porte-matieres"')]
-    assert ">Ton agenda<" in porte
+    assert ">Agenda<" in porte
     assert 'id="agenda-mot"' in porte, "la porte ne dit pas ce qui vient"
     assert 'id="compte-agenda"' in porte, "la porte ne dit pas combien"
-    portes = SCRIPT[SCRIPT.index("function dessinerLesPortes"):]
+    portes = SCRIPT[SCRIPT.index("function dessinerLesOnglets"):]
     portes = portes[: portes.index("\n}\n")]
     assert "Pose ta prochaine date" in portes, "rien n'est dit quand l'agenda est vide"
 
@@ -313,7 +316,8 @@ def test_ouvert_l_agenda_est_seul():
     la prochaine échéance, l'étagère, les boutons du bas. L'attribut est posé
     par le script : sans lui la page reste entière."""
     mode = '#ecran-espace[data-agenda="ouvert"]'
-    autour = (".moi", "#atelier", '.tuile-porte:not(#bouton-agenda)',
+    # Les rubriques, elles, RESTENT : c'est par elles qu'on sort de l'agenda.
+    autour = (".moi", "#atelier", ".rangs", ".echeance", ".pied-cours",
               "#bouton-quitter-espace", ".pied-compte")
     for quoi in autour:
         assert f"{mode} {quoi}" in STYLE, f"« {quoi} » reste visible sous l'agenda"
@@ -323,12 +327,14 @@ def test_ouvert_l_agenda_est_seul():
     assert "document.documentElement.dataset.agenda = 'ouvert'" in SCRIPT
     assert "dataset.agenda = 'ouvert'" in SCRIPT, "le script ne pose jamais le mode"
 
-    # Sa propre porte reste : il faut pouvoir refermer. Elle s'allonge en barre,
-    # parce qu'un carré posé au-dessus d'un calendrier pleine largeur ne va
-    # nulle part — et son nom change pour dire ce que le clic fera.
-    assert f"{mode} #bouton-agenda" in STYLE
-    assert "aspect-ratio: auto" in STYLE[STYLE.index(f"{mode} #bouton-agenda {{"):][:400]
-    assert "Replier l’agenda" in SCRIPT
+    # La barre de rubriques reste entière : c'est par elle qu'on sort de
+    # l'agenda. L'effacer avec le reste enfermait l'élève dans le calendrier,
+    # et il fallait deviner que le bouton du téléphone le ramènerait.
+    assert f"{mode} .rubriques" not in STYLE
+    # La rubrique de l'agenda ne change plus ni de forme ni de nom : c'est sa
+    # marque qui dit qu'elle est ouverte. « Replier l'agenda » sur une rubrique
+    # se lisait comme un ordre au milieu de quatre noms d'endroits.
+    assert "marquerOnglet(ouvre ? 'bouton-agenda' : 'onglet-cours')" in SCRIPT
 
 
 def test_un_jour_cliqué_ouvre_sa_fiche_sur_le_cote():

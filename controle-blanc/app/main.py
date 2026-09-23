@@ -371,7 +371,14 @@ def page() -> FileResponse:
 @app.get("/api/config")
 def configuration() -> dict[str, Any]:
     return {
-        "matieres": formats.liste_matieres(),
+        # Le nom court et sa forme élidée viennent d'ici, pas d'une table
+        # recopiée dans le navigateur : « Contrôle de Histoire-Géographie /
+        # EMC » se lisait aussi mal à l'écran que dans une notification, et
+        # deux tables jumelles finissent toujours par diverger.
+        "matieres": [
+            {**m, "court": rappels.nom_court(m["cle"]), "de": rappels.de_la_matiere(m["cle"])}
+            for m in formats.liste_matieres()
+        ],
         "niveaux": formats.NIVEAUX,
         "mode_demonstration": config.DEMO_MODE,
         "max_photos": config.MAX_PHOTOS_PAR_ANALYSE,

@@ -84,8 +84,11 @@ def test_la_page_perso_vide_n_est_pas_un_cul_de_sac():
     # La porte pleine dit quoi faire, et c'est la première des six : sur un
     # téléphone de 390 px, les six carrés tiennent sous le pli.
     assert 'id="porte-photo"' in espace
-    assert "Photographie tes pages" in espace
-    assert espace.index('id="porte-photo"') < espace.index('id="bouton-agenda"')
+    assert "Ajouter un cours" in espace
+    # Le bouton qui fabrique est au PIED de la liste, pas en tête : la barre
+    # de rubriques vient d'abord, parce qu'elle dit où l'on est. Ce qui compte
+    # est qu'il soit là, visible, sur une page sans le moindre cours.
+    assert espace.index('id="rangs-vide"') < espace.index('id="porte-photo"')
     # La porte des matières est là aussi : elle ouvre les douze, y compris
     # quand on n'a encore rien fait.
     assert 'id="porte-matieres"' in espace

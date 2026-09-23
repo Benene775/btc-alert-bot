@@ -3427,152 +3427,197 @@ h1 {
   .choix-embleme:hover, .choix-teinte:hover { transform: none; }
 }
 
-/* --- Les six portes ------------------------------------------------------
+/* --- LA PAGE DE L'ÉLÈVE : ONGLETS, ÉCHÉANCE, LISTE -----------------------
  *
- * Six carrés de même taille, même trait, même famille de couleurs — les six
- * teintes des cartes de l'application, dans leur ordre. L'harmonie ne vient pas
- * d'un dégradé ni d'une ombre : elle vient de ce que les six objets sont le
- * même objet, et que rien d'autre ne leur dispute la page.
+ * Six tuiles carrées vivaient ici, une par destination. L'idée tenait — une
+ * porte par endroit, toutes de même taille — et produisait deux défauts :
+ * on repassait par un damier entre deux endroits, et une page où tout a le
+ * même poids n'a plus de hiérarchie. C'était le premier grief du
+ * commanditaire : « tout est une carte arrondie ».
  *
- * Le carré n'est pas décoratif. Une rangée de deux carrés fait exactement la
- * largeur d'un pouce de chaque côté sur un téléphone de 390 px, et six carrés
- * tiennent sous le pli — la page entière se voit sans défiler, ce qui était
- * impossible avec la pile d'avant.
+ * À la place, la forme des outils qu'un élève ouvre déjà tous les jours : une
+ * barre d'onglets, ce qui presse juste en dessous, puis ses cours en liste
+ * numérotée avec leur état écrit à droite. Des filets, pas des cartes.
  */
-.tuiles {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--e2);
-}
-
-.tuile-porte {
-  position: relative;
+.rubriques {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 3px;
-  aspect-ratio: 1;
-  padding: var(--e3);
-  /* La porte des matières est un « label » — la règle générale des champs lui
-     pose 20 px de marge haute, et elle tombait vingt pixels sous ses voisines
-     de rangée. Une grille de carrés ne pardonne pas ce genre d'écart. */
-  margin: 0;
-  border: 0;
-  border-radius: var(--rayon-carte);
-  background-color: color-mix(in srgb, var(--t0) 62%, var(--carte));
-  color: var(--encre);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-  overflow: hidden;
-  transition: transform .2s cubic-bezier(.2, .7, .3, 1), box-shadow .2s ease;
+  gap: 2px;
+  margin: 0 0 var(--e3);
+  border-bottom: 1px solid var(--trait);
+  overflow-x: auto;
+  scrollbar-width: none;
 }
+.rubriques::-webkit-scrollbar { display: none; }
 
-.tuile-porte[data-teinte="1"] { background-color: color-mix(in srgb, var(--t1) 62%, var(--carte)); }
-.tuile-porte[data-teinte="2"] { background-color: color-mix(in srgb, var(--t2) 62%, var(--carte)); }
-.tuile-porte[data-teinte="3"] { background-color: color-mix(in srgb, var(--t3) 62%, var(--carte)); }
-.tuile-porte[data-teinte="4"] { background-color: color-mix(in srgb, var(--t4) 62%, var(--carte)); }
-.tuile-porte[data-teinte="5"] { background-color: color-mix(in srgb, var(--t5) 62%, var(--carte)); }
-
-/* La seule porte pleine. Sans cours photographié, les quatre autres n'ont rien
-   à ouvrir : sa couleur dit par où commencer avant qu'on ait lu son nom.
-
-   Elle prend la rangée entière depuis qu'il y a cinq portes et non six : une
-   porte orpheline à côté d'un vide se lit comme un oubli, et c'est justement
-   celle qu'on veut voir en premier. */
-.tuile-phare {
-  grid-column: 1 / -1;
-  aspect-ratio: auto;
-  min-height: 132px;
-  background-color: var(--accent);
-  color: var(--sur-accent);
-}
-.tuile-phare .tuile-signe {
-  background: color-mix(in srgb, var(--sur-accent) 22%, transparent);
-  color: var(--sur-accent);
-}
-.tuile-phare .tuile-mot { color: color-mix(in srgb, var(--sur-accent) 80%, transparent); }
-
-.tuile-porte:hover { transform: translateY(-3px); box-shadow: var(--ombre-carte); }
-.tuile-porte:active { transform: scale(.98); }
-
-/* Éteinte plutôt que cachée : une porte qui disparaît ne s'explique pas, une
-   porte grise dit ce qui lui manque, sous son nom. */
-.tuile-porte:disabled {
-  opacity: .5;
-  cursor: default;
-  transform: none;
-  box-shadow: none;
-}
-
-.tuile-signe {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 13px;
-  background: color-mix(in srgb, var(--carte) 72%, transparent);
-  color: var(--accent);
-}
-
-.tuile-signe svg { width: 22px; height: 22px; }
-
-/* Le nom se colle en bas : le signe en haut, le texte au sol, et l'air au
-   milieu. C'est ce vide qui fait qu'un carré se lit d'un coup d'œil. */
-.tuile-nom {
-  margin-top: auto;
-  font-family: var(--titre);
-  font-weight: 600;
-  font-size: 1.02rem;
-  line-height: 1.15;
-}
-
-.tuile-mot {
-  font-size: .76rem;
-  line-height: 1.32;
-  color: var(--encre-douce);
-}
-
-/* Ce qu'il reste ce mois-ci. Voir la limite venir vaut mieux que la découvrir
-   après avoir choisi ses chapitres et attendu. La porte reste cliquable même à
-   zéro : ce compteur peut être en retard, et c'est le serveur qui dit non. */
-.tuile-reste {
-  margin-top: 2px;
-  font-family: var(--utilitaire);
-  font-size: .6rem;
-  letter-spacing: .03em;
-  color: var(--encre-douce);
-}
-
-.tuile-reste[data-epuise] { color: var(--accent); }
-
-/* Le nombre d'échéances, sur la porte de l'agenda. Il prend la couleur de
-   l'urgence : trois contrôles la semaine prochaine et un demain ne se lisent
-   pas pareil. */
-.tuile-pastille {
-  position: absolute;
-  top: var(--e3);
-  right: var(--e3);
-  min-width: 22px;
-  height: 22px;
-  padding: 0 6px;
-  border-radius: 999px;
-  background: var(--accent);
-  color: var(--sur-accent);
-  font-family: var(--utilitaire);
-  font-size: .68rem;
+.rubrique {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
+  gap: 6px;
+  padding: 11px 10px 10px;
+  /* Une cible de 44 px : sur un téléphone, un onglet plus court se rate une
+     fois sur trois et l'élève croit que l'application ne répond pas. */
+  min-height: 44px;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font-family: var(--utilitaire);
+  font-size: .84rem;
+  font-weight: 500;
+  color: var(--encre-douce);
+  white-space: nowrap;
+}
+.rubrique[data-ici] {
+  color: var(--accent);
+  font-weight: 700;
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+.rubrique-compte {
+  font-family: var(--utilitaire);
+  font-size: .68rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: var(--accent-doux);
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
 }
 
-#bouton-agenda[data-urgence="moyenne"] .tuile-pastille { background: var(--partiel); }
-#bouton-agenda[data-urgence="haute"] .tuile-pastille { background: var(--rouge); }
+/* Ce qui presse. C'était écrit en petit sous le nom d'une tuile de 169 px ;
+   c'est la seule chose de la page qui porte une date, et elle décide de la
+   soirée de l'élève. */
+.echeance {
+  display: flex;
+  gap: var(--e2);
+  align-items: flex-start;
+  padding: var(--e2) var(--e3);
+  margin-bottom: var(--e3);
+  background: var(--rouge-doux);
+  border-left: 3px solid var(--rouge);
+}
+.echeance[data-urgence="basse"] {
+  background: var(--partiel-doux);
+  border-left-color: var(--partiel);
+}
+/* Aucune date posée : ce n'est pas une alerte, c'est une invitation. Elle
+   garde la place et le ton change — la bande qui disparaît laissait un compte
+   neuf sans rien à faire. */
+.echeance[data-urgence="aucune"] {
+  background: var(--accent-doux);
+  border-left-color: var(--accent);
+}
+.echeance[data-urgence="aucune"] .echeance-signe { color: var(--accent); }
+.echeance-signe { color: var(--rouge); font-weight: 700; font-size: 1rem; line-height: 1.4; }
+.echeance[data-urgence="basse"] .echeance-signe { color: var(--partiel); }
+.echeance-mot { margin: 0; font-size: .88rem; line-height: 1.45; }
+.echeance-mot b {
+  display: block;
+  font-family: var(--titre);
+  font-size: 1.04rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+.echeance-mot span { color: var(--encre-douce); font-size: .84rem; }
+
+.outils-cours { margin-bottom: var(--e2); }
+.filtre-matiere {
+  font-family: var(--utilitaire);
+  font-size: .8rem;
+  font-weight: 600;
+  padding: 9px 14px;
+  min-height: 44px;
+  border: 1px solid var(--trait);
+  border-radius: var(--rayon);
+  background: var(--carte);
+  color: var(--encre);
+  cursor: pointer;
+}
+
+/* La liste, numérotée comme un sommaire. Le numéro est sur deux chiffres :
+   « 01 » et « 10 » alignés, sinon la colonne des titres tremble. */
+.rangs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--trait);
+}
+.rang { border-bottom: 1px solid var(--trait); }
+.rang-porte {
+  display: flex;
+  gap: var(--e2);
+  align-items: baseline;
+  width: 100%;
+  min-height: 44px;
+  padding: 14px 4px;
+  border: 0;
+  background: none;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.rang-porte:hover { background: color-mix(in srgb, var(--accent-doux) 55%, transparent); }
+.rang-numero {
+  flex: 0 0 auto;
+  font-family: var(--utilitaire);
+  font-size: .68rem;
+  font-weight: 700;
+  color: var(--rouge);
+  font-variant-numeric: tabular-nums;
+}
+.rang-quoi { flex: 1; min-width: 0; }
+.rang-quoi b {
+  display: block;
+  font-family: var(--titre);
+  font-size: 1.04rem;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--encre);
+}
+.rang-sous {
+  display: block;
+  font-family: var(--utilitaire);
+  font-size: .78rem;
+  color: var(--encre-douce);
+  margin-top: 2px;
+}
+
+/* L'état est écrit, pas deviné. Trois couleurs, trois rôles : le bordeaux dit
+   qu'il reste du travail, le vert que non, le gris qu'on n'en sait rien. */
+.pastille-etat {
+  flex: 0 0 auto;
+  font-family: var(--utilitaire);
+  font-size: .68rem;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+.pastille-etat[data-etat="acquis"] { background: var(--acquis-doux); color: var(--acquis); }
+.pastille-etat[data-etat="a-revoir"],
+.pastille-etat[data-etat="a-tester"] { background: var(--rouge-doux); color: var(--rouge); }
+.pastille-etat[data-etat="en-attente"] {
+  background: color-mix(in srgb, var(--trait) 45%, transparent);
+  color: var(--encre-douce);
+}
+
+.rangs-vide {
+  margin: 0;
+  padding: var(--e4) 0;
+  max-width: 46ch;
+  color: var(--encre-douce);
+  font-size: .92rem;
+}
+
+.pied-cours { margin-top: var(--e3); }
+.pied-cours .principal { width: 100%; }
+.pied-cours-mot {
+  margin: var(--e1) 0 0;
+  font-family: var(--utilitaire);
+  font-size: .78rem;
+  color: var(--encre-douce);
+  text-align: center;
+}
 
 @media (prefers-reduced-motion: reduce) {
-  .tuile-porte { transition: none; }
-  .tuile-porte:hover, .tuile-porte:active { transform: none; }
 }
 
 /* --- Fabriquer, depuis sa liste ------------------------------------------
@@ -3773,29 +3818,19 @@ h1 {
    barre : un carré posé au-dessus d'un calendrier pleine largeur ne va nulle
    part. C'est l'attribut posé par le script qui commande, jamais la feuille de
    style seule : sans lui, la page reste entière. */
+#ecran-espace[data-agenda="ouvert"] .echeance,
+#ecran-espace[data-agenda="ouvert"] .outils-cours,
+#ecran-espace[data-agenda="ouvert"] .rangs,
+#ecran-espace[data-agenda="ouvert"] .rangs-vide,
+#ecran-espace[data-agenda="ouvert"] .pied-cours,
 #ecran-espace[data-agenda="ouvert"] .moi,
 #ecran-espace[data-agenda="ouvert"] #atelier,
-#ecran-espace[data-agenda="ouvert"] .tuile-porte:not(#bouton-agenda),
 #ecran-espace[data-agenda="ouvert"] #bouton-quitter-espace,
 #ecran-espace[data-agenda="ouvert"] .pied-compte { display: none; }
 
-#ecran-espace[data-agenda="ouvert"] .tuiles { grid-template-columns: 1fr; }
-
-#ecran-espace[data-agenda="ouvert"] #bouton-agenda {
-  aspect-ratio: auto;
-  flex-direction: row;
-  align-items: center;
-  gap: var(--e2);
-  padding: var(--e2) var(--e3);
-}
-
-#ecran-espace[data-agenda="ouvert"] #bouton-agenda .tuile-signe { width: 32px; height: 32px; border-radius: 10px; }
-#ecran-espace[data-agenda="ouvert"] #bouton-agenda .tuile-signe svg { width: 18px; height: 18px; }
-#ecran-espace[data-agenda="ouvert"] #bouton-agenda .tuile-nom { margin: 0; white-space: nowrap; }
-/* Le calendrier est sous la barre : redire « contrôle dans 7 jours » au-dessus
-   de la case du 19 entourée, c'est deux fois la même phrase. */
-#ecran-espace[data-agenda="ouvert"] #bouton-agenda .tuile-mot { display: none; }
-#ecran-espace[data-agenda="ouvert"] .tuile-pastille { position: static; margin-left: auto; }
+/* La barre d'onglets, elle, RESTE. C'est par elle qu'on sort de l'agenda :
+   l'effacer avec le reste enfermait l'élève dans le calendrier, et il fallait
+   deviner que le bouton du téléphone le ramènerait. */
 
 /* L'invite sous le calendrier, quand aucun jour n'est choisi. */
 .agenda-invite {

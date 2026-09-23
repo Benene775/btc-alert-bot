@@ -566,15 +566,17 @@
 <!-- MA PAGE — tout ce que l’élève a déjà fait, relu depuis son téléphone -->
 <section id="ecran-espace" class="ecran ecran-espace" hidden>
 
-  <!-- SA PAGE, EN SIX PORTES.
-       =======================
-       Elle a longtemps empilé cinq sortes d'objets : une carte d'identité en
-       papier seyès, trois compteurs, une frise de l'année, la prochaine
-       échéance, un menu de matières, une liste de fiches, deux outils. Chacun
-       se justifiait seul ; ensemble ils faisaient une page qu'on parcourt au
-       lieu d'une page d'où l'on part.
-       Une porte par destination, six carrés de même taille, même trait, même
-       famille de couleurs. Ce qu'une porte contient se lit derrière elle. -->
+  <!-- SA PAGE.
+       ==========
+       Elle a empilé cinq sortes d'objets — carte d'identité, compteurs, frise
+       de l'année, menu de matières, cartes d'outils — puis six portes carrées,
+       une par destination. La deuxième version tenait mieux que la première, et
+       gardait deux défauts : on repassait par un damier entre deux endroits, et
+       une page où tout a le même poids n'a plus de hiérarchie.
+
+       Elle prend maintenant la forme des outils qu'un élève ouvre déjà tous les
+       jours : une barre de rubriques, ce qui presse juste dessous, puis ses
+       cours en liste numérotée avec leur état écrit à droite. -->
 
   <!-- Qui je suis, et la lumière que je veux. Une ligne, pas une carte. -->
   <div class="moi" id="moi">
@@ -609,56 +611,57 @@
     <div class="atelier-choix" id="choix-teintes"></div>
   </div>
 
-  <div class="tuiles" id="tuiles">
+  <!-- LES ONGLETS, LA LISTE, ET CE QUI PRESSE.
+       ==========================================
+       Ici vivaient six tuiles carrées, une par destination. Elles avaient leur
+       logique — une porte par endroit — et deux défauts qu'un commanditaire a
+       nommés avant nous : on revenait à un damier à chaque fois, et une page
+       où tout a la même taille n'a plus de hiérarchie.
 
-    <!-- La seule porte pleine : sans un cours photographié, les autres n'ont
-         rien à ouvrir. Sa couleur le dit avant qu'on ait lu son nom. -->
-    <button type="button" class="tuile-porte tuile-phare" id="porte-photo">
-      <span class="tuile-signe" aria-hidden="true"><svg><use href="#glyphe-appareil"/></svg></span>
-      <span class="tuile-nom">Un nouveau cours</span>
-      <span class="tuile-mot">Photographie tes pages</span>
+       Une barre d'onglets prend leur place, comme sur n'importe quel outil
+       qu'on ouvre tous les jours. En dessous, ce qui presse ; puis les cours,
+       numérotés comme les articles d'un sommaire, avec leur état écrit à
+       droite. Les identifiants des anciennes portes sont conservés : tout le
+       script de l'agenda et des archives s'appuie dessus. -->
+
+  <nav class="rubriques" id="rubriques-espace" aria-label="Ma page">
+    <button type="button" class="rubrique" id="onglet-cours" data-ici="oui">Mes cours</button>
+    <button type="button" class="rubrique" id="porte-fiches">
+      Fiches<span class="rubrique-compte" id="mot-fiches"></span>
     </button>
-
+    <button type="button" class="rubrique" id="porte-controles">
+      Contrôles<span class="rubrique-compte" id="mot-controles"></span>
+    </button>
     <!-- L'agenda garde son identifiant : c'est la même porte qu'avant, et tout
          le script du calendrier s'appuie dessus. -->
-    <button type="button" class="tuile-porte" id="bouton-agenda" data-teinte="4"
+    <button type="button" class="rubrique" id="bouton-agenda"
             aria-expanded="false" aria-controls="agenda-deplie">
-      <span class="tuile-signe" aria-hidden="true"><svg><use href="#glyphe-agenda"/></svg></span>
-      <span class="tuile-nom" id="agenda-nom">Ton agenda</span>
-      <span class="tuile-mot" id="agenda-mot"></span>
-      <span class="tuile-pastille" id="compte-agenda" hidden></span>
+      <span id="agenda-nom">Agenda</span>
+      <span class="rubrique-compte" id="compte-agenda" hidden></span>
     </button>
+  </nav>
 
-    <!-- Elle ouvrait le sélecteur du système : une roue grise, la seule chose
-         du produit qui ne ressemblait pas au produit. Elle ouvre maintenant une
-         feuille à nous, où chaque matière porte sa couleur. -->
-    <button type="button" class="tuile-porte" id="porte-matieres" data-teinte="3"
-            aria-haspopup="dialog">
-      <span class="tuile-signe" aria-hidden="true"><svg><use href="#glyphe-matieres"/></svg></span>
-      <span class="tuile-nom">Tes matières</span>
-      <span class="tuile-mot">Fiches et contrôles</span>
+  <!-- Ce qui presse, en tête et en bordeaux. C'était écrit en petit sous le nom
+       d'une tuile de 169 px ; c'est la seule chose de la page qui ait une date. -->
+  <div class="echeance" id="echeance" hidden>
+    <span class="echeance-signe" aria-hidden="true">!</span>
+    <p class="echeance-mot"><b id="agenda-mot"></b><span id="echeance-detail"></span></p>
+  </div>
+
+  <!-- Le filtre par matière. Il ne paraît qu'à partir de quelques cours :
+       au-dessous, il n'y a rien à filtrer et il ferait un bouton de plus. -->
+  <div class="outils-cours" id="outils-cours" hidden>
+    <button type="button" class="filtre-matiere" id="porte-matieres" aria-haspopup="dialog">
+      Choisir une matière
     </button>
+  </div>
 
-    <!-- LES DEUX ARCHIVES.
-         Ici vivaient deux portes de FABRICATION — « Un contrôle blanc » et
-         « Une fiche » — qui ouvraient le même écran d'atelier, au titre près.
-         Signalé en usage réel : « on tombe sur la même page ». C'était vrai, et
-         c'était pire que ça : « Une fiche » se lit comme la porte de ses fiches,
-         pas comme une commande d'impression. Elles mènent donc où leur nom dit.
-         Fabriquer se fait depuis la liste — c'est là qu'on s'aperçoit qu'il
-         manque quelque chose. -->
-    <button type="button" class="tuile-porte" id="porte-fiches" data-teinte="0">
-      <span class="tuile-signe" aria-hidden="true"><svg><use href="#glyphe-fiche"/></svg></span>
-      <span class="tuile-nom">Tes fiches</span>
-      <span class="tuile-mot" id="mot-fiches"></span>
-    </button>
+  <ol class="rangs" id="rangs-cours"></ol>
+  <p class="rangs-vide" id="rangs-vide" hidden></p>
 
-    <button type="button" class="tuile-porte" id="porte-controles" data-teinte="1">
-      <span class="tuile-signe" aria-hidden="true"><svg><use href="#glyphe-controle"/></svg></span>
-      <span class="tuile-nom">Tes contrôles</span>
-      <span class="tuile-mot" id="mot-controles"></span>
-    </button>
-
+  <div class="pied-cours">
+    <button type="button" class="principal" id="porte-photo">Ajouter un cours</button>
+    <p class="pied-cours-mot" id="reste-cours"></p>
   </div>
 
   <!-- L'agenda. Ouvert, il est seul sur la page : on est venu poser une date.
