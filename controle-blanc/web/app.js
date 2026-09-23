@@ -607,6 +607,7 @@ function dessinerEspace() {
   const sessions = sessionsFaites();
   dessinerMoi(sessions);
   dessinerApparence();
+  dessinerTeintes();
   const echeances = dessinerAgenda(sessions);
   dessinerLesOnglets(sessions, echeances);
   dessinerCarcasse(sessions);
@@ -2438,8 +2439,16 @@ function sansAccent(texte) {
   return String(texte || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 }
 
+/* Le mois d'une date, ou rien.
+ *
+ * Une fiche enregistrée par une version plus ancienne n'a pas de date, et
+ * « new Date(undefined) » se rend en « Invalid Date » — vu en toutes lettres en
+ * tête de l'archive, à la place d'un mois. Un produit n'écrit pas le nom d'une
+ * erreur de programmation à un élève de terminale. */
 function moisDe(iso) {
-  return new Date(iso).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+  const date = new Date(iso);
+  if (!iso || Number.isNaN(date.getTime())) return '';
+  return date.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
 }
 
 function dessinerArchive(genre, elements, sousTitre) {
@@ -2465,7 +2474,9 @@ function dessinerArchive(genre, elements, sousTitre) {
   let moisCourant = null;
   visibles.forEach((e) => {
     const mois = moisDe(e.le);
-    if (mois !== moisCourant) {
+    // Sans date, pas d'intertitre : une fiche sans mois se range simplement à la
+    // suite, plutôt que sous un titre vide ou sous celui du mois précédent.
+    if (mois && mois !== moisCourant) {
       moisCourant = mois;
       const entete = document.createElement('li');
       entete.className = 'archive-mois';
@@ -2947,6 +2958,50 @@ function apparenceChoisie() {
   } catch (e) {
     return 'auto';
   }
+}
+
+/* --- Les couleurs des matières -------------------------------------------
+ *
+ * Deux jeux, un seul attribut sur la racine. Sobre par défaut : un aplat
+ * pastel de la taille d'une carte crie plus fort que le texte qu'il porte, et
+ * cinq d'entre eux côte à côte font un sachet de dragées. Mais une fiche
+ * pastel se retrouve d'un coup d'oeil dans un classeur, et ce n'est pas à nous
+ * de trancher ça pour l'élève.
+ *
+ * Rangé à côté de l'apparence, et pour la même raison : ça ne quitte pas
+ * l'appareil. C'est un réglage d'écran, pas une préférence de compte.
+ */
+const CLE_TEINTES = 'cb.teintes';
+const TEINTES_POSSIBLES = ['sobre', 'pastel'];
+
+function teintesChoisies() {
+  try {
+    const gardee = localStorage.getItem(CLE_TEINTES);
+    return TEINTES_POSSIBLES.includes(gardee) ? gardee : 'sobre';
+  } catch (e) {
+    return 'sobre';
+  }
+}
+
+function poserTeintes(choix) {
+  const propre = TEINTES_POSSIBLES.includes(choix) ? choix : 'sobre';
+  // Le défaut ne s'écrit pas sur la racine : un attribut qui ne dit rien de
+  // plus que l'absence d'attribut finit par être lu comme une exception.
+  if (propre === 'sobre') delete document.documentElement.dataset.teintes;
+  else document.documentElement.dataset.teintes = propre;
+  try {
+    if (propre === 'sobre') localStorage.removeItem(CLE_TEINTES);
+    else localStorage.setItem(CLE_TEINTES, propre);
+  } catch (e) { /* stockage refusé : le choix vaut pour cette visite */ }
+  dessinerTeintes();
+}
+
+function dessinerTeintes() {
+  const choix = teintesChoisies();
+  document.querySelectorAll('[data-teintes]').forEach((bouton) => {
+    if (bouton === document.documentElement) return;
+    bouton.setAttribute('aria-checked', String(bouton.dataset.teintes === choix));
+  });
 }
 
 function poserApparence(choix) {
@@ -7381,6 +7436,11 @@ document.addEventListener('DOMContentLoaded', () => {
   $('fermer-matieres').onclick = fermerLesMatieres;
   document.querySelectorAll('[data-apparence]').forEach((bouton) => {
     bouton.onclick = () => poserApparence(bouton.dataset.apparence);
+  });
+  // « [data-teintes] » désigne aussi la racine, qui porte le choix : on ne
+  // branche que les boutons.
+  document.querySelectorAll('button[data-teintes]').forEach((bouton) => {
+    bouton.onclick = () => poserTeintes(bouton.dataset.teintes);
   });
   // Le script de l'en-tête a déjà posé une couleur, à partir de deux constantes
   // recopiées. Ici la feuille de style est chargée : on repose la vraie.

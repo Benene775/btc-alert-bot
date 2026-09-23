@@ -71,14 +71,40 @@
   --partiel: #8a5a12;
   --partiel-doux: #f6eeda;
 
-  /* Les six teintes des cartes, disponibles partout : c'est ce qui fait
-     reconnaître une page de l'application au premier coup d'oeil. */
-  --t0: #f4efdd;  /* miel */
-  --t1: #f7e9de;  /* abricot */
-  --t2: #f7e6e8;  /* rose */
-  --t3: #e6efe7;  /* sauge */
-  --t4: #e4ebf5;  /* ciel */
-  --t5: #eae6f1;  /* lilas */
+  /* LES MATIÈRES : UNE ENCRE, PAS UN BONBON.
+     ========================================
+     Abricot, rose, sauge, ciel, lilas. Cinq pastels saturés, posés en APLAT
+     sous des blocs de 170 px — la dernière pièce de la signature que le
+     commanditaire avait nommée : « on voit que c'est fait par IA ».
+
+     Le défaut n'était pas la couleur, c'était son emploi. Un aplat pastel de la
+     taille d'une carte crie plus fort que le texte qu'il porte, et cinq d'entre
+     eux côte à côte font un sachet de dragées. Or ce qu'on demande à la couleur
+     d'une matière, c'est de dire « celle-ci, pas une autre » — le travail d'une
+     ÉTIQUETTE, pas d'un fond.
+
+     Le fond devient donc un lavis presque blanc, le même pour toutes à
+     l'oeil ; et la matière est portée par l'encre de son code — « H-G »,
+     « MATH » — écrite dans sa couleur à elle. Chacune reste reconnaissable, et
+     plus aucune ne hurle.
+
+     Les cinq encres sont ternes exprès. Bleu vif, bordeaux et vert ont chacun
+     un RÔLE dans ce produit — on peut agir, ça presse, c'est acquis — et une
+     matière qui emprunterait l'un des trois se lirait comme une consigne. */
+  --m0: #59524a;  /* grès */
+  --m1: #3f4a5a;  /* ardoise */
+  --m2: #5e4257;  /* prune */
+  --m3: #46533f;  /* mousse */
+  --m4: #6b4a2a;  /* terre */
+  --m5: #2f5257;  /* bleu-vert */
+
+  /* Leurs fonds : le lavis de chaque encre dans le papier. */
+  --t0: #f4f2ee;
+  --t1: #eff0f2;
+  --t2: #f2eef1;
+  --t3: #eff1ee;
+  --t4: #f3efea;
+  --t5: #edf1f1;
 
   /* Une carte se pose sur le papier, elle ne s'y découpe pas au trait. */
   /* Plus une ombre portée : un filet d'un pixel. Dix-neuf blocs de la feuille
@@ -152,12 +178,18 @@
     --acquis-doux: #13261d;
     --partiel: #d7a548;
     --partiel-doux: #2a2214;
-    --t0: #26231a;
-    --t1: #28211b;
-    --t2: #281c20;
-    --t3: #18251f;
-    --t4: #162231;
-    --t5: #221e2e;
+    --m0: #b9b2a8;
+    --m1: #a8b4c6;
+    --m2: #c4a8bb;
+    --m3: #a9bda4;
+    --m4: #cba98a;
+    --m5: #94bcc0;
+    --t0: #1a1c21;
+    --t1: #1a1d23;
+    --t2: #201b20;
+    --t3: #1a201c;
+    --t4: #191d24;
+    --t5: #1e1c24;
     --voile: rgba(6, 8, 12, .86);
   }
   --bandeau-fond: #1a2340;
@@ -194,17 +226,86 @@
   --acquis-doux: #13261d;
   --partiel: #d7a548;
   --partiel-doux: #2a2214;
+  --m0: #b9b2a8;
+  --m1: #a8b4c6;
+  --m2: #c4a8bb;
+  --m3: #a9bda4;
+  --m4: #cba98a;
+  --m5: #94bcc0;
+  --t0: #1a1c21;
+  --t1: #1a1d23;
+  --t2: #201b20;
+  --t3: #1a201c;
+  --t4: #191d24;
+  --t5: #1e1c24;
+  --voile: rgba(6, 8, 12, .86);
+  --bandeau-fond: #1a2340;
+  --bandeau-encre: #dde3f4;
+  --bandeau-bouton: #9db2ea;
+  --bandeau-bouton-encre: #12141a;
+}
+
+/* --- L'AUTRE JEU DE COULEURS : LE PASTEL --------------------------------
+ *
+ * Les cinq pastels — abricot, rose, sauge, ciel, lilas — ont fait toute
+ * l'identité du produit avant qu'on la refasse, et ils ne sont pas partis : ils
+ * sont devenus un CHOIX. Le lavis sobre est le défaut, parce qu'un aplat
+ * pastel de la taille d'une carte crie plus fort que le texte qu'il porte ;
+ * mais une fiche pastel se retrouve d'un coup d'oeil dans un classeur, et
+ * quatorze ans, c'est un âge où on aime que ses affaires aient une couleur.
+ *
+ * Un seul attribut sur la racine commande les deux jeux. Rien d'autre à
+ * toucher : partout ailleurs, la feuille parle en « --t0 » et « --m0 ».
+ *
+ * L'ordre compte. « :root[data-teintes="pastel"] » pèse autant que
+ * « :root[data-theme="dark"] » et vient après : sans le sélecteur combiné plus
+ * bas, un élève en mode nuit aurait des aplats clairs sur une page noire.
+ */
+:root[data-teintes="pastel"] {
+  --m0: #6d5a2a;
+  --m1: #7a4a24;
+  --m2: #7d3f55;
+  --m3: #3e5a46;
+  --m4: #3d5578;
+  --m5: #57457a;
+  --t0: #f4efdd;  /* miel */
+  --t1: #f7e9de;  /* abricot */
+  --t2: #f7e6e8;  /* rose */
+  --t3: #e6efe7;  /* sauge */
+  --t4: #e4ebf5;  /* ciel */
+  --t5: #eae6f1;  /* lilas */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-teintes="pastel"]:not([data-theme="light"]) {
+    --m0: #d8c89a;
+    --m1: #e0b995;
+    --m2: #e3a8b6;
+    --m3: #9fc7ac;
+    --m4: #9db8e2;
+    --m5: #bfb0dd;
+    --t0: #26231a;
+    --t1: #28211b;
+    --t2: #281c20;
+    --t3: #18251f;
+    --t4: #162231;
+    --t5: #221e2e;
+  }
+}
+
+:root[data-theme="dark"][data-teintes="pastel"] {
+  --m0: #d8c89a;
+  --m1: #e0b995;
+  --m2: #e3a8b6;
+  --m3: #9fc7ac;
+  --m4: #9db8e2;
+  --m5: #bfb0dd;
   --t0: #26231a;
   --t1: #28211b;
   --t2: #281c20;
   --t3: #18251f;
   --t4: #162231;
   --t5: #221e2e;
-  --voile: rgba(6, 8, 12, .86);
-  --bandeau-fond: #1a2340;
-  --bandeau-encre: #dde3f4;
-  --bandeau-bouton: #9db2ea;
-  --bandeau-bouton-encre: #12141a;
 }
 
 * { box-sizing: border-box; }
@@ -3410,6 +3511,54 @@ h1 {
 
 .apparence-cote:hover { color: color-mix(in srgb, var(--encre) 70%, transparent); }
 
+/* --- Un réglage qui se dit en toutes lettres ----------------------------
+ *
+ * Deux dessins suffisent pour la lumière : un soleil et une lune se lisent
+ * avant d'être lus. Pour les couleurs des matières il n'y a pas de dessin
+ * évident — « sobre » et « pastel » ne se dessinent pas — donc on les écrit.
+ * Même objet, même grammaire que la bascule des archives : deux moitiés, une
+ * seule allumée. */
+.reglage {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e2);
+  flex-wrap: wrap;
+  margin-top: var(--e3);
+}
+
+.reglage-mot { margin: 0; font-size: .88rem; color: var(--encre-douce); }
+
+.bascule-reglage {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--trait);
+  border-radius: var(--rayon);
+}
+
+.bascule-reglage-cote {
+  min-height: 38px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 2px;
+  background: none;
+  cursor: pointer;
+  font-family: var(--utilitaire);
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--encre-douce);
+  transition: color .18s ease, background .18s ease;
+}
+
+.bascule-reglage-cote:hover { color: var(--encre); }
+
+.bascule-reglage-cote[aria-checked="true"] {
+  background: var(--accent);
+  color: var(--sur-accent);
+  font-weight: 700;
+}
+
 .apparence-cote[aria-checked="true"] {
   color: var(--accent);
   background: var(--accent-doux);
@@ -3844,12 +3993,12 @@ h1 {
      sur les puces de filtre. Sans elle, quatre pastilles grises côte à côte ne
      se distinguent que par leurs trois lettres — et c'est justement la couleur
      qui fait qu'on trouve sa matière sans lire. */
-  .carcasse-matiere-code[data-teinte="0"] { background: var(--t1); }
-  .carcasse-matiere-code[data-teinte="1"] { background: var(--t2); }
-  .carcasse-matiere-code[data-teinte="2"] { background: var(--t3); }
-  .carcasse-matiere-code[data-teinte="3"] { background: var(--t4); }
-  .carcasse-matiere-code[data-teinte="4"] { background: var(--t5); }
-  .carcasse-matiere-code[data-teinte="5"] { background: var(--t1); }
+  .carcasse-matiere-code[data-teinte="0"] { background: var(--t0); color: var(--m0); }
+  .carcasse-matiere-code[data-teinte="1"] { background: var(--t1); color: var(--m1); }
+  .carcasse-matiere-code[data-teinte="2"] { background: var(--t2); color: var(--m2); }
+  .carcasse-matiere-code[data-teinte="3"] { background: var(--t3); color: var(--m3); }
+  .carcasse-matiere-code[data-teinte="4"] { background: var(--t4); color: var(--m4); }
+  .carcasse-matiere-code[data-teinte="5"] { background: var(--t5); color: var(--m5); }
 
   .carcasse-moi {
     display: flex;
@@ -4504,9 +4653,11 @@ html[data-ecran="matiere"] body {
   width: 58px;
   padding: 7px 6px;
   overflow: hidden;
-  border-radius: 11px;
+  border-radius: var(--rayon);
   background: color-mix(in srgb, var(--carte) 78%, transparent);
-  color: var(--accent);
+  /* Le bleu de l'accent dit « on peut agir ». Un code de matière n'est pas une
+     commande : il prend l'encre de sa matière, posée juste en dessous. */
+  color: var(--m0);
   font-family: var(--utilitaire);
   font-size: .68rem;
   font-weight: 700;
@@ -5287,6 +5438,20 @@ html[data-ecran="matiere"] body {
 .matiere-tete[data-teinte="3"] { background: var(--t3); }
 .matiere-tete[data-teinte="4"] { background: var(--t4); }
 .matiere-tete[data-teinte="5"] { background: var(--t5); }
+
+/* Chaque code porte l'encre de sa matière : c'est elle qui dit laquelle,
+   maintenant que le fond est le même lavis pour toutes. */
+.matiere-choix[data-teinte="1"] .matiere-choix-code { color: var(--m1); }
+.matiere-choix[data-teinte="2"] .matiere-choix-code { color: var(--m2); }
+.matiere-choix[data-teinte="3"] .matiere-choix-code { color: var(--m3); }
+.matiere-choix[data-teinte="4"] .matiere-choix-code { color: var(--m4); }
+.matiere-choix[data-teinte="5"] .matiere-choix-code { color: var(--m5); }
+.matiere-tete[data-teinte="1"] .matiere-code { color: var(--m1); }
+.matiere-tete[data-teinte="2"] .matiere-code { color: var(--m2); }
+.matiere-tete[data-teinte="3"] .matiere-code { color: var(--m3); }
+.matiere-tete[data-teinte="4"] .matiere-code { color: var(--m4); }
+.matiere-tete[data-teinte="5"] .matiere-code { color: var(--m5); }
+
 /* « Tout ton travail » n'a ni code ni chiffres à porter : la carte n'entourait
    qu'une ligne de titre, et mangeait le tiers d'un écran de téléphone avant la
    première fiche. Dans une matière, en revanche, elle porte la couleur, le code
@@ -5302,7 +5467,7 @@ html[data-ecran="matiere"] body {
   min-width: 54px;
   height: 50px;
   padding: 0 10px;
-  border-radius: 14px;
+  border-radius: var(--rayon-carte);
   display: grid;
   place-items: center;
   font-family: var(--utilitaire);
@@ -5803,14 +5968,14 @@ html[data-ecran="matiere"] body {
   top: 0;
   bottom: 0;
   width: 7px;
-  background: var(--t0);
+  background: var(--m0);
 }
 
-.groupe[data-teinte="1"]::before { background: var(--t1); }
-.groupe[data-teinte="2"]::before { background: var(--t2); }
-.groupe[data-teinte="3"]::before { background: var(--t3); }
-.groupe[data-teinte="4"]::before { background: var(--t4); }
-.groupe[data-teinte="5"]::before { background: var(--t5); }
+.groupe[data-teinte="1"]::before { background: var(--m1); }
+.groupe[data-teinte="2"]::before { background: var(--m2); }
+.groupe[data-teinte="3"]::before { background: var(--m3); }
+.groupe[data-teinte="4"]::before { background: var(--m4); }
+.groupe[data-teinte="5"]::before { background: var(--m5); }
 
 .groupe-tete {
   display: flex;
@@ -5978,8 +6143,8 @@ html[data-ecran="matiere"] body {
   display: flex;
   align-items: center;
   gap: 6px;
-  border: 0;
-  border-radius: 999px;
+  border: 1px solid transparent;
+  border-radius: var(--rayon);
   background: color-mix(in srgb, var(--encre) 5%, transparent);
   color: color-mix(in srgb, var(--encre) 62%, transparent);
   padding: 7px 13px;
@@ -5998,14 +6163,29 @@ html[data-ecran="matiere"] body {
   opacity: .65;
 }
 
-/* Une puce active porte la couleur de sa matière — la même que la pastille des
-   lignes qu'elle laisse passer. */
-.puce[aria-pressed="true"] { color: var(--encre); background: var(--t0); }
-.puce[aria-pressed="true"][data-teinte="1"] { background: var(--t1); }
-.puce[aria-pressed="true"][data-teinte="2"] { background: var(--t2); }
-.puce[aria-pressed="true"][data-teinte="3"] { background: var(--t3); }
-.puce[aria-pressed="true"][data-teinte="4"] { background: var(--t4); }
-.puce[aria-pressed="true"][data-teinte="5"] { background: var(--t5); }
+/* Une puce choisie porte l'encre de sa matière et un filet — la même encre que
+   la pastille des lignes qu'elle laisse passer. Le fond seul ne suffisait plus
+   depuis qu'il est un lavis : « choisie » et « pas choisie » se ressemblaient. */
+.puce[aria-pressed="true"] {
+  color: var(--m0);
+  background: var(--t0);
+  border-color: color-mix(in srgb, var(--m0) 40%, transparent);
+}
+.puce[aria-pressed="true"][data-teinte="1"] {
+  background: var(--t1); color: var(--m1); border-color: color-mix(in srgb, var(--m1) 40%, transparent);
+}
+.puce[aria-pressed="true"][data-teinte="2"] {
+  background: var(--t2); color: var(--m2); border-color: color-mix(in srgb, var(--m2) 40%, transparent);
+}
+.puce[aria-pressed="true"][data-teinte="3"] {
+  background: var(--t3); color: var(--m3); border-color: color-mix(in srgb, var(--m3) 40%, transparent);
+}
+.puce[aria-pressed="true"][data-teinte="4"] {
+  background: var(--t4); color: var(--m4); border-color: color-mix(in srgb, var(--m4) 40%, transparent);
+}
+.puce[aria-pressed="true"][data-teinte="5"] {
+  background: var(--t5); color: var(--m5); border-color: color-mix(in srgb, var(--m5) 40%, transparent);
+}
 
 .archive-liste { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
 
@@ -6054,7 +6234,7 @@ html[data-ecran="matiere"] body {
   font-variant-numeric: tabular-nums;
   height: 42px;
   padding: 0 7px;
-  border-radius: 11px;
+  border-radius: var(--rayon);
   display: grid;
   place-items: center;
   font-family: var(--utilitaire);
@@ -6073,11 +6253,11 @@ html[data-ecran="matiere"] body {
   letter-spacing: -.02em;
 }
 
-.ligne-archive[data-teinte="1"] .ligne-archive-pastille { background: var(--t1); }
-.ligne-archive[data-teinte="2"] .ligne-archive-pastille { background: var(--t2); }
-.ligne-archive[data-teinte="3"] .ligne-archive-pastille { background: var(--t3); }
-.ligne-archive[data-teinte="4"] .ligne-archive-pastille { background: var(--t4); }
-.ligne-archive[data-teinte="5"] .ligne-archive-pastille { background: var(--t5); }
+.ligne-archive[data-teinte="1"] .ligne-archive-pastille { background: var(--t1); color: var(--m1); }
+.ligne-archive[data-teinte="2"] .ligne-archive-pastille { background: var(--t2); color: var(--m2); }
+.ligne-archive[data-teinte="3"] .ligne-archive-pastille { background: var(--t3); color: var(--m3); }
+.ligne-archive[data-teinte="4"] .ligne-archive-pastille { background: var(--t4); color: var(--m4); }
+.ligne-archive[data-teinte="5"] .ligne-archive-pastille { background: var(--t5); color: var(--m5); }
 
 .ligne-archive-corps { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
 
@@ -6502,7 +6682,7 @@ html[data-ecran="matiere"] body {
   top: 0;
   width: 188mm;
   box-sizing: border-box;
-  color: #241e17;
+  color: #14120f;
   background: #fff;
   font-family: var(--texte);
   font-size: 10pt;
@@ -6517,7 +6697,7 @@ html[data-ecran="matiere"] body {
 .papier-colonne { flex: 1 1 0; min-width: 0; }
 
 .papier-tete {
-  border-bottom: 1.4pt solid #241e17;
+  border-bottom: 1.4pt solid #14120f;
   padding-bottom: 2mm;
   margin-bottom: 3mm;
 }
@@ -6534,25 +6714,32 @@ html[data-ecran="matiere"] body {
   font-size: 7.5pt;
   letter-spacing: .08em;
   text-transform: uppercase;
-  color: #9a6410;
+  color: #66615a;
   margin: 1mm 0 0;
 }
 
-/* Une partie est une carte, comme à l'écran, avec sa teinte. */
+/* Une partie est une section, séparée d'un filet — comme la fiche en colonne,
+   qui est la vue par défaut à l'écran. Elle a longtemps été une carte teintée
+   et arrondie ; sur papier, six aplats pastel coûtent de l'encre, grisent le
+   texte à la photocopie, et disent « carte » là où il n'y a qu'une page.
+
+   Les six teintes restent, en lavis, pour que le code d'une partie se
+   reconnaisse d'une page à l'autre. Les valeurs sont recopiées de « --t0 » à
+   « --t5 » : la feuille imprimée ne peut PAS lire les variables du thème, sans
+   quoi un élève en mode nuit sortirait une fiche à l'encre blanche. Un test
+   garde les deux jeux d'accord. */
 .papier-partie {
   margin: 0 0 2.6mm;
   padding: 2.2mm 2.6mm 2.4mm;
-  border-radius: 2.4mm;
-  background: #f4efdd;
+  border-radius: 1mm;
+  background: #f4f2ee;
 }
 
-/* Les six teintes de l'application, dans le même ordre : une partie garde sa
-   couleur du téléphone au papier. */
-.papier-partie[data-teinte="1"] { background: #f7e9de; }
-.papier-partie[data-teinte="2"] { background: #f7e6e8; }
-.papier-partie[data-teinte="3"] { background: #e6efe7; }
-.papier-partie[data-teinte="4"] { background: #e4ebf5; }
-.papier-partie[data-teinte="5"] { background: #eae6f1; }
+.papier-partie[data-teinte="1"] { background: #eff0f2; }
+.papier-partie[data-teinte="2"] { background: #f2eef1; }
+.papier-partie[data-teinte="3"] { background: #eff1ee; }
+.papier-partie[data-teinte="4"] { background: #f3efea; }
+.papier-partie[data-teinte="5"] { background: #edf1f1; }
 
 .papier-partie-titre {
   font-family: var(--titre);
@@ -6567,8 +6754,8 @@ html[data-ecran="matiere"] body {
 .papier-numero {
   font-family: var(--utilitaire);
   font-size: 8pt;
-  color: #9a6410;
-  border: .8pt solid #9a6410;
+  color: #66615a;
+  border: .8pt solid #66615a;
   border-radius: 1.6mm;
   padding: 0 1.2mm;
   flex: 0 0 auto;
@@ -6581,7 +6768,7 @@ html[data-ecran="matiere"] body {
   position: absolute;
   left: -3mm;
   font-weight: 700;
-  color: #9a6410;
+  color: #66615a;
 }
 
 /* La phrase à retenir est ce qu'on relit dans le bus : elle porte le même
@@ -6589,7 +6776,7 @@ html[data-ecran="matiere"] body {
 .papier-retenir {
   margin: 1.4mm 0 0;
   padding-top: 1.2mm;
-  border-top: .6pt solid rgba(36, 30, 23, .22);
+  border-top: .6pt solid rgba(20, 18, 15, .22);
 }
 
 .papier-retenir-mot {
@@ -6597,7 +6784,7 @@ html[data-ecran="matiere"] body {
   font-size: 7pt;
   letter-spacing: .08em;
   text-transform: uppercase;
-  color: rgba(36, 30, 23, .58);
+  color: rgba(20, 18, 15, .58);
   display: block;
   margin-bottom: .6mm;
 }
@@ -6635,7 +6822,7 @@ html[data-ecran="matiere"] body {
 .papier-mots, .papier-pieges {
   background: none;
   padding: 2mm 0 0;
-  border-top: 1pt solid #241e17;
+  border-top: 1pt solid #14120f;
   border-radius: 0;
 }
 

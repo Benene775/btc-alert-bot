@@ -25,6 +25,12 @@ def _bloc(entete: str) -> str:
 
 CLAIR = _jetons(_bloc(":root {"))
 SOMBRE = _jetons(_bloc(':root[data-theme="dark"] {'))
+# Le produit sert DEUX jeux de couleurs de matières : le lavis sobre, par
+# défaut, et le pastel, que l'élève peut choisir. Les deux sont livrés, donc les
+# deux doivent tenir le contraste — un jeu qu'on ne teste pas est un jeu qu'on
+# n'a pas vérifié, et c'est celui que l'élève aura choisi.
+PASTEL_CLAIR = dict(CLAIR, **_jetons(_bloc(':root[data-teintes="pastel"] {')))
+PASTEL_SOMBRE = dict(SOMBRE, **_jetons(_bloc(':root[data-theme="dark"][data-teintes="pastel"] {')))
 
 
 def _luminance(hexa: str) -> float:
@@ -59,12 +65,22 @@ COUPLES = [
     ("--encre", "--t4"),
     ("--encre", "--t5"),
     ("--encre", "--stylo-eleve-doux"),
+    # Une matière est désormais une ENCRE sur son lavis, pas un aplat pastel :
+    # c'est ce couple-là qui porte le code « H-G », « MATH », et lui seul dit
+    # de quelle matière il s'agit.
+    ("--m0", "--t0"),
+    ("--m1", "--t1"),
+    ("--m2", "--t2"),
+    ("--m3", "--t3"),
+    ("--m4", "--t4"),
+    ("--m5", "--t5"),
 ]
 
 
 def test_tout_ce_qui_porte_du_texte_reste_lisible():
     faibles = []
-    for nom, jetons in (("clair", CLAIR), ("sombre", SOMBRE)):
+    for nom, jetons in (("clair", CLAIR), ("sombre", SOMBRE),
+                        ("pastel clair", PASTEL_CLAIR), ("pastel sombre", PASTEL_SOMBRE)):
         for devant, derriere in COUPLES:
             rapport = _contraste(jetons[devant], jetons[derriere])
             if rapport < 4.5:
@@ -135,3 +151,73 @@ def test_les_cartes_sont_devenues_des_blocs_a_filet():
     hiérarchie : il ne reste rien d'important."""
     assert "--ombre-carte: 0 0 0 1px var(--trait)" in STYLE
     assert CLAIR["--rayon"].strip() == "4px", "les grands rayons sont revenus"
+
+
+def test_une_matiere_n_emprunte_aucun_des_trois_roles():
+    """Bleu vif, bordeaux et vert ont chacun un rôle — on peut agir, ça presse,
+    c'est acquis. Une matière qui emprunterait l'un des trois se lirait comme
+    une consigne : « MATH » en bleu d'accent, c'est un bouton."""
+    roles = {CLAIR[j].strip().lower() for j in ("--accent", "--rouge", "--acquis")}
+    for n in range(6):
+        encre = CLAIR[f"--m{n}"].strip().lower()
+        assert encre not in roles, f"--m{n} porte la couleur d'un rôle"
+
+
+def test_le_pastel_est_parti():
+    """Abricot, rose, sauge, ciel, lilas : cinq aplats saturés sous des blocs de
+    170 px, la dernière pièce de la signature « fait par IA ». Le fond d'une
+    matière est maintenant un lavis, le même pour toutes à l'oeil."""
+    anciens = {"#f7e9de", "#f7e6e8", "#e6efe7", "#e4ebf5", "#eae6f1", "#f4efdd"}
+    for n in range(6):
+        assert CLAIR[f"--t{n}"].strip().lower() not in anciens, f"--t{n} est resté pastel"
+    # Un lavis, c'est-à-dire presque le papier : au-delà, c'est un aplat.
+    for n in range(6):
+        assert _contraste(CLAIR[f"--t{n}"], CLAIR["--papier"]) < 1.25, \
+            f"--t{n} se détache trop du papier pour un lavis"
+
+
+def test_la_feuille_imprimee_suit_la_palette():
+    """Elle dit recopier les teintes de l'écran « pour qu'une partie garde sa
+    couleur du téléphone au papier ». Elle ne pouvait pas les lire — un élève en
+    mode nuit sortirait une fiche à l'encre blanche — donc elle les recopie, et
+    la recopie avait silencieusement divergé : le papier portait encore l'encre
+    crème et l'ambre d'une identité abandonnée depuis.
+    """
+    base = re.search(r"\.papier-partie \{[^}]*background:\s*(#[0-9a-fA-F]{6})", STYLE)
+    assert base, "la feuille imprimée n'a plus de fond de partie"
+    recopiees = [base.group(1).lower()]
+    for n in range(1, 6):
+        trouve = re.search(
+            r'\.papier-partie\[data-teinte="%d"\] \{ background: (#[0-9a-fA-F]{6}); \}' % n, STYLE)
+        assert trouve, f"la teinte {n} manque à la feuille imprimée"
+        recopiees.append(trouve.group(1).lower())
+    attendues = [CLAIR[f"--t{n}"].strip().lower() for n in range(6)]
+    assert recopiees == attendues, (
+        f"le papier dit {recopiees}, la feuille de style {attendues}")
+
+
+def test_plus_une_seule_trace_d_ambre():
+    """« --accent: #9a6410 » a été retiré du thème il y a deux étapes. Il avait
+    survécu dans la feuille imprimée, qui n'est lue par aucun thème : la
+    rubrique, le numéro d'une partie et les puces des listes étaient encore
+    ambre sur un produit qui n'en a plus."""
+    assert "#9a6410" not in STYLE
+    assert "#241e17" not in STYLE, "l'encre crème de l'ancienne identité est restée"
+
+
+def test_le_pastel_definit_les_memes_teintes_que_le_sobre():
+    """Un jeu qui oublie « --t3 » laisse la sauge sobre au milieu de cinq
+    pastels : personne ne le voit tant qu'on ne regarde pas cet écran-là."""
+    attendus = {f"--t{n}" for n in range(6)} | {f"--m{n}" for n in range(6)}
+    for nom, bloc in (("clair", ':root[data-teintes="pastel"] {'),
+                      ("sombre", ':root[data-theme="dark"][data-teintes="pastel"] {')):
+        poses = set(_jetons(_bloc(bloc)))
+        assert attendus <= poses, f"pastel {nom} : absents — {sorted(attendus - poses)}"
+
+
+def test_une_matiere_pastel_n_emprunte_aucun_des_trois_roles():
+    """Même règle que pour le jeu sobre : « MATH » en bleu d'accent se lit
+    comme un bouton, quelle que soit la palette choisie."""
+    roles = {CLAIR[j].strip().lower() for j in ("--accent", "--rouge", "--acquis")}
+    for n in range(6):
+        assert PASTEL_CLAIR[f"--m{n}"].strip().lower() not in roles, f"pastel --m{n}"

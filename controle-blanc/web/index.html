@@ -21,6 +21,12 @@
   try {
     var choix = localStorage.getItem('cb.apparence');
     if (choix === 'dark' || choix === 'light') document.documentElement.dataset.theme = choix;
+    // Les couleurs des matières se posent ici pour la même raison : une fiche
+    // qui s'ouvre en sobre puis vire au pastel sous les yeux de l'élève, c'est
+    // le même éclair, en couleur.
+    if (localStorage.getItem('cb.teintes') === 'pastel') {
+      document.documentElement.dataset.teintes = 'pastel';
+    }
     var sombre = choix === 'dark'
       || (choix !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
     document.getElementById('couleur-barre').content = sombre ? '#12141a' : '#ffffff';
@@ -804,6 +810,23 @@
               aria-checked="false" data-apparence="dark" aria-label="Mode nuit">
         <svg class="apparence-signe" aria-hidden="true" focusable="false"><use href="#glyphe-lune"/></svg>
       </button>
+    </div>
+  </div>
+
+  <!-- LES COULEURS DE SES MATIÈRES.
+       Les cinq pastels ont fait toute l'identité du produit avant qu'on la
+       refasse. Ils ne sont pas partis : ils sont devenus un choix. Sobre par
+       défaut — un aplat pastel de la taille d'une carte crie plus fort que le
+       texte qu'il porte — mais une fiche pastel se retrouve d'un coup d'oeil
+       dans un classeur, et quatorze ans est un âge où on aime que ses affaires
+       aient une couleur. Ce n'est pas à nous de trancher ça pour l'élève. -->
+  <div class="reglage">
+    <p class="reglage-mot">Les couleurs de tes matières</p>
+    <div class="bascule-reglage" role="radiogroup" aria-label="Couleurs des matières">
+      <button type="button" class="bascule-reglage-cote" id="teintes-sobre" role="radio"
+              aria-checked="true" data-teintes="sobre">Sobres</button>
+      <button type="button" class="bascule-reglage-cote" id="teintes-pastel" role="radio"
+              aria-checked="false" data-teintes="pastel">Pastel</button>
     </div>
   </div>
 

@@ -187,12 +187,22 @@ def test_le_reglage_ne_quitte_pas_l_appareil():
 
 def test_l_etat_est_dit_pas_seulement_peint():
     """Deux boutons dont un seul est allumé : sans aria-checked, un lecteur
-    d'écran annonce deux boutons identiques."""
-    assert 'role="radiogroup"' in PAGE
-    assert PAGE.count('role="radio"') == 2
-    dessiner = SCRIPT[SCRIPT.index("function dessinerApparence()"):]
-    dessiner = dessiner[: dessiner.index("\n}\n")]
-    assert "setAttribute('aria-checked'" in dessiner
+    d'écran annonce deux boutons identiques.
+
+    Il y a maintenant DEUX groupes de ce genre sur la page — la lumière, et les
+    couleurs des matières. On les compte chacun chez lui : un total global
+    aurait passé avec un groupe muni de quatre radios et l'autre d'aucune.
+    """
+    assert PAGE.count('role="radiogroup"') == 2
+    for groupe, combien in (("Apparence", 2), ("Couleurs des matières", 2)):
+        debut = PAGE.index(f'aria-label="{groupe}"')
+        bloc = PAGE[debut : PAGE.index("</div>", debut)]
+        assert bloc.count('role="radio"') == combien, groupe
+        assert bloc.count("aria-checked=") == combien, groupe
+    for nom in ("dessinerApparence", "dessinerTeintes"):
+        dessiner = SCRIPT[SCRIPT.index(f"function {nom}()"):]
+        dessiner = dessiner[: dessiner.index("\n}\n")]
+        assert "setAttribute('aria-checked'" in dessiner, nom
 
 
 def test_l_allume_se_distingue_sans_pastille():
@@ -209,3 +219,28 @@ def test_l_etat_est_redessine_en_ouvrant_sa_page():
     bloc = SCRIPT[SCRIPT.index("function dessinerEspace()"):]
     bloc = bloc[: bloc.index("\n}\n")]
     assert "dessinerApparence()" in bloc
+
+
+def test_le_pastel_est_un_choix_pas_un_defaut():
+    """Les cinq pastels ont fait toute l'identité du produit avant qu'on la
+    refasse. Ils ne sont pas supprimés : ils sont proposés. Sobre par défaut —
+    un aplat pastel de la taille d'une carte crie plus fort que le texte qu'il
+    porte — mais ce n'est pas à nous de trancher ça pour l'élève."""
+    assert ':root[data-teintes="pastel"] {' in STYLE
+    assert ':root[data-theme="dark"][data-teintes="pastel"] {' in STYLE, \
+        "en mode nuit, le pastel poserait des aplats clairs sur une page noire"
+    corps = SCRIPT[SCRIPT.index("function poserTeintes("):]
+    corps = corps[: corps.index("\n}\n")]
+    # Le défaut ne s'écrit pas sur la racine : un attribut qui ne dit rien de
+    # plus que son absence finit par être lu comme une exception.
+    assert "delete document.documentElement.dataset.teintes" in corps
+    assert "localStorage.removeItem(CLE_TEINTES)" in corps
+    assert "return TEINTES_POSSIBLES.includes(gardee) ? gardee : 'sobre';" in SCRIPT
+
+
+def test_le_choix_des_teintes_est_pose_avant_la_premiere_peinture():
+    """Même raison que la lumière : une fiche qui s'ouvre en sobre puis vire au
+    pastel sous les yeux de l'élève, c'est le même éclair, en couleur."""
+    bloc = PAGE[PAGE.index("<script>") : PAGE.index("</script>")]
+    assert "cb.teintes" in bloc
+    assert "dataset.teintes = 'pastel'" in bloc
