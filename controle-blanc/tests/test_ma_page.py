@@ -425,15 +425,16 @@ def test_venir_de_l_agenda_mene_droit_aux_photos():
     assert "montrer('ecran-contexte')" not in demarrer, \
         "l'écran de contexte est revenu barrer le passage"
     assert "return validerContexte();" in demarrer
-    # Deux chemins depuis l'agenda : le lien de la fiche du jour et le bouton
-    # d'un rendez-vous. Il y en avait un troisième, sur le bloc « prochaine
-    # échéance » qui occupait le haut de la page perso ; ce bloc est devenu la
-    # ligne de la porte d'agenda, et le geste vit maintenant DANS l'agenda, à
-    # un doigt de là. Deux routes vers le même geste, un seul écran d'arrivée.
+    # Trois chemins arrivent aux photos en sachant DÉJÀ la matière : le lien de
+    # la fiche du jour, le bouton d'un rendez-vous, et depuis peu la sortie de
+    # l'atelier — « ton cours n'est pas dans la liste ». Il y en avait un
+    # quatrième, sur le bloc « prochaine échéance » qui occupait le haut de la
+    # page perso ; ce bloc est devenu la ligne de la porte d'agenda, et le geste
+    # vit maintenant DANS l'agenda, à un doigt de là.
     # « versPhotos » a disparu avec l'écran qu'il sautait : tous les chemins
     # mènent à l'appareil photo, il n'y a plus de raccourci à marquer.
     assert "versPhotos" not in SCRIPT
-    assert SCRIPT.count("demarrerSession({ matiere:") == 2, \
+    assert SCRIPT.count("demarrerSession({ matiere:") == 3, \
         "les chemins vers l'appareil photo ne sont pas alignés"
 
 

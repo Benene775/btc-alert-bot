@@ -84,3 +84,28 @@ def test_on_ne_repasse_qu_un_cours_vraiment_photographie():
     bloc = SCRIPT[SCRIPT.index("function coursRepassables"):]
     bloc = bloc[: bloc.index("\n}\n")]
     assert "c.transcription" in bloc, "un cours sans texte se proposerait"
+
+
+def test_l_atelier_ouvre_sur_l_appareil_photo():
+    """L'écran ne liste que les cours déjà photographiés — c'est sa raison
+    d'être, tout sort des pages de l'élève. Mais pour tout autre cours il était
+    un cul-de-sac : celui qui vient chercher une fiche sur le chapitre de demain
+    trouvait une liste où il n'est pas, et rien qui dise comment l'y mettre.
+    Signalé en usage réel : « je devrais pouvoir prendre en photo n'importe quel
+    cours et là je ne peux pas »."""
+    atelier = PAGE[PAGE.index('id="ecran-atelier"'):]
+    atelier = atelier[: atelier.index("</section>")]
+    assert 'id="bouton-atelier-photos"' in atelier
+    # Sous le bouton principal, pas devant : ce n'est pas ce qu'on vient faire.
+    assert atelier.index('id="bouton-lancer-atelier"') < atelier.index('id="bouton-atelier-photos"')
+    assert "demarrerSession(" in SCRIPT[SCRIPT.index("$('bouton-atelier-photos').onclick"):][:220]
+
+
+def test_la_matiere_ouverte_part_avec_les_photos():
+    """Sans elle, l'élève qui révisait la physique repartirait photographier
+    sous la première matière de la liste sans l'avoir demandé — et la matière
+    décide du classement ET du format du contrôle blanc."""
+    bloc = SCRIPT[SCRIPT.index("$('bouton-atelier-photos').onclick"):][:220]
+    assert "matiere: $('atelier-matiere').value" in bloc
+    # Et elle reste changeable d'un doigt là où on arrive.
+    assert "function dessinerResumeContexte" in SCRIPT

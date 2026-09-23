@@ -2113,6 +2113,23 @@ select {
   margin-top: 2px;
 }
 
+/* La sortie de secours de l'atelier : le cours qui n'est pas dans la liste.
+   Séparée par un filet et posée sous le bouton principal, comme le pied d'un
+   formulaire : ce n'est pas ce qu'on vient faire ici, mais c'est la seule
+   chose à faire quand la liste ne contient pas ce qu'on cherche. */
+.atelier-ailleurs {
+  margin-top: var(--e4);
+  padding-top: var(--e3);
+  border-top: 1px solid var(--trait);
+  text-align: center;
+}
+
+.atelier-ailleurs p {
+  margin: 0 0 var(--e2);
+  font-size: .88rem;
+  color: var(--encre-douce);
+}
+
 /* --- Le contrôle -------------------------------------------------------- */
 
 .ecran-plein { min-height: 70vh; display: flex; flex-direction: column; }

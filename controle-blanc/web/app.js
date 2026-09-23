@@ -7172,6 +7172,14 @@ document.addEventListener('DOMContentLoaded', () => {
   $('atelier-matiere').onchange = dessinerChapitresAtelier;
   $('bouton-lancer-atelier').onclick = lancerAtelier;
 
+  // Photographier depuis l'atelier. La matière ouverte part avec : on vient
+  // presque toujours ajouter un chapitre à celle qu'on était en train de
+  // réviser, et elle se change d'un doigt sur l'écran des photos
+  // (dessinerResumeContexte). Sans elle, l'élève repartirait sur la première
+  // matière de la liste sans l'avoir demandé.
+  $('bouton-atelier-photos').onclick = () =>
+    demarrerSession({ matiere: $('atelier-matiere').value, date: '' });
+
   // Un seul écouteur sur la grille, pas un par case : le mois se redessine à
   // chaque ajout, à chaque changement de mois, et des écouteurs posés case par
   // case se multiplieraient sans que rien ne les retire.
