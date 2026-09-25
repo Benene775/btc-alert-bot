@@ -119,40 +119,28 @@
 </svg>
 
 <header id="bandeau" hidden>
-  <!-- La marque ouvre un menu : depuis n'importe quel écran, l'élève doit
-       pouvoir rejoindre sa page et retrouver ce qu'il a déjà fait, sans avoir à
-       deviner par où repasser. Fabriquer, c'est autre chose, et ça se fait
-       depuis sa page — un menu qui navigue ne doit pas aussi dépenser. -->
-  <div class="marque-menu">
-    <button type="button" id="bouton-accueil" class="lien-bandeau"
-            aria-haspopup="true" aria-expanded="false" aria-controls="menu-marque">
+  <!-- LA MARQUE RAMÈNE CHEZ SOI.
+       Elle ouvrait un menu de quatre entrées — ma page, mes fiches, mes
+       contrôles, reprendre. C'était le seul chemin de retour quand la page
+       perso était un damier de tuiles, et que rien d'autre ne menait nulle
+       part. Depuis, la carcasse porte ces destinations et ne disparaît plus.
+       Le menu ne servait donc qu'à redire ce qui est déjà à l'écran, et
+       demandait deux gestes pour celui qu'on fait dix fois par jour.
+
+       Un mot de marque en tête de page ramène à l'accueil : c'est vrai de tous
+       les sites, et c'est ce qu'un élève essaie en premier. Il le fait
+       maintenant en un seul geste.
+
+       La matière, elle, reste écrite — à CÔTÉ, pas dans le bouton. Pendant un
+       contrôle blanc, c'est le seul endroit de l'écran qui dise sur quoi il
+       porte ; et un bouton qui affiche « Histoire-Géographie » mais ramène à
+       « Ma page » demande à l'élève de deviner ce qu'il commande. -->
+  <div class="marque-bandeau">
+    <button type="button" id="bouton-accueil" class="lien-bandeau" aria-label="Revenir à ma page">
       <svg class="logo-marque logo-bandeau" aria-hidden="true" focusable="false"><use href="#glyphe-repere"/></svg>
-      <span id="bandeau-matiere">Repère</span>
-      <span class="marque-chevron" aria-hidden="true">⌄</span>
+      <span>Repère</span>
     </button>
-    <div class="menu-marque" id="menu-marque" role="menu" hidden>
-      <button type="button" class="menu-entree" role="menuitem" id="menu-espace">
-        <!-- Pas le même signe que la fiche : deux entrées identiques à l'œil
-             obligent à lire, et un menu se parcourt du regard. -->
-        <span class="menu-signe" aria-hidden="true">⌂</span>Ma page
-      </button>
-      <!-- Les deux archives sur une seule ligne : elles sont de même rang et
-           s'opposent l'une à l'autre. Empilées, elles allongeaient un menu de
-           quatre lignes où « Ma page » se perdait. Les noms raccourcissent pour
-           tenir à deux sur la largeur d'un téléphone — « Mes contrôles » ne
-           peut pas désigner autre chose ici. -->
-      <div class="menu-paire" role="none">
-        <button type="button" class="menu-entree menu-moitie" role="menuitem" id="menu-fiche">
-          <span class="menu-signe" aria-hidden="true">▤</span>Mes fiches
-        </button>
-        <button type="button" class="menu-entree menu-moitie" role="menuitem" id="menu-controle">
-          <span class="menu-signe" aria-hidden="true">✎</span>Mes contrôles
-        </button>
-      </div>
-      <button type="button" class="menu-entree" role="menuitem" id="menu-reprendre" hidden>
-        <span class="menu-signe" aria-hidden="true">↩</span>Reprendre où j’en étais
-      </button>
-    </div>
+    <span id="bandeau-matiere" class="bandeau-contexte" hidden></span>
   </div>
   <div class="bandeau-droite">
     <span id="bandeau-compte" class="compte-a-rebours"></span>
@@ -229,10 +217,11 @@
 <nav class="carcasse" id="carcasse" aria-label="Sections de ma page" hidden>
 
   <div class="carcasse-tete">
-    <p class="carcasse-marque">
+    <button type="button" class="carcasse-marque" id="carcasse-accueil"
+            aria-label="Revenir à ma page">
       <svg class="logo-marque" aria-hidden="true" focusable="false"><use href="#glyphe-repere"/></svg>
       <span>Repère</span>
-    </p>
+    </button>
     <button type="button" class="carcasse-fabrique" id="carcasse-photo">
       <svg class="carcasse-signe" aria-hidden="true" focusable="false"><use href="#glyphe-appareil"/></svg>
       Photographier un cours

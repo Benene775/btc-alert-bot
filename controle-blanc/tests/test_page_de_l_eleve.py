@@ -263,7 +263,7 @@ def test_le_bandeau_vide_ne_laisse_pas_une_rayure():
     """Sur la colonne de gauche, la marque vit dans la carcasse : sans séance en
     cours, le bandeau ne gardait qu'un filet de 21 px au-dessus de la page —
     mesuré dans un navigateur, pas supposé."""
-    assert "bandeau.dataset.vide = dansMaPage && !etat ? 'oui' : 'non';" in SCRIPT
+    assert "bandeau.dataset.vide = dansMaPage && rienAReprendre ? 'oui' : 'non';" in SCRIPT
     assert '#bandeau[data-vide="oui"] { display: none; }' in STYLE
 
 

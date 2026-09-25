@@ -892,16 +892,24 @@ function dessinerRail(sessions) {
 
   peindreCompteursDuRail();
 
-  // Reprendre : le cours le plus récemment travaillé. C'est la seule chose de
-  // la page qui réponde à « j'y étais, j'y retourne » sans avoir à chercher.
-  const dernier = [...sessions].sort((a, b) =>
+  // Reprendre. Une séance INTERROMPUE passe devant tout le reste : c'est ce
+  // qu'on vient chercher en rouvrant l'application, et elle dort dans le
+  // navigateur, donc « etat » ne la connaît pas encore. Sinon, le cours le plus
+  // récemment travaillé — la seule chose de la page qui réponde à « j'y étais,
+  // j'y retourne » sans avoir à chercher.
+  const endormie = laSeanceDuRetour();
+  const dernier = endormie || [...sessions].sort((a, b) =>
     String(b.creeLe).localeCompare(String(a.creeLe)))[0];
   const reprise = $('rail-reprise');
   reprise.hidden = !dernier;
   if (dernier) {
     $('rail-reprise-titre').textContent = titreDuCours(dernier);
-    $('rail-reprise-sous').textContent = sousLigneDuCours(dernier);
-    $('rail-reprise-porte').onclick = () => ouvrirSession(dernier.sessionId);
+    $('rail-reprise-sous').textContent = endormie
+      ? 'Séance laissée en route'
+      : sousLigneDuCours(dernier);
+    $('rail-reprise-porte').onclick = endormie
+      ? () => reprendreLaDerniere()
+      : () => ouvrirSession(dernier.sessionId);
   }
 }
 
@@ -3945,7 +3953,6 @@ function montrer(id, options = {}) {
   // La fiche du jour vit hors des écrans — sinon « position: fixed » se cale
   // sur la section, qui porte un transform. Elle ne se cache donc pas avec eux :
   // on la referme à la main en quittant sa page.
-  if ($('menu-marque') && !$('menu-marque').hidden) ouvrirMenuMarque(false);
   if (id === 'ecran-contexte') dessinerContexte();
   if (id === 'ecran-photos') {
     dessinerResumeContexte();
@@ -3992,17 +3999,27 @@ function majBandeau(idEcran) {
   // au-dessus d'un écran de 620.
   bandeau.dataset.large = ECRANS_LARGES.has(idEcran) ? 'oui' : 'non';
   const matiere = etat && (config.matieres.find((m) => m.cle === etat.matiere) || {}).nom;
-  $('bandeau-matiere').textContent = dansMaPage ? 'Repère' : (matiere || 'Repère');
+  // La matière s'écrit À CÔTÉ de la marque, pas dedans. Pendant un contrôle
+  // blanc, c'est le seul endroit de l'écran qui dise sur quoi il porte.
+  $('bandeau-matiere').textContent = dansMaPage ? '' : (matiere || '');
+  $('bandeau-matiere').hidden = dansMaPage || !matiere;
   $('bandeau-compte').textContent = etat ? texteCompteARebours() : '';
   $('bandeau-compte').hidden = dansMaPage || !etat || !etat.dateControle;
   // Depuis sa page, le rond ramène à la séance en cours.
+  // « Rien à reprendre » décide DEUX choses, et les deux doivent se décider
+  // ensemble : le rond disparaissait sur sa page quand « etat » était vide,
+  // alors qu'une séance pouvait dormir dans le navigateur — et le bandeau se
+  // repliait par-dessus, emportant le rond même quand il avait retrouvé un
+  // travail. Deux conditions jumelles écrites à deux endroits finissent
+  // toujours par diverger : il n'y en a plus qu'une.
+  const rienAReprendre = !etat && !laSeanceDuRetour();
   $('bouton-espace').dataset.retour = dansEspace ? 'oui' : 'non';
-  $('bouton-espace').hidden = dansEspace && !etat;
-  // Sur la colonne de gauche, la marque vit dans la carcasse : sans séance en
-  // cours, le bandeau n'a plus rien à montrer et ne laissait qu'un filet de
+  $('bouton-espace').hidden = dansEspace && rienAReprendre;
+  // Sur la colonne de gauche, la marque vit dans la carcasse : sans rien à
+  // reprendre, le bandeau n'a plus rien à montrer et ne laissait qu'un filet de
   // 21 px au-dessus de la page — mesuré, pas supposé. On le DIT à la feuille
   // de style plutôt que de lui faire deviner qu'un bandeau est vide.
-  bandeau.dataset.vide = dansMaPage && !etat ? 'oui' : 'non';
+  bandeau.dataset.vide = dansMaPage && rienAReprendre ? 'oui' : 'non';
   dessinerRonds();
 }
 
@@ -4446,67 +4463,27 @@ function armerApplication() {
   rafraichirBandeauInstall();
 }
 
-/* --- Le menu de la marque ------------------------------------------------
+/* --- La marque ramène chez soi -------------------------------------------
  *
- * Depuis n'importe quel écran, l'élève doit pouvoir rejoindre sa page, lancer
- * un contrôle blanc ou une fiche. Sans ça il fallait repasser par sa page —
- * et savoir que c'était par là, ce qui n'est écrit nulle part.
+ * Elle a ouvert un menu de quatre entrées — ma page, mes fiches, mes contrôles,
+ * reprendre. C'était le seul chemin de retour du temps où la page perso était
+ * un damier de tuiles : rien d'autre ne menait nulle part, et il fallait savoir
+ * que c'était par là, ce qui n'était écrit nulle part.
  *
- * Les entrées qui ne mènent à rien ne s'affichent pas : proposer un contrôle
- * blanc à qui n'a pas encore photographié de cours ouvrirait un atelier vide,
- * et l'élève chercherait ce qu'il a mal fait.
+ * La carcasse porte ces destinations maintenant, et ne disparaît plus. Le menu
+ * ne faisait donc que redire ce qui est déjà à l'écran, en demandant deux
+ * gestes pour celui qu'on fait dix fois par jour. Un mot de marque en tête de
+ * page ramène à l'accueil — c'est vrai de tous les sites, et c'est ce qu'un
+ * élève essaie en premier.
+ *
+ * Où sont passées les trois autres entrées : « Mes fiches » et « Mes
+ * contrôles » sont dans la carcasse, qui vit sur sa page et sur l'écran d'une
+ * matière ; « Reprendre où j'en étais » est sur l'accueil, dans le rail de sa
+ * page, et sous le rond du bandeau, qui ramène à la séance en cours.
  */
-function ouvrirMenuMarque(ouvre) {
-  const menu = $('menu-marque');
-  const bouton = $('bouton-accueil');
-  const veut = ouvre === undefined ? menu.hidden : ouvre;
-  if (veut) {
-    // Ces deux entrées mènent à ce que l'élève a déjà fait : elles n'ont donc
-    // de sens que s'il a déjà quelque chose. Fabriquer se fait depuis sa page,
-    // où les plafonds du mois sont affichés à côté du bouton — un menu de
-    // navigation n'est pas le bon endroit pour dépenser.
-    const faites = sessionsFaites();
-    $('menu-controle').hidden = tousLesControles(faites).length === 0;
-    $('menu-fiche').hidden = toutesLesFiches(faites).length === 0;
-    // « Reprendre » n'a de sens qu'avec une séance en cours, et pas quand on y
-    // est déjà : le proposer là ferait un aller-retour sur place.
-    $('menu-reprendre').hidden = !laSeanceDuRetour() || ecranVisible() === 'ecran-reprise';
-  }
-  menu.hidden = !veut;
-  bouton.setAttribute('aria-expanded', String(veut));
-  if (veut) {
-    const premiere = menu.querySelector('.menu-entree:not([hidden])');
-    if (premiere) premiere.focus();
-  }
-}
-
 function ecranVisible() {
   const ouvert = [...document.querySelectorAll('.ecran')].find((e) => !e.hidden);
   return ouvert ? ouvert.id : '';
-}
-
-function armerMenuMarque() {
-  const menu = $('menu-marque');
-  $('bouton-accueil').onclick = (evenement) => {
-    evenement.stopPropagation();
-    ouvrirMenuMarque();
-  };
-  $('menu-espace').onclick = () => { ouvrirMenuMarque(false); ouvrirEspace(); };
-  $('menu-controle').onclick = () => { ouvrirMenuMarque(false); ouvrirMatiere(null, 'controles'); };
-  $('menu-fiche').onclick = () => { ouvrirMenuMarque(false); ouvrirMatiere(null, 'fiches'); };
-  $('menu-reprendre').onclick = () => { ouvrirMenuMarque(false); reprendreLaDerniere(); };
-
-  // Un menu qu'on ne peut pas refermer sans choisir est un piège : cliquer à
-  // côté et Échap doivent tous les deux marcher.
-  document.addEventListener('click', (evenement) => {
-    if (!menu.hidden && !menu.contains(evenement.target)) ouvrirMenuMarque(false);
-  });
-  document.addEventListener('keydown', (evenement) => {
-    if (evenement.key === 'Escape' && !menu.hidden) {
-      ouvrirMenuMarque(false);
-      $('bouton-accueil').focus();
-    }
-  });
 }
 
 function reprendre() {
@@ -7403,8 +7380,16 @@ document.addEventListener('DOMContentLoaded', () => {
   $('bouton-effacer-compte').onclick = () => effacerLeCompte();
   $('bouton-espace').onclick = () => {
     if (document.getElementById('ecran-espace').hidden) return ouvrirEspace();
-    if (etat) reprendre();
+    // À froid — après avoir fermé l'application et rouvert — « etat » est vide
+    // et la séance dort dans le navigateur. C'est précisément le moment où
+    // reprendre doit marcher : c'est l'élève qui revient le lendemain.
+    if (etat) return reprendre();
+    if (laSeanceDuRetour()) reprendreLaDerniere();
   };
+  // Les deux marques — celle du bandeau et celle de la colonne — ramènent au
+  // même endroit. C'est le geste que tout le monde essaie en premier.
+  $('bouton-accueil').onclick = () => ouvrirEspace();
+  $('carcasse-accueil').onclick = () => ouvrirEspace();
   $('bouton-retour').onclick = () => revenir();
   armerLeGlissementDeRetour();
   armerLeRetourDuSysteme();
@@ -7544,7 +7529,6 @@ document.addEventListener('DOMContentLoaded', () => {
   $('bouton-plus-de-photos').onclick = () => montrer('ecran-photos');
 
   $('bouton-correction-accueil').onclick = reprendre;
-  armerMenuMarque();
   armerApplication();
   armerClavierPaquet();
 

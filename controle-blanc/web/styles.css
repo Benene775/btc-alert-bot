@@ -349,85 +349,37 @@ body {
    bord gauche pendant que le texte est au milieu. */
 #bandeau > * { position: relative; }
 
-/* Le menu de la marque. Ancré sous le bouton, pas sur la fenêtre : le bandeau
-   est « sticky », donc un position: fixed se calerait ailleurs qu'on ne croit. */
-.marque-menu { position: relative; }
-
-.marque-chevron {
-  font-size: .8em;
-  opacity: .55;
-  transition: transform .18s ease;
-}
-
-#bouton-accueil[aria-expanded="true"] .marque-chevron { transform: rotate(180deg); }
-
-.menu-marque {
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 0;
-  z-index: 20;
-  min-width: 210px;
-  display: flex;
-  flex-direction: column;
-  padding: 6px;
-  border: 1px solid var(--trait);
-  border-radius: var(--rayon);
-  background: var(--carte);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, .13);
-}
-
-.menu-entree {
+/* La marque et, à côté, ce sur quoi on travaille. Le mot de marque est une
+   porte — il ramène à sa page — et la matière est une étiquette : elle dit où
+   l'on est, elle ne se clique pas. Les confondre donnait un bouton qui affiche
+   « Histoire-Géographie » et mène à « Ma page ». */
+.marque-bandeau {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 12px;
-  border: 0;
-  border-radius: 10px;
-  background: none;
-  font: inherit;
-  font-size: .95rem;
-  color: inherit;
-  text-align: left;
-  cursor: pointer;
+  min-width: 0;
 }
 
-.menu-entree:hover,
-.menu-entree:focus-visible { background: var(--accent-doux); color: var(--accent); }
-
-/* Les deux archives se partagent une ligne : deux moitiés égales disent qu'on
-   choisit l'une OU l'autre, là où deux lignes empilées les faisaient lire comme
-   deux étapes. */
-.menu-paire {
-  display: flex;
-  gap: 4px;
-}
-
-/* « flex: 1 1 0 » pour que les deux fassent la même largeur — deux largeurs de
-   texte diraient que l'une compte plus que l'autre. « min-width: max-content »
-   pour qu'aucune ne descende sous son libellé : la base nulle, seule, faisait
-   passer « Mes contrôles » à la ligne. Et comme une moitié cachée n'est plus un
-   élément flexible, celle qui reste prend toute la ligne au lieu de flotter sur
-   la moitié gauche. */
-.menu-moitie {
-  flex: 1 1 0;
-  min-width: max-content;
-  gap: 7px;
-  padding-inline: 10px;
-  font-size: .88rem;
+.bandeau-contexte {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
+  font-family: var(--utilitaire);
+  font-size: .78rem;
+  color: var(--encre-douce);
 }
 
-.menu-moitie .menu-signe { width: auto; }
-
-.menu-signe {
-  width: 22px;
-  font-family: var(--titre);
-  color: var(--accent);
-  text-align: center;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .marque-chevron { transition: none; }
+/* Le filet qui la sépare de la marque : sans lui, « Repère Histoire-Géo » se
+   lit comme un seul titre, et la porte disparaît dans l'étiquette. */
+.bandeau-contexte::before {
+  content: "";
+  display: inline-block;
+  width: 1px;
+  height: .9em;
+  margin-right: 10px;
+  vertical-align: -.1em;
+  background: var(--trait-fort);
 }
 
 @media (min-width: 660px) {
@@ -3895,7 +3847,13 @@ h1 {
     display: flex;
     align-items: center;
     gap: 8px;
+    width: 100%;
     margin: 0 0 14px;
+    padding: 4px 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    text-align: left;
     font-family: var(--utilitaire);
     font-size: .74rem;
     font-weight: 700;
@@ -4042,8 +4000,8 @@ h1 {
   /* La marque est dans la colonne : la redire dans le bandeau, c'est deux fois
      le même mot à 30 px d'écart. Le rond et le compte à rebours restent — ils
      ramènent à une séance en cours, ce que la colonne ne fait pas. */
-  html[data-ecran="espace"] #bandeau .marque-menu,
-  html[data-ecran="matiere"] #bandeau .marque-menu { display: none; }
+  html[data-ecran="espace"] #bandeau .marque-bandeau,
+  html[data-ecran="matiere"] #bandeau .marque-bandeau { display: none; }
 
   /* Et s'il ne reste rien dedans, il s'en va : un filet de 21 px au-dessus de
      la page n'est pas un bandeau, c'est une rayure. */

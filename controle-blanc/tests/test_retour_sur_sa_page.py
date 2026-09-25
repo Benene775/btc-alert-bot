@@ -59,17 +59,40 @@ def test_reprendre_marche_a_froid():
     assert "lirePages(etat.sessionId)" in bloc, "les photos du cours doivent revenir aussi"
 
 
-def test_le_menu_voit_la_seance_endormie():
-    bloc = SCRIPT[SCRIPT.index("function ouvrirMenuMarque"):]
-    bloc = bloc[: bloc.index("\n}\n")]
-    assert "!laSeanceDuRetour()" in bloc, "le menu ne doit plus se régler sur « etat » seul"
+def test_sa_page_voit_la_seance_endormie():
+    """Une séance laissée en route dort dans le navigateur : à la réouverture,
+    « etat » est vide. C'est précisément le moment où reprendre doit marcher —
+    c'est l'élève qui revient le lendemain.
+
+    Le menu de la marque le portait ; il est parti, et deux portes l'ont repris
+    sur sa page : le rond du bandeau, visible partout, et le rail.
+    """
+    rond = SCRIPT[SCRIPT.index("$('bouton-espace').onclick"):]
+    rond = rond[: rond.index("\n  };")]
+    assert "laSeanceDuRetour()" in rond, "le rond se règle encore sur « etat » seul"
+    assert "reprendreLaDerniere()" in rond
+    # Et il ne se cache plus quand la séance dort : un rond absent, c'est une
+    # porte absente.
+    assert "const rienAReprendre = !etat && !laSeanceDuRetour();" in SCRIPT
+    assert "hidden = dansEspace && rienAReprendre;" in SCRIPT
+    # Le bandeau se replie sur la MÊME condition : replié sur une autre, il
+    # emportait le rond avec lui alors qu'il venait de retrouver un travail.
+    assert "bandeau.dataset.vide = dansMaPage && rienAReprendre" in SCRIPT
+
+    rail = SCRIPT[SCRIPT.index("function dessinerRail"):]
+    rail = rail[: rail.index("\n}\n")]
+    assert "const endormie = laSeanceDuRetour();" in rail
+    assert "Séance laissée en route" in rail
 
 
-def test_les_deux_portes_mènent_au_meme_endroit():
-    """Le bouton de l'accueil et l'entrée du menu faisaient deux choses
-    différentes : l'un relisait le navigateur, l'autre non."""
+def test_les_portes_de_reprise_menent_au_meme_endroit():
+    """Le bouton de l'accueil et celui de sa page doivent faire la même chose :
+    l'un relisait le navigateur, l'autre non, et l'élève tombait sur une séance
+    vide selon la porte qu'il avait poussée."""
     assert "$('bouton-reprendre').onclick = () => reprendreLaDerniere();" in SCRIPT
-    assert "ouvrirMenuMarque(false); reprendreLaDerniere();" in SCRIPT
+    assert SCRIPT.count("reprendreLaDerniere()") >= 3, (
+        "l'accueil, le rond et le rail mènent tous les trois à la même reprise"
+    )
 
 
 def test_la_page_perso_vide_n_est_pas_un_cul_de_sac():
